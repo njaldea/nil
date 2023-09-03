@@ -1,0 +1,14 @@
+{
+  "editor.fontLigatures": true,
+  "editor.maxTokenizationLineLength": 2500,
+  "explorer.fileNesting.expand": true,
+  "explorer.fileNesting.patterns": {
+    "README.md": ".clang-format, .env, .gitignore, vcpkg.json, .prettier*"
+  },
+  "editor.inlayHints.enabled": "offUnlessPressed",
+  "[cpp]": {
+    "editor.defaultFormatter": "xaver.clang-format",
+    "editor.formatOnSave": true
+  },
+  "clang-format.executable": "clang-format-18"
+}
