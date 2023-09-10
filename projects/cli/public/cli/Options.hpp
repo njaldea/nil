@@ -1,8 +1,10 @@
 #pragma once
 
-#include <memory>
+#include "types.hpp"
 
-#include "Builder.hpp"
+#include <memory>
+#include <string>
+#include <vector>
 
 namespace nil::cli
 {
@@ -14,7 +16,7 @@ namespace nil::cli
         Options(
             const OptionInfo& info,
             std::string usage,
-            const std::vector<std::unique_ptr<Node>>& subnodes,
+            const SubNodes& subnodes,
             int argc,
             const char** argv
         );
@@ -26,24 +28,6 @@ namespace nil::cli
          * @param os
          */
         void help(std::ostream& os) const;
-
-        /**
-         * @brief Access the value from parsed arguments.
-         *  Expected to be used for options registered using Builder::param
-         *
-         * @param lkey          registered long key
-         * @return std::string
-         */
-        std::string param(const std::string& lkey) const;
-
-        /**
-         * @brief Access the value from parsed arguments.
-         *  Expected to be used for options registered using Builder::params
-         *
-         * @param lkey                      registered long key
-         * @return std::vector<std::string>
-         */
-        std::vector<std::string> params(const std::string& lkey) const;
 
         /**
          * @brief Access the value from parsed arguments.
@@ -62,6 +46,24 @@ namespace nil::cli
          * @return int
          */
         int number(const std::string& lkey) const;
+
+        /**
+         * @brief Access the value from parsed arguments.
+         *  Expected to be used for options registered using Builder::param
+         *
+         * @param lkey          registered long key
+         * @return std::string
+         */
+        std::string param(const std::string& lkey) const;
+
+        /**
+         * @brief Access the value from parsed arguments.
+         *  Expected to be used for options registered using Builder::params
+         *
+         * @param lkey                      registered long key
+         * @return std::vector<std::string>
+         */
+        std::vector<std::string> params(const std::string& lkey) const;
 
     private:
         struct Impl;

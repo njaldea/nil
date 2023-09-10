@@ -11,6 +11,7 @@ set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
 set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_compile_options(-fno-rtti)
 add_compile_options(-flto)
 add_compile_options(-Werror)
 add_compile_options(-Wall)

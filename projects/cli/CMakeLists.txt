@@ -4,9 +4,9 @@ set(
     HEADERS
         public/cli/conf.hpp
         public/cli/Builder.hpp
-        public/cli/Command.hpp
         public/cli/Node.hpp
         public/cli/Options.hpp
+        public/cli/types.hpp
         src/common.hpp
 )
 

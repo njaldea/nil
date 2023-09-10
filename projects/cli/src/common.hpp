@@ -3,7 +3,6 @@
 #include <cli/Builder.hpp>
 
 #include <boost/program_options/options_description.hpp>
-#include <iostream>
 
 namespace nil::cli
 {

@@ -1,7 +1,7 @@
-#include <cli/Node.hpp>
 #include <cli/Options.hpp>
 
 #include "common.hpp"
+#include <cli/Node.hpp>
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -13,6 +13,22 @@
 
 namespace nil::cli
 {
+    namespace
+    {
+        template <typename K, typename C>
+        auto access(const K& k, const C& c)
+        {
+            try
+            {
+                return c();
+            }
+            catch (const std::exception& e)
+            {
+                throw std::runtime_error("invalid access for key: [" + k + "]");
+            }
+        }
+    }
+
     struct Options::Impl
     {
         Impl(std::string usage)
@@ -24,13 +40,13 @@ namespace nil::cli
         std::string usage;
         boost::program_options::options_description desc;
         boost::program_options::variables_map vm;
-        std::optional<std::string> sub;
+        std::vector<std::tuple<std::string, std::string>> sub;
     };
 
     Options::Options(
         const OptionInfo& info,
         std::string usage,
-        const std::vector<std::unique_ptr<Node>>& subnodes,
+        const SubNodes& subnodes,
         int argc,
         const char** argv
     )
@@ -55,24 +71,14 @@ namespace nil::cli
                 .positional(positional);
 
             boost::program_options::store(parser.run(), mImpl->vm);
-            boost::program_options::notify(mImpl->vm);
         }
         catch (const std::exception& ex)
         {
             throw std::runtime_error(ex.what());
         }
-
-        if (!subnodes.empty())
+        for (const auto& node : subnodes)
         {
-            std::ostringstream oss;
-            oss << "SUBCOMMANDS:\n";
-            for (const auto& node : subnodes)
-            {
-                oss << " >  " << std::left << std::setw(15) //
-                    << node->name() << "    "               //
-                    << node->description() << "\n";
-            }
-            mImpl->sub = oss.str();
+            mImpl->sub.emplace_back(std::make_tuple(std::get<0>(node), std::get<1>(node)));
         }
     }
 
@@ -84,60 +90,57 @@ namespace nil::cli
         {
             os << mImpl->usage << '\n';
         }
+
         mImpl->desc.print(os);
-        if (mImpl->sub)
-        {
-            os << '\n';
-            os << mImpl->sub.value();
-            os << '\n';
-        }
-    }
 
-    std::string Options::param(const std::string& lkey) const
-    {
-        try
+        if (!mImpl->sub.empty())
         {
-            return mImpl->vm[lkey].as<std::string>();
-        }
-        catch (const std::exception& e)
-        {
-            throw std::runtime_error("invalid access for key: [" + lkey + "]");
-        }
-    }
-
-    std::vector<std::string> Options::params(const std::string& lkey) const
-    {
-        try
-        {
-            return mImpl->vm[lkey].as<std::vector<std::string>>();
-        }
-        catch (const std::exception& e)
-        {
-            throw std::runtime_error("invalid access for key: [" + lkey + "]");
+            os << "\nSUBCOMMANDS:\n";
+            const auto width = mImpl->desc.get_option_column_width();
+            for (const auto& [key, desc] : mImpl->sub)
+            {
+                os << "  "                      //
+                   << std::left                 //
+                   << std::setw(int(width - 2)) //
+                   << key;
+                // iterate per character.
+                // add padding when newline is found.
+                // expensive but idc since this is not a hot path.
+                for (const auto& c : desc)
+                {
+                    if (c == '\n')
+                    {
+                        os << std::setw(int(width));
+                    }
+                    os << c;
+                }
+                os << '\n';
+            }
+            os << '\n';
         }
     }
 
     bool Options::flag(const std::string& lkey) const
     {
-        try
-        {
-            return mImpl->vm[lkey].as<bool>();
-        }
-        catch (const std::exception& e)
-        {
-            throw std::runtime_error("invalid access for key: [" + lkey + "]");
-        }
+        using T = bool;
+        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
     }
 
     int Options::number(const std::string& lkey) const
     {
-        try
-        {
-            return mImpl->vm[lkey].as<int>();
-        }
-        catch (const std::exception& e)
-        {
-            throw std::runtime_error("invalid access for key: [" + lkey + "]");
-        }
+        using T = int;
+        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+    }
+
+    std::string Options::param(const std::string& lkey) const
+    {
+        using T = std::string;
+        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+    }
+
+    std::vector<std::string> Options::params(const std::string& lkey) const
+    {
+        using T = std::vector<std::string>;
+        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
     }
 }

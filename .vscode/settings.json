@@ -3,7 +3,8 @@
   "editor.maxTokenizationLineLength": 2500,
   "explorer.fileNesting.expand": true,
   "explorer.fileNesting.patterns": {
-    "README.md": ".clang-format, .env, .gitignore, vcpkg.json, .prettier*"
+    "README.md": ".clang-format, .env, .gitignore, vcpkg.json, .prettier*",
+    "CMakeLists.txt": "CMakePresets.json, configure"
   },
   "editor.inlayHints.enabled": "offUnlessPressed",
   "[cpp]": {

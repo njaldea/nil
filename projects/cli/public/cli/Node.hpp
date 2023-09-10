@@ -1,15 +1,13 @@
 #pragma once
 
-#include <map>
-#include <memory>
-#include <ostream>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "Builder.hpp"
-#include "Command.hpp"
-#include "Options.hpp"
+#include "types.hpp"
+
+#include <memory>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
 
 namespace nil::cli
 {
@@ -20,10 +18,10 @@ namespace nil::cli
         static Node root()
         {
             static_assert(std::is_base_of_v<Command, T>, "T must inherit from nil::cli::Command");
-            return Node("", std::make_unique<T>());
+            return Node(std::make_unique<T>());
         }
 
-        Node(std::string name, std::unique_ptr<Command> command);
+        Node(std::unique_ptr<Command> command);
         ~Node();
 
         Node(const Node&) = delete;
@@ -32,22 +30,19 @@ namespace nil::cli
         Node& operator=(Node&&) = delete;
 
         template <typename T>
-        Node& add(std::string key)
+        Node& add(std::string key, std::string description)
         {
             static_assert(std::is_base_of_v<Command, T>, "T must inherit from nil::cli::Command");
-            return add(std::move(key), std::make_unique<T>());
+            return add(std::move(key), std::move(description), std::make_unique<T>());
         }
 
         int run(int argc, const char** argv) const;
 
-        std::string name() const;
-        std::string description() const;
-
     private:
-        struct Impl;
-        std::unique_ptr<Impl> mImpl;
+        std::unique_ptr<Command> mCommand;
+        SubNodes mSubNodes;
 
-        Node& add(std::string key, std::unique_ptr<Command> command);
+        Node& add(std::string key, std::string description, std::unique_ptr<Command> command);
         const Node* find(std::string_view name) const;
     };
 }

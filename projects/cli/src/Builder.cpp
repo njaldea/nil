@@ -1,9 +1,7 @@
 #include <cli/Builder.hpp>
+#include <cli/types.hpp>
 
 #include "common.hpp"
-
-#include <optional>
-#include <string>
 
 namespace nil::cli
 {

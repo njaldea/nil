@@ -9,11 +9,6 @@ struct Command: nil::cli::Command
         return " >  <binary> [OPTIONS...]";
     }
 
-    std::string description() const override
-    {
-        return "some description for sub commands: " + std::to_string(V);
-    }
-
     nil::cli::OptionInfo options() const override
     {
         // clang-format off
@@ -52,9 +47,9 @@ struct Command: nil::cli::Command
 int main(int argc, const char** argv)
 {
     auto root = nil::cli::Node::root<Command<0>>();
-    root.add<Command<1>>("hello") //
-        .add<Command<2>>("world");
-    root.add<Command<3>>("another") //
-        .add<Command<4>>("dimension");
+    root.add<Command<1>>("hello", "command for 1:hello") //
+        .add<Command<2>>("world", "command for 2:world");
+    root.add<Command<3>>("another", "command for 3:another") //
+        .add<Command<4>>("dimension", "command for 4:dimension");
     return root.run(argc, argv);
 }

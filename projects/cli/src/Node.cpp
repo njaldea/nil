@@ -1,28 +1,12 @@
 #include <cli/Node.hpp>
 
+#include <cli/Options.hpp>
+#include <cli/types.hpp>
+
 namespace nil::cli
 {
-    struct Node::Impl final
-    {
-        Impl(std::string name, std::unique_ptr<Command> command)
-            : name(std::move(name))
-            , command(std::move(command))
-        {
-        }
-
-        int run(int argc, const char** argv, const std::vector<std::unique_ptr<Node>>& subnodes)
-        {
-            Options options(command->options(), command->usage(), subnodes, argc, argv);
-            return command->run(options);
-        }
-
-        std::string name;
-        std::unique_ptr<Command> command;
-        std::vector<std::unique_ptr<Node>> subnodes;
-    };
-
-    Node::Node(std::string name, std::unique_ptr<Command> command)
-        : mImpl(std::make_unique<Impl>(std::move(name), std::move(command)))
+    Node::Node(std::unique_ptr<Command> command)
+        : mCommand(std::move(command))
     {
     }
 
@@ -38,41 +22,36 @@ namespace nil::cli
             }
         }
 
-        return mImpl->run(argc, argv, mImpl->subnodes);
+        Options options(mCommand->options(), mCommand->usage(), mSubNodes, argc, argv);
+        return mCommand->run(options);
     }
 
-    std::string Node::name() const
-    {
-        return mImpl->name;
-    }
-
-    std::string Node::description() const
-    {
-        return mImpl->command->description();
-    }
-
-    Node& Node::add(std::string key, std::unique_ptr<Command> command)
+    Node& Node::add(std::string key, std::string description, std::unique_ptr<Command> command)
     {
         if (find(key) != nullptr)
         {
             throw std::runtime_error("node already exists: " + key);
         }
 
-        mImpl->subnodes.emplace_back(std::make_unique<Node>(std::move(key), std::move(command)));
-        return *mImpl->subnodes.back();
+        mSubNodes.emplace_back(std::make_tuple(
+            std::move(key),
+            std::move(description),
+            std::make_unique<Node>(std::move(command))
+        ));
+        return *std::get<2>(mSubNodes.back());
     }
 
     const Node* Node::find(std::string_view name) const
     {
         auto result = std::find_if(
-            std::begin(mImpl->subnodes),
-            std::end(mImpl->subnodes),
-            [&](const auto& subnode) { return subnode->name() == name; }
+            std::begin(mSubNodes),
+            std::end(mSubNodes),
+            [&](const auto& subnode) { return std::get<0>(subnode) == name; }
         );
 
-        if (result != std::end(mImpl->subnodes))
+        if (result != std::end(mSubNodes))
         {
-            return result->get();
+            return std::get<2>(*result).get();
         }
         return nullptr;
     }

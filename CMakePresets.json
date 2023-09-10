@@ -1,0 +1,18 @@
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+      "major": 3,
+      "minor": 27,
+      "patch": 4
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "displayName": "Default Config",
+            "description": "Default",
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/.build/default",
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        }
+    ]
+}

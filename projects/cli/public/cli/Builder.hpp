@@ -1,24 +1,17 @@
 #pragma once
 
+#include "conf.hpp"
+#include "types.hpp"
+
 #include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include "conf.hpp"
-
 namespace nil::cli
 {
-    struct IOption
-    {
-        struct Impl;
-        virtual ~IOption() = default;
-        virtual void apply(const Impl& impl) const = 0;
-    };
 
-    using OptionInfo = std::vector<std::unique_ptr<IOption>>;
-
-    class Builder
+    class Builder final
     {
     public:
         /**

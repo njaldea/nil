@@ -5,7 +5,7 @@
 
 namespace nil::cli::conf
 {
-    struct Flag
+    struct Flag final
     {
         /**
          * @brief Short Key - Alias
@@ -18,7 +18,7 @@ namespace nil::cli::conf
         std::optional<std::string> msg = {};
     };
 
-    struct Number
+    struct Number final
     {
         /**
          * @brief Short Key - Alias
@@ -41,7 +41,7 @@ namespace nil::cli::conf
         int implicit = 1;
     };
 
-    struct Param
+    struct Param final
     {
         /**
          * @brief Short Key - Alias
@@ -59,7 +59,7 @@ namespace nil::cli::conf
         std::optional<std::string> fallback = {};
     };
 
-    struct Params
+    struct Params final
     {
         /**
          * @brief Short Key - Alias
