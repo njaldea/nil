@@ -1,3 +1,3 @@
-message(STATUS VCPKG = [$ENV{VCPKG_ROOT}])
+message(STATUS VCPKG_ROOT = [$ENV{VCPKG_ROOT}])
 
 set(VCPKG_INSTALLED_DIR ${CMAKE_SOURCE_DIR}/.vcpkg_install)

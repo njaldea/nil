@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
-VCPKG_ROOT=/home/njla/repo/vcpkg cmake . --preset default
-cd .build/default
+# make sure VCPKG_ROOT is set
+
+cmake . --preset default
+cd .build
