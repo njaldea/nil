@@ -52,7 +52,7 @@ This class provides a way to access the parsed options. Methods mainly reflects 
 ## Example
 
 ```cpp
-#include <cli/cli.hpp>
+#include <nil/cli.hpp>
 
 #include <iostream>
 

@@ -1,7 +1,7 @@
-#include <cli/Node.hpp>
+#include <nil/cli/Node.hpp>
 
-#include <cli/Options.hpp>
-#include <cli/types.hpp>
+#include <nil/cli/Options.hpp>
+#include <nil/cli/types.hpp>
 
 namespace nil::cli
 {

@@ -1,7 +1,7 @@
-#include <cli/Options.hpp>
+#include <nil/cli/Options.hpp>
 
 #include "common.hpp"
-#include <cli/Node.hpp>
+#include <nil/cli/Node.hpp>
 
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
