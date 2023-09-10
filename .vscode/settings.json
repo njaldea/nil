@@ -3,7 +3,7 @@
   "editor.maxTokenizationLineLength": 2500,
   "explorer.fileNesting.expand": true,
   "explorer.fileNesting.patterns": {
-    "README.md": ".clang-format, .gitignore, .prettier*",
+    "README.md": ".clang-format, .gitignore, .prettier*, LICENSE",
     "vcpkg.json": "vcpkg-configuration.json",
     "CMakeLists.txt": "CMakePresets.json, configure, .env"
   },
