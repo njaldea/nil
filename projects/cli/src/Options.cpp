@@ -1,6 +1,8 @@
 #include <cli/Node.hpp>
 #include <cli/Options.hpp>
 
+#include "common.hpp"
+
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/parsers.hpp>
 #include <boost/program_options/positional_options.hpp>
@@ -11,11 +13,6 @@
 
 namespace nil::cli
 {
-    struct IOption::Impl
-    {
-        boost::program_options::options_description_easy_init& ex;
-    };
-
     struct Options::Impl
     {
         Impl(std::string usage)
@@ -132,16 +129,11 @@ namespace nil::cli
         }
     }
 
-    std::size_t Options::counter(const std::string& lkey) const
+    int Options::number(const std::string& lkey) const
     {
         try
         {
-            std::size_t count = 0;
-            for (const auto& v : mImpl->vm[lkey].as<std::vector<std::size_t>>())
-            {
-                count += v;
-            }
-            return count;
+            return mImpl->vm[lkey].as<int>();
         }
         catch (const std::exception& e)
         {

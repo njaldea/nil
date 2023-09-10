@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "conf.hpp"
+
 namespace nil::cli
 {
     struct IOption
@@ -18,59 +20,38 @@ namespace nil::cli
 
     class Builder
     {
-    private:
-        friend struct Options;
-
     public:
-        Builder();
-
         /**
          * @brief Register a flag option.
          *  during runtime, if flag is not provided, the default value is false.
          *  only expects that user to provide one instance of the flag.
          *
-         * @param msg           message for help
          * @param lkey          long key
-         * @param skey          short key
+         * @param options       optional data
          * @return Builder&     self
          */
-        Builder& flag(std::string msg, std::string lkey, std::optional<char> skey = {});
+        Builder& flag(std::string lkey, conf::Flag options = {});
 
         /**
-         * @brief Register a counter option
-         *  the default value of the counter is zero.
-         *  every argument of counter will increment the value by one.
-         *  if a value is provided after the argument, that value will added to the current value.
+         * @brief Register a number option
+         *  the default value is zero.
          *
-         *               = 0
-         *  -a           = 1
-         *  -aaa         = 3
-         *  -a -a 2 -a 5 = 8
-         *
-         * @param msg           message for help
          * @param lkey          long key
-         * @param skey          short key
+         * @param options       optional data
          * @return Builder&     self
          */
-        Builder& counter(std::string msg, std::string lkey, std::optional<char> skey = {});
+        Builder& number(std::string lkey, conf::Number options = {});
 
         /**
          * @brief Register a param option.
          *  if fallback is not provided, this option is going to be required.
          *  only expects that user to provide one instance of the option.
          *
-         * @param msg           message for help
          * @param lkey          long key
-         * @param skey          short key
-         * @param fallback      default value when not provided
+         * @param options       optional data
          * @return Builder&     self
          */
-        Builder& param(
-            std::string msg,
-            std::string lkey,
-            std::optional<char> skey = {},
-            std::optional<std::string> fallback = {}
-        );
+        Builder& param(std::string lkey, conf::Param options = {});
 
         /**
          * @brief Register a collection of param option
@@ -80,12 +61,11 @@ namespace nil::cli
          *  -a aaa -a bbb = ["aaa", "bbb"]
          *  -a aaa bbb    = ["aaa", "bbb"]
          *
-         * @param msg           message for help
          * @param lkey          long key
-         * @param skey          short key
+         * @param options       optional data
          * @return Builder&     self
          */
-        Builder& params(std::string msg, std::string lkey, std::optional<char> skey = {});
+        Builder& params(std::string lkey, conf::Params options = {});
 
         /**
          * @brief Finalize the OptionInfo.

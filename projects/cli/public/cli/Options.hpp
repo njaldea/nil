@@ -56,12 +56,12 @@ namespace nil::cli
 
         /**
          * @brief Access the value from parsed arguments.
-         *  Expected to be used for options registered using Builder::counter
+         *  Expected to be used for options registered using Builder::number
          *
          * @param lkey          registered long key
-         * @return std::size_t
+         * @return int
          */
-        std::size_t counter(const std::string& lkey) const;
+        int number(const std::string& lkey) const;
 
     private:
         struct Impl;

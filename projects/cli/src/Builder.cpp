@@ -1,171 +1,137 @@
 #include <cli/Builder.hpp>
 
-#include <boost/program_options/options_description.hpp>
+#include "common.hpp"
 
 #include <optional>
 #include <string>
 
 namespace nil::cli
 {
-    struct IOption::Impl
-    {
-        boost::program_options::options_description_easy_init& ex;
-    };
-
-    template <typename T, typename... Args>
-    auto make_ptr(Args&&... args)
-    {
-        return std::make_shared<T>(std::forward<Args>(args)...);
-    }
-
-    Builder::Builder()
-        : mInfo{}
-    {
-    }
-
-    Builder& Builder::flag(std::string msg, std::string lkey, std::optional<char> skey)
+    Builder& Builder::flag(std::string lkey, conf::Flag options)
     {
         class Option final: public IOption
         {
         public:
-            Option(std::string msg, std::string lkey, std::optional<char> skey)
-                : mMsg(std::move(msg))
-                , mLKey(std::move(lkey))
-                , mSKey(std::move(skey))
+            Option(std::string lkey, conf::Flag options)
+                : mLKey(std::move(lkey))
+                , mOptions(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mSKey ? (mLKey + ',' + *mSKey) : mLKey;
-                impl.ex(
-                    opt.c_str(),
-                    boost::program_options::value<bool>()->zero_tokens()->default_value(false),
-                    mMsg.c_str()
-                );
+                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                auto value = boost::program_options::value<bool>();
+                value->zero_tokens();
+                value->default_value(false);
+                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
             }
 
         private:
-            std::string mMsg;
             std::string mLKey;
-            std::optional<char> mSKey;
+            conf::Flag mOptions;
         };
 
-        mInfo.push_back(make_ptr<Option>(std::move(msg), std::move(lkey), std::move(skey)));
+        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
-    Builder& Builder::counter(std::string msg, std::string lkey, std::optional<char> skey)
+    Builder& Builder::number(std::string lkey, conf::Number options)
     {
         class Option final: public IOption
         {
         public:
-            Option(std::string msg, std::string lkey, std::optional<char> skey)
-                : mMsg(std::move(msg))
-                , mLKey(std::move(lkey))
-                , mSKey(std::move(skey))
+            Option(std::string lkey, conf::Number options)
+                : mLKey(std::move(lkey))
+                , mOptions(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mSKey ? (mLKey + ',' + *mSKey) : mLKey;
-                auto value = boost::program_options::value<std::vector<std::size_t>>();
-                value->implicit_value({1u}, "");
-                value->default_value({}, "0");
-                impl.ex(opt.c_str(), value, mMsg.c_str());
+                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                auto value = boost::program_options::value<int>();
+                value->value_name("value");
+                value->implicit_value(mOptions.implicit, std::to_string(mOptions.implicit));
+                value->default_value(mOptions.fallback, std::to_string(mOptions.fallback));
+                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
             }
 
         private:
-            std::string mMsg;
             std::string mLKey;
-            std::optional<char> mSKey;
+            conf::Number mOptions;
         };
 
-        mInfo.push_back(make_ptr<Option>(std::move(msg), std::move(lkey), std::move(skey)));
+        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
-    Builder& Builder::param(
-        std::string msg,
-        std::string lkey,
-        std::optional<char> skey,
-        std::optional<std::string> fallback
-    )
+    Builder& Builder::param(std::string lkey, conf::Param options)
     {
         class Option final: public IOption
         {
         public:
-            Option(
-                std::string msg,
-                std::string lkey,
-                std::optional<char> skey,
-                std::optional<std::string> fallback
-            )
-                : mMsg(std::move(msg))
-                , mLKey(std::move(lkey))
-                , mSKey(std::move(skey))
-                , mFallback(std::move(fallback))
+            Option(std::string lkey, conf::Param options)
+                : mLKey(std::move(lkey))
+                , mOptions(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mSKey ? (mLKey + ',' + *mSKey) : mLKey;
+                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
                 auto value = boost::program_options::value<std::string>();
-                if (mFallback.has_value())
+                value->value_name("text");
+                if (mOptions.fallback.has_value())
                 {
-                    value->default_value({mFallback.value()}, "\"" + mFallback.value() + "\"");
+                    value->default_value(
+                        mOptions.fallback.value(),
+                        "\"" + mOptions.fallback.value() + "\""
+                    );
                 }
                 else
                 {
                     value->required();
                 }
-                impl.ex(opt.c_str(), value, mMsg.c_str());
+                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
             }
 
         private:
-            std::string mMsg;
             std::string mLKey;
-            std::optional<char> mSKey;
-            std::optional<std::string> mImplicit;
-            std::optional<std::string> mFallback;
+            conf::Param mOptions;
         };
 
-        mInfo.push_back(
-            make_ptr<Option>(std::move(msg), std::move(lkey), std::move(skey), std::move(fallback))
-        );
+        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
-    Builder& Builder::params(std::string msg, std::string lkey, std::optional<char> skey)
+    Builder& Builder::params(std::string lkey, conf::Params options)
     {
         class Option final: public IOption
         {
         public:
-            Option(std::string msg, std::string lkey, std::optional<char> skey)
-                : mMsg(std::move(msg))
-                , mLKey(std::move(lkey))
-                , mSKey(std::move(skey))
+            Option(std::string lkey, conf::Params options)
+                : mLKey(std::move(lkey))
+                , mOptions(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mSKey ? (mLKey + ',' + *mSKey) : mLKey;
+                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
                 auto value = boost::program_options::value<std::vector<std::string>>();
+                value->value_name("text");
                 value->multitoken();
                 value->default_value({}, "");
-                impl.ex(opt.c_str(), value, mMsg.c_str());
+                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
             }
 
         private:
-            std::string mMsg;
             std::string mLKey;
-            std::optional<char> mSKey;
+            conf::Params mOptions;
         };
 
-        mInfo.push_back(make_ptr<Option>(std::move(msg), std::move(lkey), std::move(skey)));
+        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
