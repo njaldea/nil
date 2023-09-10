@@ -16,7 +16,7 @@ namespace nil::cli
         virtual void apply(const Impl& impl) const = 0;
     };
 
-    using OptionInfo = std::vector<std::shared_ptr<IOption>>;
+    using OptionInfo = std::vector<std::unique_ptr<IOption>>;
 
     class Builder
     {
@@ -72,7 +72,7 @@ namespace nil::cli
          *
          * @return OptionInfo
          */
-        OptionInfo build() const;
+        OptionInfo build();
 
     private:
         OptionInfo mInfo;

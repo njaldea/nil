@@ -32,7 +32,7 @@ namespace nil::cli
             conf::Flag mOptions;
         };
 
-        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
+        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -62,7 +62,7 @@ namespace nil::cli
             conf::Number mOptions;
         };
 
-        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
+        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -101,7 +101,7 @@ namespace nil::cli
             conf::Param mOptions;
         };
 
-        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
+        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -131,11 +131,11 @@ namespace nil::cli
             conf::Params mOptions;
         };
 
-        mInfo.push_back(std::make_shared<Option>(std::move(lkey), std::move(options)));
+        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
-    OptionInfo Builder::build() const
+    OptionInfo Builder::build()
     {
         return std::move(mInfo);
     }
