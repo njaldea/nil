@@ -28,10 +28,3 @@ target_include_directories(
 )
 
 install(DIRECTORY publish/ DESTINATION include)
-
-install(TARGETS cli EXPORT cli-targets)
-install(
-    EXPORT cli-targets
-    NAMESPACE nil::
-    DESTINATION share/nil
-)

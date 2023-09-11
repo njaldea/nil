@@ -31,3 +31,10 @@ write_basic_package_version_file(
 	${CMAKE_CURRENT_BINARY_DIR}/nil-config-version.cmake
 	VERSION 0.0.1
 	COMPATIBILITY SameMajorVersion)
+
+install(TARGETS cli EXPORT nil-targets)
+install(
+    EXPORT nil-targets
+    NAMESPACE nil::
+    DESTINATION share/nil
+)
