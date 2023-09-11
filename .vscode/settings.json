@@ -5,7 +5,7 @@
   "explorer.fileNesting.patterns": {
     "README.md": ".clang-format, .gitignore, .prettier*, LICENSE",
     "vcpkg.json": "vcpkg-configuration.json",
-    "CMakeLists.txt": "CMakePresets.json, configure, .env"
+    "CMakeLists.txt": "CMakePresets.json, configure, .configure"
   },
   "editor.inlayHints.enabled": "offUnlessPressed",
   "[cpp]": {

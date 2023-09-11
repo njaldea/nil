@@ -20,6 +20,18 @@ set(
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
-target_include_directories(${PROJECT_NAME} PUBLIC publish)
+target_include_directories(
+    ${PROJECT_NAME}
+    PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/publish>
+    $<INSTALL_INTERFACE:publish>
+)
 
 install(DIRECTORY publish/ DESTINATION include)
+
+install(TARGETS cli EXPORT cli-targets)
+install(
+    EXPORT cli-targets
+    NAMESPACE nil::
+    DESTINATION share/nil
+)
