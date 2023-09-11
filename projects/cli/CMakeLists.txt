@@ -24,7 +24,7 @@ target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/publish>
-    $<INSTALL_INTERFACE:publish>
+    $<INSTALL_INTERFACE:include>
 )
 
 install(DIRECTORY publish/ DESTINATION include)
