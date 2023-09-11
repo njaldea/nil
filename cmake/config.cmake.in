@@ -1,4 +1,5 @@
 @PACKAGE_INIT@
 
-include(${CMAKE_CURRENT_LIST_DIR}/nil-targets.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/nil-cli-targets.cmake)
+# include(${CMAKE_CURRENT_LIST_DIR}/nil-cli-targets.cmake OPTIONAL)
 check_required_components(nil)

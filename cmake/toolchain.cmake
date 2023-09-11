@@ -1,12 +1,27 @@
 set(CMAKE_CXX_STANDARD 20)
 
+set(ENABLE_TEST OFF CACHE BOOL "[0 | OFF - 1 | ON]: build tests?")
+set(ENABLE_SANDBOX OFF CACHE BOOL "[0 | OFF - 1 | ON]: build sandbox?")
+
+set(ENABLE_FEATURE_CLI OFF CACHE BOOL "[0 | OFF - 1 | ON]: build cli?")
+set(ENABLE_FEATURE_PROTO OFF CACHE BOOL "[0 | OFF - 1 | ON]: build proto?")
+set(ENABLE_FEATURE_SERVICE OFF CACHE BOOL "[0 | OFF - 1 | ON]: build service?")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+else()
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build.")
+endif()
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/out" CACHE PATH "install path" FORCE)
+else()
+    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/out" CACHE PATH "install path")
+endif()
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/out" CACHE PATH "install path" FORCE)
-endif()
 
 # only needed if there are shared libraries to be installed
 set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
@@ -22,34 +37,3 @@ add_compile_options(-Wpedantic)
 add_compile_options(-pedantic-errors)
 add_compile_options(-Wconversion)
 add_compile_options(-Wsign-conversion)
-
-# expected directory tree
-#   - nil/projects/p1
-#       - a.cpp
-#       - b.hpp
-#       - internal.hpp
-#       - include/nil/p1/a.hpp
-#
-# this will make includes:
-# #include <p1/a.hpp>           // for public/published headers
-# #include <p1/b.hpp>           // for headers visible to other modules
-# #include <p1/internal.hpp>    // for headers only not visible to other modules
-# include_directories(${CMAKE_SOURCE_DIR}/projects)
-
-# alternative directory tree
-#   - nil/projects/p1
-#       - published/nil/p1/a.hpp
-#       - internal/p1/b.hpp
-#       - src/a.cpp
-#       - src/internal.cpp
-#
-# this will make includes:
-# #include <nil/p1/a.hpp>   // for public/published headers
-# #include <p1/b.hpp>       // for headers visible to other modules
-# #include "internal.hpp"   // for headers only not visible to other modules
-
-# include/published is to make it easier to "install" (simply by copying the directories)
-# ofc, this depends on how users will consume the public library.
-# for me, ideally, users need to do the following include
-# #include <nil/p1/a.hpp> which is
-# #include <[mono repo name]/[sub project name]/[header file path]>

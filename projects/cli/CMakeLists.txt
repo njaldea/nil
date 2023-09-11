@@ -24,7 +24,14 @@ target_include_directories(
     ${PROJECT_NAME}
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/publish>
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-install(DIRECTORY publish/ DESTINATION include)
+install(DIRECTORY publish/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(TARGETS cli EXPORT nil-cli-targets)
+install(
+    EXPORT nil-cli-targets
+    NAMESPACE nil::
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/nil
+)
