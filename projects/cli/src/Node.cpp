@@ -16,13 +16,13 @@ namespace nil::cli
     {
         if (argc > 1)
         {
-            if (auto node = find(argv[1]); node != nullptr)
+            if (const auto* node = find(argv[1]); node != nullptr)
             {
                 return node->run(argc - 1, std::next(argv));
             }
         }
 
-        Options options(mCommand->options(), mCommand->usage(), mSubNodes, argc, argv);
+        const Options options(mCommand->options(), mCommand->usage(), mSubNodes, argc, argv);
         return mCommand->run(options);
     }
 

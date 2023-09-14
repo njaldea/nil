@@ -1,0 +1,40 @@
+---
+Checks: >
+  -*,
+  bugprone-*,
+  concurrency-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  hicpp-*,
+  misc-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  -performance-avoid-endl,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -readability-identifier-length,
+  -modernize-use-nodiscard,
+  -modernize-use-trailing-return-type,
+  -misc-no-recursion,
+  -misc-include-cleaner,
+  -misc-non-private-member-variables-in-classes,
+  -bugprone-exception-escape,
+WarningsAsErrors: '*'
+HeaderFileExtensions:
+  - ''
+  - h
+  - hh
+  - hpp
+  - hxx
+ImplementationFileExtensions:
+  - c
+  - cc
+  - cpp
+  - cxx
+HeaderFilterRegex: ''
+FormatStyle: none
+User: neil
+SystemHeaders: false
+CheckOptions:
+  bugprone-exception-escape.FunctionsThatShouldNotThrow: '*'

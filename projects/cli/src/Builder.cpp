@@ -19,7 +19,7 @@ namespace nil::cli
             void apply(const IOption::Impl& impl) const override
             {
                 const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
-                auto value = boost::program_options::value<bool>();
+                auto* value = boost::program_options::value<bool>();
                 value->zero_tokens();
                 value->default_value(false);
                 impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
@@ -48,7 +48,7 @@ namespace nil::cli
             void apply(const IOption::Impl& impl) const override
             {
                 const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
-                auto value = boost::program_options::value<int>();
+                auto* value = boost::program_options::value<int>();
                 value->value_name("value");
                 value->implicit_value(mOptions.implicit, std::to_string(mOptions.implicit));
                 value->default_value(mOptions.fallback, std::to_string(mOptions.fallback));
@@ -78,7 +78,7 @@ namespace nil::cli
             void apply(const IOption::Impl& impl) const override
             {
                 const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
-                auto value = boost::program_options::value<std::string>();
+                auto* value = boost::program_options::value<std::string>();
                 value->value_name("text");
                 if (mOptions.fallback.has_value())
                 {
@@ -117,7 +117,7 @@ namespace nil::cli
             void apply(const IOption::Impl& impl) const override
             {
                 const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
-                auto value = boost::program_options::value<std::vector<std::string>>();
+                auto* value = boost::program_options::value<std::vector<std::string>>();
                 value->value_name("text");
                 value->multitoken();
                 value->default_value({}, "");

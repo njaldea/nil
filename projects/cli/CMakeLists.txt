@@ -1,5 +1,7 @@
 project(cli)
 
+find_package(Boost COMPONENTS program_options REQUIRED)
+
 set(
     HEADERS
         publish/nil/cli.hpp
@@ -35,3 +37,7 @@ install(
     NAMESPACE nil::
     DESTINATION ${CMAKE_INSTALL_DATADIR}/nil
 )
+
+if(ENABLE_TEST)
+    add_subdirectory(test)
+endif()

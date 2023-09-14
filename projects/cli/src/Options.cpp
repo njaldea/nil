@@ -10,6 +10,7 @@
 
 #include <iomanip>
 #include <ostream>
+#include <tuple>
 
 namespace nil::cli
 {
@@ -31,7 +32,7 @@ namespace nil::cli
 
     struct Options::Impl
     {
-        Impl(std::string usage)
+        explicit Impl(std::string usage)
             : usage(std::move(usage))
             , desc("OPTIONS")
         {
@@ -78,7 +79,7 @@ namespace nil::cli
         }
         for (const auto& node : subnodes)
         {
-            mImpl->sub.emplace_back(std::make_tuple(std::get<0>(node), std::get<1>(node)));
+            mImpl->sub.emplace_back(std::get<0>(node), std::get<1>(node));
         }
     }
 

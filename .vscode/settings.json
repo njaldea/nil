@@ -3,8 +3,8 @@
   "editor.maxTokenizationLineLength": 2500,
   "explorer.fileNesting.expand": true,
   "explorer.fileNesting.patterns": {
-    "README.md": ".clang-format, .gitignore, .prettier*, LICENSE",
-    "vcpkg.json": "vcpkg-configuration.json",
+    "README.md": ".gitignore, .prettier*, LICENSE",
+    "vcpkg.json": "vcpkg-configuration.json, .clang-format, .clang-tidy",
     "CMakeLists.txt": "CMakePresets.json, configure, .configure"
   },
   "editor.inlayHints.enabled": "offUnlessPressed",
@@ -93,6 +93,7 @@
     "typeindex": "cpp",
     "typeinfo": "cpp",
     "valarray": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "regex": "cpp"
   }
 }

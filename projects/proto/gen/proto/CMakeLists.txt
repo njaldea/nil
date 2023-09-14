@@ -1,5 +1,7 @@
 project(proto)
 
+find_package(Protobuf CONFIG REQUIRED)
+
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
 protobuf_generate_cpp(

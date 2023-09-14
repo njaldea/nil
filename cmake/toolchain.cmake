@@ -1,12 +1,5 @@
 set(CMAKE_CXX_STANDARD 20)
 
-set(ENABLE_TEST OFF CACHE BOOL "[0 | OFF - 1 | ON]: build tests?")
-set(ENABLE_SANDBOX OFF CACHE BOOL "[0 | OFF - 1 | ON]: build sandbox?")
-
-set(ENABLE_FEATURE_CLI OFF CACHE BOOL "[0 | OFF - 1 | ON]: build cli?")
-set(ENABLE_FEATURE_PROTO OFF CACHE BOOL "[0 | OFF - 1 | ON]: build proto?")
-set(ENABLE_FEATURE_SERVICE OFF CACHE BOOL "[0 | OFF - 1 | ON]: build service?")
-
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 else()

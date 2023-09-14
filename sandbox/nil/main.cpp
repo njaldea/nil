@@ -1,4 +1,5 @@
 #include <boost/asio.hpp>
+#include <chrono>
 #include <experimental/source_location>
 #include <iostream>
 #include <thread>
@@ -52,5 +53,4 @@ int main()
         }
     );
     context.run();
-    // nil::misc::foo();
 }

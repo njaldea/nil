@@ -1,25 +1,46 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-  "dependencies": [
-    {
-      "name": "boost-asio",
-      "version>=": "1.82.0"
+  "features": {
+    "cli": {
+      "description": "nil/cli",
+      "dependencies": [
+        {
+          "name": "boost-program-options",
+          "version>=": "1.82.0"
+        }
+      ]
     },
-    {
-      "name": "boost-beast",
-      "version>=": "1.82.0"
+    "proto": {
+      "description": "nil/proto",
+      "dependencies": [
+        {
+          "name": "protobuf",
+          "version>=": "3.21.12"
+        }
+      ]
     },
-    {
-      "name": "boost-program-options",
-      "version>=": "1.82.0"
+    "test": {
+      "description": "nil/test",
+      "dependencies": [
+        {
+          "name": "gtest",
+          "version>=": "1.13.0"
+        }
+      ]
     },
-    {
-      "name": "protobuf",
-      "version>=": "3.21.12"
-    },
-    {
-      "name": "gtest",
-      "version>=": "1.13.0"
+    "service": {
+      "description": "nil/service",
+      "dependencies": [
+        {
+          "name": "boost-asio",
+          "version>=": "1.82.0"
+        },
+        {
+          "name": "boost-beast",
+          "version>=": "1.82.0"
+        }
+      ]
     }
-  ]
+  },
+  "dependencies": []
 }

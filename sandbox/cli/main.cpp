@@ -32,11 +32,11 @@ struct Command: nil::cli::Command
             return 0;
         }
         std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
-        std::cout << "flag    : " << options.flag("spawn") << std::endl;
-        std::cout << "number  : " << options.number("thread") << std::endl;
-        std::cout << "number  : " << options.number("job") << std::endl;
-        std::cout << "param   : " << options.param("param") << std::endl;
-        std::cout << "params  : " << std::endl;
+        std::cout << "flag   -s: " << options.flag("spawn") << std::endl;
+        std::cout << "number -t: " << options.number("thread") << std::endl;
+        std::cout << "number -j: " << options.number("job") << std::endl;
+        std::cout << "param  -p: " << options.param("param") << std::endl;
+        std::cout << "params -m: " << std::endl;
         for (const auto& item : options.params("mparam"))
         {
             std::cout << " -  " << item << std::endl;

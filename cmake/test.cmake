@@ -1,0 +1,11 @@
+function(add_test_subdirectory dir)
+    if(ENABLE_TEST)
+        add_subdirectory(dir)
+    endif()
+endfunction()
+
+if(ENABLE_TEST)
+    set_property(GLOBAL PROPERTY CTEST_TARGETS_ADDED 1)
+    find_package(GTest CONFIG REQUIRED)
+    include(CTest)
+endif()

@@ -1,22 +1,18 @@
 cmake_minimum_required(VERSION 3.27.1)
 
-project(mono CXX)
+project(nil CXX)
+
+set(ENABLE_TEST             OFF CACHE BOOL "[0 | OFF - 1 | ON]: build tests?")
+set(ENABLE_SANDBOX          OFF CACHE BOOL "[0 | OFF - 1 | ON]: build sandbox?")
+
+set(ENABLE_FEATURE_CLI      OFF CACHE BOOL "[0 | OFF - 1 | ON]: build cli?")
+set(ENABLE_FEATURE_PROTO    OFF CACHE BOOL "[0 | OFF - 1 | ON]: build proto?")
+set(ENABLE_FEATURE_SERVICE  OFF CACHE BOOL "[0 | OFF - 1 | ON]: build service?")
 
 include(cmake/package.cmake)
 include(cmake/toolchain.cmake)
-include(cmake/format.cmake)
-include(cmake/functions.cmake)
-
-if(ENABLE_TEST)
-    include(CTest)
-    find_package(GTest CONFIG REQUIRED)
-endif()
-
-if(ENABLE_FEATURE_PROTO)
-    find_package(Protobuf CONFIG REQUIRED)
-endif()
-
-find_package(Boost COMPONENTS program_options REQUIRED)
+include(cmake/quality.cmake)
+include(cmake/test.cmake)
 
 add_subdirectory(projects)
 
