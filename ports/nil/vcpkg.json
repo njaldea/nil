@@ -1,0 +1,28 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "nil",
+    "version": "0.0.1",
+    "description": "Example",
+    "homepage": "https://github.com/njaldea/nil",
+    "dependencies": [
+        {
+            "name": "vcpkg-cmake",
+            "host": true
+        },
+        {
+            "name": "vcpkg-cmake-config",
+            "host": true
+        }
+    ],
+    "features": {
+        "cli": {
+            "description": "nil/cli",
+            "dependencies": [
+                {
+                    "name": "boost-program-options",
+                    "version>=": "1.82.0"
+                }
+            ]
+        }
+    }
+}
