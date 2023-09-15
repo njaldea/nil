@@ -1,5 +1,9 @@
 project(cli)
 
+if(NOT ENABLE_FEATURE_CLI)
+    return()
+endif()
+
 find_package(Boost COMPONENTS program_options REQUIRED)
 
 set(
@@ -29,15 +33,5 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-install(DIRECTORY publish/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-install(TARGETS cli EXPORT nil-cli-targets)
-install(
-    EXPORT nil-cli-targets
-    NAMESPACE nil::
-    DESTINATION ${CMAKE_INSTALL_DATADIR}/nil
-)
-
-if(ENABLE_TEST)
-    add_subdirectory(test)
-endif()
+add_test_subdirectory()
+install_for_package(${PROJECT_NAME})

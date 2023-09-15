@@ -1,5 +1,9 @@
 project(proto)
 
+if(NOT ENABLE_FEATURE_PROTO)
+    return()
+endif()
+
 find_package(Protobuf CONFIG REQUIRED)
 
 include_directories(${PROTOBUF_INCLUDE_DIR})

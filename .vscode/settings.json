@@ -5,7 +5,7 @@
   "explorer.fileNesting.patterns": {
     "README.md": ".gitignore, .prettier*, LICENSE",
     "vcpkg.json": "vcpkg-configuration.json, .clang-format, .clang-tidy",
-    "CMakeLists.txt": "CMakePresets.json, configure, .configure"
+    "CMakeLists.txt": "CMakePresets.json"
   },
   "editor.inlayHints.enabled": "offUnlessPressed",
   "[cpp]": {
@@ -20,6 +20,7 @@
   "C_Cpp.inlayHints.parameterNames.suppressWhenArgumentContainsName": true,
   "C_Cpp.inlayHints.referenceOperator.enabled": true,
   "C_Cpp.inlayHints.referenceOperator.showSpace": true,
+  "cmake.buildDirectory": "${workspaceFolder}/.build",
   "clang-format.executable": "clang-format-18",
   "files.associations": {
     "*.ipp": "cpp",

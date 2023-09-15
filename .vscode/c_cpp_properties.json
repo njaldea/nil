@@ -1,9 +1,9 @@
 {
   "configurations": [
     {
-      "name": "Emscripten",
+      "name": "cpp",
       "cStandard": "gnu17",
-      "intelliSenseMode": "linux-clang-x64",
+      "intelliSenseMode": "linux-gcc-x64",
       "compileCommands": "${workspaceFolder}/.build/compile_commands.json",
       "cppStandard": "c++20",
       "configurationProvider": "ms-vscode.cmake-tools"

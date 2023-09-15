@@ -1,6 +1,17 @@
-function(add_test_subdirectory dir)
+set(ENABLE_TEST OFF CACHE BOOL "[0 | OFF - 1 | ON]: build tests?")
+
+function(add_test_executable TARGET)
+    add_executable(${TARGET} ${ARGN})
+    add_test(
+        NAME ${TARGET}
+        COMMAND ./${TARGET}
+        WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    )
+endfunction()
+
+function(add_test_subdirectory)
     if(ENABLE_TEST)
-        add_subdirectory(dir)
+        add_subdirectory(test)
     endif()
 endfunction()
 

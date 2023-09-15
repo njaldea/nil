@@ -2,7 +2,7 @@
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "name": "nil",
     "version": "0.0.1",
-    "description": "Example",
+    "description": "Collection of libraries from nil",
     "homepage": "https://github.com/njaldea/nil",
     "dependencies": [
         {
@@ -16,7 +16,7 @@
     ],
     "features": {
         "cli": {
-            "description": "nil/cli",
+            "description": "Simplified argument parsing (from boost::program_options)",
             "dependencies": [
                 {
                     "name": "boost-program-options",

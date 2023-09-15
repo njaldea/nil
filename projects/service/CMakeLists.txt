@@ -1,5 +1,9 @@
 project(service)
 
+if(NOT ENABLE_FEATURE_SERVICE)
+    return()
+endif()
+
 set(
     HEADERS
         public/service/IService.hpp
