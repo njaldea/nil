@@ -58,3 +58,22 @@ Or just use ccmake to toggle the flags
 - install local version to vcpkg
     - `vcpkg install nil --overlay-ports=<path_to_repo>/ports/nil`
 - from the error message, copy the hash printed
+
+### Coverage
+
+requires the following:
+- lcov
+- genthml
+- npx
+
+requires enabling the following flags:
+- ENABLE_TEST
+- ENABLE_COVERAGE
+
+targets:
+- make clean
+- make -j
+- make coverage_init
+- ctest
+- make coverage_generate
+- make coverage_serve

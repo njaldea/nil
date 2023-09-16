@@ -14,22 +14,6 @@
 
 namespace nil::cli
 {
-    namespace
-    {
-        template <typename K, typename C>
-        auto access(const K& k, const C& c)
-        {
-            try
-            {
-                return c();
-            }
-            catch (const std::exception& e)
-            {
-                throw std::runtime_error("invalid access for key: [" + k + "]");
-            }
-        }
-    }
-
     struct Options::Impl
     {
         explicit Impl(std::string usage)
@@ -42,6 +26,19 @@ namespace nil::cli
         boost::program_options::options_description desc;
         boost::program_options::variables_map vm;
         std::vector<std::tuple<std::string, std::string>> sub;
+
+        template <typename T>
+        auto access(const std::string& k)
+        {
+            try
+            {
+                return vm[k].as<T>();
+            }
+            catch (const std::exception& e)
+            {
+                throw std::out_of_range("[nil][cli][" + k + "] is invalid");
+            }
+        }
     };
 
     Options::Options(
@@ -75,8 +72,9 @@ namespace nil::cli
         }
         catch (const std::exception& ex)
         {
-            throw std::runtime_error(ex.what());
+            throw std::invalid_argument(std::string("[nil][cli] ") + ex.what());
         }
+
         for (const auto& node : subnodes)
         {
             mImpl->sub.emplace_back(std::get<0>(node), std::get<1>(node));
@@ -123,25 +121,21 @@ namespace nil::cli
 
     bool Options::flag(const std::string& lkey) const
     {
-        using T = bool;
-        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+        return mImpl->access<bool>(lkey);
     }
 
     int Options::number(const std::string& lkey) const
     {
-        using T = int;
-        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+        return mImpl->access<bool>(lkey);
     }
 
     std::string Options::param(const std::string& lkey) const
     {
-        using T = std::string;
-        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+        return mImpl->access<std::string>(lkey);
     }
 
     std::vector<std::string> Options::params(const std::string& lkey) const
     {
-        using T = std::vector<std::string>;
-        return access(lkey, [&]() { return mImpl->vm[lkey].as<T>(); });
+        return mImpl->access<std::vector<std::string>>(lkey);
     }
 }

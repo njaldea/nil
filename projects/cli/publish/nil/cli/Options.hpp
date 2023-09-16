@@ -12,7 +12,7 @@ namespace nil::cli
 
     class Options final
     {
-    public:
+        friend class Node;
         Options(
             const OptionInfo& info,
             std::string usage,
@@ -22,6 +22,7 @@ namespace nil::cli
         );
         ~Options();
 
+    public:
         /**
          * @brief Print help message to ostream.
          *

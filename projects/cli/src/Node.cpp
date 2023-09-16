@@ -30,7 +30,7 @@ namespace nil::cli
     {
         if (find(key) != nullptr)
         {
-            throw std::runtime_error("node already exists: " + key);
+            throw std::invalid_argument("[nil][cli][" + key + "] already exists");
         }
 
         mSubNodes.emplace_back(std::make_tuple(
