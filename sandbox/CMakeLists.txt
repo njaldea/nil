@@ -6,4 +6,4 @@ if(ENABLE_COVERAGE)
 endif()
 
 add_subdirectory(cli)
-add_subdirectory(nil)
+add_subdirectory(service)

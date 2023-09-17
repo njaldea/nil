@@ -90,11 +90,15 @@ namespace nil::cli
             os << mImpl->usage << '\n';
         }
 
-        mImpl->desc.print(os);
+        if (!mImpl->desc.options().empty())
+        {
+            mImpl->desc.print(os);
+            os << '\n';
+        }
 
         if (!mImpl->sub.empty())
         {
-            os << "\nSUBCOMMANDS:\n";
+            os << "SUBCOMMANDS:\n";
             const auto width = mImpl->desc.get_option_column_width();
             for (const auto& [key, desc] : mImpl->sub)
             {
@@ -126,7 +130,7 @@ namespace nil::cli
 
     int Options::number(const std::string& lkey) const
     {
-        return mImpl->access<bool>(lkey);
+        return mImpl->access<int>(lkey);
     }
 
     std::string Options::param(const std::string& lkey) const
