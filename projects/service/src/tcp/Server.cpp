@@ -5,7 +5,6 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
-#include <iostream>
 #include <unordered_set>
 
 namespace nil::service::tcp
@@ -13,12 +12,14 @@ namespace nil::service::tcp
     struct Server::Impl
     {
         Impl(Server::Options options)
-            : context()
+            : options(std::move(options))
+            , context()
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), options.port)
             , acceptor(context, endpoint)
         {
         }
 
+        Server::Options options;
         std::unordered_map<int, std::unique_ptr<IHandler>> handlers;
 
         boost::asio::io_context context;
@@ -28,7 +29,12 @@ namespace nil::service::tcp
 
         void connect()
         {
-            auto connection = std::make_shared<Connection>(context, handlers, &connections);
+            auto connection = std::make_shared<Connection>( //
+                options.buffer,
+                context,
+                handlers,
+                &connections
+            );
             acceptor.async_accept(
                 connection->handle(),
                 [this, connection](const boost::system::error_code& ec)

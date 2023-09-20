@@ -10,6 +10,7 @@ namespace nil::service::tcp
         struct Options
         {
             std::uint16_t port;
+            std::uint64_t buffer = 1024;
         };
 
         Server(Options options);

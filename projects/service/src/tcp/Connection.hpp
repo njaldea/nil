@@ -16,6 +16,7 @@ namespace nil::service::tcp
     {
     public:
         Connection(
+            std::uint64_t buffer,
             boost::asio::io_context& context,
             std::unordered_map<int, std::unique_ptr<IHandler>>& handlers,
             std::unordered_set<Connection*>* parent = nullptr

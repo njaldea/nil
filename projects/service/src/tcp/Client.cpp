@@ -8,14 +8,13 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/streambuf.hpp>
 
-#include <iostream>
-
 namespace nil::service::tcp
 {
     struct Client::Impl
     {
         Impl(Client::Options options)
-            : context()
+            : options(std::move(options))
+            , context()
             , endpoint(boost::asio::ip::make_address(options.host.data()), options.port)
             , reconnection(context)
         {
@@ -24,7 +23,7 @@ namespace nil::service::tcp
         void connect()
         {
             reconnection.cancel();
-            auto connection = std::make_shared<Connection>(context, handlers);
+            auto connection = std::make_shared<Connection>(options.buffer, context, handlers);
             connection->handle().async_connect(
                 endpoint,
                 [this, connection](const boost::system::error_code& ec)
@@ -55,6 +54,7 @@ namespace nil::service::tcp
             );
         }
 
+        Client::Options options;
         std::unordered_map<int, std::unique_ptr<IHandler>> handlers;
 
         boost::asio::io_context context;

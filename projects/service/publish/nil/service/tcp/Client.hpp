@@ -11,6 +11,7 @@ namespace nil::service::tcp
         {
             std::string host;
             std::uint16_t port;
+            std::uint64_t buffer = 1024;
         };
 
         Client(Options options);

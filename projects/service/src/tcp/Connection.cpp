@@ -1,10 +1,9 @@
 #include "Connection.hpp"
 
-#include <iostream>
-
 namespace nil::service::tcp
 {
     Connection::Connection(
+        std::uint64_t buffer,
         boost::asio::io_context& context,
         std::unordered_map<int, std::unique_ptr<IHandler>>& handlers,
         std::unordered_set<Connection*>* parent
@@ -13,7 +12,7 @@ namespace nil::service::tcp
         , handlers(handlers)
         , parent(parent)
     {
-        buffer.reserve(1024);
+        this->buffer.reserve(buffer);
     }
 
     Connection::~Connection()
