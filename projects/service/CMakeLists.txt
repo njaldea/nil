@@ -10,6 +10,7 @@ set(
     HEADERS
         publish/nil/service.hpp
         publish/nil/service/IService.hpp
+        publish/nil/service/IHandler.hpp
         publish/nil/service/tcp/Client.hpp
         publish/nil/service/tcp/Server.hpp
         src/tcp/Connection.hpp

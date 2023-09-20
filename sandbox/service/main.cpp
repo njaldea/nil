@@ -4,6 +4,15 @@
 #include <iostream>
 #include <thread>
 
+struct Handler: nil::service::IHandler
+{
+    void exec(const std::string& message) override
+    {
+        std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
+        std::cout << message << std::endl;
+    }
+};
+
 struct Root: nil::cli::Command
 {
     int run(const nil::cli::Options& options) const
@@ -25,6 +34,7 @@ struct Server: nil::cli::Command
     int run(const nil::cli::Options& options) const
     {
         nil::service::tcp::Server server({.port = std::uint16_t(options.number("port"))});
+        server.on(0, std::make_unique<Handler>());
         server.start();
         return 0;
     }

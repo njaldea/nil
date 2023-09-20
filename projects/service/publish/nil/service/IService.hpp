@@ -1,13 +1,11 @@
 #pragma once
 
+#include <nil/service/IHandler.hpp>
+
 #include <memory>
 
 namespace nil::service
 {
-    class IHandler
-    {
-    };
-
     class IService
     {
     public:
