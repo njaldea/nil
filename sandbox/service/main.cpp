@@ -2,6 +2,7 @@
 #include <nil/service.hpp>
 
 #include <iostream>
+#include <thread>
 
 struct Root: nil::cli::Command
 {
@@ -23,7 +24,7 @@ struct Server: nil::cli::Command
 
     int run(const nil::cli::Options& options) const
     {
-        nil::service::tcp::Server server("127.0.0.1", options.number("port"));
+        nil::service::tcp::Server server({.port = std::uint16_t(options.number("port"))});
         server.start();
         return 0;
     }
@@ -40,8 +41,16 @@ struct Client: nil::cli::Command
 
     int run(const nil::cli::Options& options) const
     {
-        nil::service::tcp::Client client("127.0.0.1", options.number("port"));
-        client.start();
+        nil::service::tcp::Client client(
+            {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
+        );
+
+        std::thread t([&]() { client.start(); });
+        std::string message;
+        while (std::getline(std::cin, message))
+        {
+            client.publish(1, std::move(message));
+        }
         return 0;
     }
 };
