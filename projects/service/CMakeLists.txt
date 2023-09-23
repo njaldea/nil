@@ -32,16 +32,12 @@ set(
         ${PROTO_SRC}
 )
 
-# to prevent target export
-link_libraries(Boost::boost)
-link_libraries(protobuf::libprotobuf)
-
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+target_link_libraries(${PROJECT_NAME} PRIVATE Boost::boost)
+target_link_libraries(${PROJECT_NAME} PRIVATE protobuf::libprotobuf)
 
-# target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${Boost_INCLUDE_DIRS})
-# target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${Protobuf_INCLUDE_DIR})
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(
     ${PROJECT_NAME}
