@@ -1,18 +1,20 @@
 #include "Connection.hpp"
 
+#include "msg.pb.h"
+
 namespace nil::service::tcp
 {
     Connection::Connection(
         std::uint64_t buffer,
         boost::asio::io_context& context,
-        std::unordered_map<int, std::unique_ptr<IHandler>>& handlers,
+        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers,
         std::unordered_set<Connection*>* parent
     )
         : socket(context)
         , handlers(handlers)
         , parent(parent)
     {
-        this->buffer.reserve(buffer);
+        this->buffer.resize(buffer);
     }
 
     Connection::~Connection()
@@ -84,10 +86,13 @@ namespace nil::service::tcp
                 }
                 else
                 {
-                    auto message = std::string(self->buffer.data(), size);
-                    for (const auto& handler : self->handlers)
+                    Message message;
+                    message.ParseFromArray(self->buffer.data(), int(size));
+                    const auto it = self->handlers.find(message.type());
+                    if (it != self->handlers.end())
                     {
-                        handler.second->exec(message);
+                        const auto& inner = message.data();
+                        it->second->exec(inner.data(), inner.size());
                     }
                     self->readHeader(0u, 8u);
                 }
@@ -95,9 +100,15 @@ namespace nil::service::tcp
         );
     }
 
-    void Connection::write(std::string message)
+    void Connection::write(std::uint32_t type, std::string message)
     {
-        const std::uint64_t msgsize = message.size();
+        Message proto;
+        proto.set_type(type);
+        proto.set_data(std::move(message));
+
+        const auto msg = proto.SerializeAsString();
+        const auto msgsize = msg.size();
+
         std::uint8_t size[8];
         for (auto i = 0u; i < 8u; ++i)
         {
@@ -105,7 +116,7 @@ namespace nil::service::tcp
         }
 
         socket.write_some(boost::asio::buffer(size, 8));
-        socket.write_some(boost::asio::buffer(message, msgsize));
+        socket.write_some(boost::asio::buffer(msg.data(), msgsize));
     }
 
     boost::asio::ip::tcp::socket& Connection::handle()

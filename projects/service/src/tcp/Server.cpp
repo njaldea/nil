@@ -14,13 +14,13 @@ namespace nil::service::tcp
         Impl(Server::Options options)
             : options(std::move(options))
             , context()
-            , endpoint(boost::asio::ip::make_address("0.0.0.0"), options.port)
+            , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
             , acceptor(context, endpoint)
         {
         }
 
         Server::Options options;
-        std::unordered_map<int, std::unique_ptr<IHandler>> handlers;
+        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>> handlers;
 
         boost::asio::io_context context;
         boost::asio::ip::tcp::endpoint endpoint;
@@ -56,7 +56,7 @@ namespace nil::service::tcp
 
     Server::~Server() noexcept = default;
 
-    void Server::on(int type, std::unique_ptr<IHandler> handler)
+    void Server::on(std::uint32_t type, std::unique_ptr<IHandler> handler)
     {
         mImpl->handlers.emplace(type, std::move(handler));
     }
@@ -72,15 +72,15 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Server::publish(int type, std::string msg)
+    void Server::publish(std::uint32_t type, std::string msg)
     {
         (void)type;
         mImpl->context.dispatch(
-            [&, msg = std::move(msg)]()
+            [this, type, msg = std::move(msg)]()
             {
                 for (auto* c : mImpl->connections)
                 {
-                    c->write(msg);
+                    c->write(type, msg);
                 }
             }
         );

@@ -15,7 +15,7 @@ namespace nil::service::tcp
         Impl(Client::Options options)
             : options(std::move(options))
             , context()
-            , endpoint(boost::asio::ip::make_address(options.host.data()), options.port)
+            , endpoint(boost::asio::ip::make_address(this->options.host.data()), this->options.port)
             , reconnection(context)
         {
         }
@@ -55,7 +55,7 @@ namespace nil::service::tcp
         }
 
         Client::Options options;
-        std::unordered_map<int, std::unique_ptr<IHandler>> handlers;
+        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>> handlers;
 
         boost::asio::io_context context;
 
@@ -71,7 +71,7 @@ namespace nil::service::tcp
 
     Client::~Client() noexcept = default;
 
-    void Client::on(int type, std::unique_ptr<IHandler> handler)
+    void Client::on(std::uint32_t type, std::unique_ptr<IHandler> handler)
     {
         mImpl->handlers.emplace(type, std::move(handler));
     }
@@ -87,15 +87,14 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Client::publish(int type, std::string msg)
+    void Client::publish(std::uint32_t type, std::string msg)
     {
-        (void)type;
         mImpl->context.dispatch(
-            [connection = mImpl->connection, msg = std::move(msg)]()
+            [type, connection = mImpl->connection, msg = std::move(msg)]()
             {
                 if (connection)
                 {
-                    connection->write(msg);
+                    connection->write(type, msg);
                 }
             }
         );

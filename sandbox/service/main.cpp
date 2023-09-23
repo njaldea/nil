@@ -6,10 +6,10 @@
 
 struct Handler: nil::service::IHandler
 {
-    void exec(const std::string& message) override
+    void exec(const void* data, std::size_t size) override
     {
         std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
-        std::cout << message << std::endl;
+        std::cout << std::string_view(static_cast<const char*>(data), size) << std::endl;
     }
 };
 
@@ -34,7 +34,7 @@ struct Server: nil::cli::Command
     int run(const nil::cli::Options& options) const
     {
         nil::service::tcp::Server server({.port = std::uint16_t(options.number("port"))});
-        server.on(0, std::make_unique<Handler>());
+        server.on(1, std::make_unique<Handler>());
         server.start();
         return 0;
     }

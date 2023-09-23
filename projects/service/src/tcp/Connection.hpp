@@ -2,6 +2,8 @@
 
 #include <nil/service/IHandler.hpp>
 
+#include <msg.pb.h>
+
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
@@ -18,13 +20,13 @@ namespace nil::service::tcp
         Connection(
             std::uint64_t buffer,
             boost::asio::io_context& context,
-            std::unordered_map<int, std::unique_ptr<IHandler>>& handlers,
+            std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers,
             std::unordered_set<Connection*>* parent = nullptr
         );
         ~Connection();
 
         void start();
-        void write(std::string message);
+        void write(std::uint32_t type, std::string message);
         boost::asio::ip::tcp::socket& handle();
 
     private:
@@ -32,7 +34,7 @@ namespace nil::service::tcp
         void readBody(std::uint64_t pos, std::uint64_t size);
 
         boost::asio::ip::tcp::socket socket;
-        std::unordered_map<int, std::unique_ptr<IHandler>>& handlers;
+        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers;
         std::unordered_set<Connection*>* parent;
         std::vector<char> buffer;
     };

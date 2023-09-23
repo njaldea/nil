@@ -8,6 +8,6 @@ namespace nil::service
     {
     public:
         virtual ~IHandler() = default;
-        virtual void exec(const std::string& message) = 0;
+        virtual void exec(const void* data, std::size_t size) = 0;
     };
 }
