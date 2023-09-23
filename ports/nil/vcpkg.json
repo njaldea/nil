@@ -23,6 +23,23 @@
                     "version>=": "1.82.0"
                 }
             ]
+        },
+        "service": {
+            "description": "Simplified event handling (from boost::asio)",
+            "dependencies": [
+                {
+                    "name": "boost-asio",
+                    "version>=": "1.82.0"
+                },
+                {
+                    "name": "boost-beast",
+                    "version>=": "1.82.0"
+                },
+                {
+                    "name": "protobuf",
+                    "version>=": "3.21.12"
+                }
+            ]
         }
     }
 }

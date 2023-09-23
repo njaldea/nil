@@ -1,14 +1,15 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO njaldea/nil
-    REF 2eeef3b3514ca9ce052be31f6c50c7685e35173e
-    SHA512 e99aa2e8146e491023e04df1b57cd36888a494f853b66ba2f389ba588a8d9f1a473ad086907918cd2ec2d0255388e2a13604eccb9c899f6b661163e4f35d6c8b
+    REF 35a953dc99afbcb55db043c1368281155faddb44
+    SHA512 74c981740a3b88499dd4a416d8b4356097d0f67165e5c3957a90fa54828bfcd5f2f73b9e851f096e8ea133548521d35657d8816f1122a36e4e549ce90219c0ef
     HEAD_REF master
 )
 
 vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
     FEATURES
-        cli       ENABLE_FEATURE_CLI
+        cli           ENABLE_FEATURE_CLI
+        service       ENABLE_FEATURE_SERVICE
 )
 
 if(NOT FEATURE_OPTIONS MATCHES "^.*=ON.*$")
@@ -18,6 +19,7 @@ if(NOT FEATURE_OPTIONS MATCHES "^.*=ON.*$")
     message(
         "\nAvailable features:"
         "\n   -  cli"
+        "\n   -  service"
         "\n"
         "\n  ${Red}No feature provided. Terminating...${ColorReset}"
         "\n"
