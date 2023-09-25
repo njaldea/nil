@@ -24,9 +24,9 @@ namespace nil::service::tcp
     {
         socket.async_read_some(
             boost::asio::buffer(buffer.data() + pos, size - pos),
-            [pos, size, self = shared_from_this()]( //
+            [pos, size, self = shared_from_this()](
                 const boost::system::error_code& ec,
-                std::size_t count
+                std::size_t count //
             )
             {
                 if (ec)
@@ -56,9 +56,9 @@ namespace nil::service::tcp
     {
         socket.async_read_some(
             boost::asio::buffer(buffer.data() + pos, size - pos),
-            [pos, size, self = shared_from_this()]( //
+            [pos, size, self = shared_from_this()](
                 const boost::system::error_code& ec,
-                std::size_t count
+                std::size_t count //
             )
             {
                 if (ec)

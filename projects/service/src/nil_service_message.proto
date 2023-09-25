@@ -6,7 +6,7 @@ package nil.service;
 
 message Message
 {
-    bool user = 1;
+    bool internal = 1;
     uint32 type = 2;
     bytes data = 3;
 }

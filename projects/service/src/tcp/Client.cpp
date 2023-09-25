@@ -40,7 +40,7 @@ namespace nil::service::tcp
             (void)connection;
             if (handlers.connect)
             {
-                handlers.connect();
+                handlers.connect(options.port);
             }
         }
 
@@ -51,7 +51,7 @@ namespace nil::service::tcp
                 this->connection = nullptr;
                 if (handlers.disconnect)
                 {
-                    handlers.disconnect();
+                    handlers.disconnect(options.port);
                 }
             }
             reconnect();
@@ -61,20 +61,22 @@ namespace nil::service::tcp
         {
             Message message;
             message.ParseFromArray(data, int(size));
-            const auto it = handlers.msg.find(message.type());
-            if (it != handlers.msg.end())
+            if (!message.internal())
             {
-                if (it->second)
+                const auto it = handlers.msg.find(message.type());
+                if (it != handlers.msg.end())
                 {
-                    const auto& inner = message.data();
-                    it->second(inner.data(), inner.size());
+                    if (it->second)
+                    {
+                        const auto& inner = message.data();
+                        it->second(inner.data(), inner.size());
+                    }
                 }
             }
         }
 
         void start()
         {
-            reconnection.cancel();
             auto conn = std::make_shared<Connection>(options.buffer, context, *this);
             conn->handle().async_connect(
                 endpoint,
@@ -159,7 +161,24 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Client::send(
+        std::uint16_t id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
+    {
+        if (id != mImpl->options.port)
+        {
+            mImpl->publish(type, data, size);
+        }
+    }
+
+    void Client::publish(
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
     {
         mImpl->publish(type, data, size);
     }

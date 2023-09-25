@@ -12,6 +12,10 @@ namespace nil::service::tcp
         struct Options
         {
             std::uint16_t port;
+            /**
+             * @brief buffer size to use:
+             *  - one each connection for receiving
+             */
             std::uint64_t buffer = 1024;
         };
 
@@ -23,7 +27,18 @@ namespace nil::service::tcp
 
         void start() override;
         void stop() override;
-        void publish(std::uint32_t type, const void* data, std::uint64_t size) override;
+
+        void send(
+            std::uint16_t id,
+            std::uint32_t type,
+            const void* data,
+            std::uint64_t size //
+        ) override;
+        void publish(
+            std::uint32_t type,
+            const void* data,
+            std::uint64_t size //
+        ) override;
 
     private:
         struct Impl;

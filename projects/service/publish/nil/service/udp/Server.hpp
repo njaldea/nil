@@ -13,8 +13,15 @@ namespace nil::service::udp
         struct Options
         {
             std::uint16_t port;
+            /**
+             * @brief buffer size to use:
+             *  - one for receiving
+             */
             std::uint64_t buffer = 1024;
-            std::chrono::microseconds timeout = std::chrono::seconds(2);
+            /**
+             * @brief time to wait until a "connection" is considered as disconnected
+             */
+            std::chrono::nanoseconds timeout = std::chrono::seconds(2);
         };
 
         Server(Options options);
@@ -25,7 +32,18 @@ namespace nil::service::udp
 
         void start() override;
         void stop() override;
-        void publish(std::uint32_t type, const void* data, std::uint64_t size) override;
+
+        void send(
+            std::uint16_t id,
+            std::uint32_t type,
+            const void* data,
+            std::uint64_t size //
+        ) override;
+        void publish(
+            std::uint32_t type,
+            const void* data,
+            std::uint64_t size //
+        ) override;
 
     private:
         struct Impl;

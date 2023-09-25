@@ -17,6 +17,7 @@ namespace nil::service::udp
             , pingtimer(context)
             , timeout(context)
         {
+            buffer.resize(options.buffer);
         }
 
         Client::Options options;
@@ -34,86 +35,102 @@ namespace nil::service::udp
         boost::asio::steady_timer pingtimer;
         boost::asio::steady_timer timeout;
 
+        std::vector<char> buffer;
+
         bool connected = false;
 
-        void publish(bool user, std::uint32_t type, const void* data, std::uint64_t size)
+        void publish(bool internal, std::uint32_t type, const void* data, std::uint64_t size)
         {
             Message msg;
-            msg.set_user(user);
+            msg.set_internal(internal);
             msg.set_type(type);
             msg.set_data(data, size);
-            context.dispatch([this, msg = msg.SerializeAsString()]() { //
-                socket.send_to(
-                    boost::asio::buffer(msg.data(), msg.size()),
-                    {boost::asio::ip::make_address(this->options.host), this->options.port}
-                );
-            });
+            context.dispatch(
+                [this, msg = msg.SerializeAsString()]()
+                {
+                    socket.send_to(
+                        boost::asio::buffer(msg.data(), msg.size()),
+                        {
+                            boost::asio::ip::make_address(this->options.host),
+                            this->options.port //
+                        }
+                    );
+                }
+            );
+        }
+
+        void usermsg(std::uint32_t type, const void* data, std::uint64_t size)
+        {
+            const auto it = handlers.msg.find(type);
+            if (it != handlers.msg.end() && it->second)
+            {
+                it->second(data, size);
+            }
+        }
+
+        void pong()
+        {
+            if (!connected)
+            {
+                connected = true;
+                if (handlers.connect)
+                {
+                    handlers.connect(options.port);
+                }
+            }
+            timeout.expires_from_now(options.timeout);
+            timeout.async_wait(
+                [this](const boost::system::error_code& ec)
+                {
+                    if (ec == boost::asio::error::operation_aborted)
+                    {
+                        return;
+                    }
+                    if (connected)
+                    {
+                        connected = false;
+                        if (handlers.disconnect)
+                        {
+                            handlers.disconnect(options.port);
+                        }
+                    }
+                }
+            );
         }
 
         void message(const void* data, std::uint64_t size)
         {
-            Message message;
-            message.ParseFromArray(data, int(size));
-            if (message.user())
+            Message msg;
+            msg.ParseFromArray(data, int(size));
+            if (msg.internal())
             {
-                const auto it = handlers.msg.find(message.type());
-                if (it != handlers.msg.end())
-                {
-                    if (it->second)
-                    {
-                        const auto& inner = message.data();
-                        it->second(inner.data(), inner.size());
-                    }
-                }
+                pong();
             }
             else
             {
-                if (!connected)
-                {
-                    connected = true;
-                    if (handlers.connect)
-                    {
-                        handlers.connect();
-                    }
-                }
-                timeout.cancel();
-                timeout.expires_from_now(options.timeout);
-                timeout.async_wait(
-                    [this](const boost::system::error_code& ec)
-                    {
-                        if (ec != boost::asio::error::operation_aborted && connected)
-                        {
-                            connected = false;
-                            if (handlers.disconnect)
-                            {
-                                handlers.disconnect();
-                            }
-                        }
-                    }
-                );
+                const auto& inner = msg.data();
+                usermsg(msg.type(), inner.data(), inner.size());
             }
         }
 
         void receive()
         {
-            static char buffer[1024];
             socket.async_receive(
-                boost::asio::buffer(buffer, 1024),
+                boost::asio::buffer(buffer.data(), buffer.size()),
                 [this](const boost::system::error_code& ec, std::size_t count)
                 {
-                    if (ec)
+                    if (!ec)
                     {
-                        return;
+                        this->message(buffer.data(), count);
+                        this->receive();
                     }
-                    this->message(buffer, count);
-                    this->receive();
                 }
             );
         }
 
         void ping()
         {
-            publish(false, 0, nullptr, 0);
+            publish(true, 0, nullptr, 0);
             pingtimer.expires_from_now(options.timeout / 2);
             pingtimer.async_wait(
                 [this](const boost::system::error_code& ec)
@@ -171,8 +188,25 @@ namespace nil::service::udp
         mImpl->context.stop();
     }
 
-    void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Client::send(
+        std::uint16_t id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
     {
-        mImpl->publish(true, type, data, size);
+        if (id == mImpl->options.port)
+        {
+            mImpl->publish(false, type, data, size);
+        }
+    }
+
+    void Client::publish(
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
+    {
+        mImpl->publish(false, type, data, size);
     }
 }

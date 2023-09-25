@@ -32,20 +32,43 @@ namespace nil::service::tcp
         boost::asio::io_context context;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::ip::tcp::acceptor acceptor;
-        std::unordered_set<Connection*> connections;
+        std::unordered_map<std::uint16_t, Connection*> connections;
+
+        void send(
+            std::uint16_t id,
+            std::uint32_t type,
+            const void* data,
+            std::uint64_t size //
+        )
+        {
+            Message msg;
+            msg.set_internal(false);
+            msg.set_type(type);
+            msg.set_data(data, size);
+            context.dispatch(
+                [this, id, msg = msg.SerializeAsString()]()
+                {
+                    const auto it = connections.find(id);
+                    if (it != connections.end())
+                    {
+                        it->second->write(msg.data(), msg.size());
+                    }
+                }
+            );
+        }
 
         void publish(std::uint32_t type, const void* data, std::uint64_t size)
         {
             Message msg;
-            msg.set_user(true);
+            msg.set_internal(false);
             msg.set_type(type);
             msg.set_data(data, size);
             context.dispatch(
                 [this, msg = msg.SerializeAsString()]()
                 {
-                    for (auto* c : connections)
+                    for (const auto& item : connections)
                     {
-                        c->write(msg.data(), msg.size());
+                        item.second->write(msg.data(), msg.size());
                     }
                 }
             );
@@ -53,25 +76,27 @@ namespace nil::service::tcp
 
         void connect(Connection* connection) override
         {
-            if (!connections.contains(connection))
+            const auto port = connection->handle().remote_endpoint().port();
+            if (!connections.contains(port))
             {
-                connections.emplace(connection);
+                connections.emplace(port, connection);
             }
             if (handlers.connect)
             {
-                handlers.connect();
+                handlers.connect(port);
             }
         }
 
         void disconnect(Connection* connection) override
         {
-            if (connections.contains(connection))
+            const auto port = connection->handle().remote_endpoint().port();
+            if (connections.contains(port))
             {
-                connections.erase(connection);
+                connections.erase(port);
             }
             if (handlers.disconnect)
             {
-                handlers.disconnect();
+                handlers.disconnect(port);
             }
         }
 
@@ -79,7 +104,7 @@ namespace nil::service::tcp
         {
             Message message;
             message.ParseFromArray(data, int(size));
-            if (message.user())
+            if (!message.internal())
             {
                 const auto it = handlers.msg.find(message.type());
                 if (it != handlers.msg.end())
@@ -148,7 +173,21 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Server::send(
+        std::uint16_t id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
+    {
+        mImpl->send(id, type, data, size);
+    }
+
+    void Server::publish(
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size //
+    )
     {
         mImpl->publish(type, data, size);
     }

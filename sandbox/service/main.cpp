@@ -46,23 +46,28 @@ struct Service: nil::cli::Command
             .build();
     }
 
-    int run(const nil::cli::Options& options) const
+    int run(const nil::cli::Options& options) const override
     {
         T service(parse<T>(options));
         service.on(
             nil::service::Event::Connect,
-            []() { std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl; }
+            // should this receive connection object for identifying the connection
+            [](std::uint32_t id) { std::cout << "connected " << id << std::endl; } //
         );
         service.on(
             nil::service::Event::Disconnect,
-            []() { std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl; }
+            // should this receive connection object for identifying the connection
+            [](std::uint32_t id) { std::cout << "disconnected: " << id << std::endl; } //
         );
         service.on(
             1,
+            // TODO: add connection object to allow response
             [](const void* data, std::uint64_t size)
             {
-                std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
-                std::cout << std::string_view(static_cast<const char*>(data), size) << std::endl;
+                std::cout                                                     //
+                    << "message: "                                            //
+                    << std::string_view(static_cast<const char*>(data), size) //
+                    << std::endl;
             }
         );
 
@@ -70,6 +75,7 @@ struct Service: nil::cli::Command
         std::string message;
         while (std::getline(std::cin, message))
         {
+            // will publish to all connections
             service.publish(1, message.data(), message.size());
         }
         return 0;
