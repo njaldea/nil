@@ -13,14 +13,20 @@ Checks: >
   readability-*,
   -performance-avoid-endl,
   -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-avoid-magic-numbers,
   -readability-identifier-length,
+  -readability-uppercase-literal-suffix,
+  -readability-magic-numbers,
   -modernize-use-nodiscard,
   -modernize-use-trailing-return-type,
   -misc-no-recursion,
   -misc-include-cleaner,
   -misc-non-private-member-variables-in-classes,
   -bugprone-exception-escape,
-WarningsAsErrors: '*'
+  -hicpp-uppercase-literal-suffix
+WarningsAsErrors: >
+  *,
+  -bugprone-easily-swappable-parameters
 HeaderFileExtensions:
   - ''
   - h

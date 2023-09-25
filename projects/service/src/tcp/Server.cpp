@@ -6,15 +6,12 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
-#include <unordered_set>
-
 namespace nil::service::tcp
 {
     struct Server::Impl final: IImpl
     {
-        Impl(Server::Options options)
-            : options(std::move(options))
-            , context()
+        explicit Impl(Server::Options options)
+            : options(options)
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
             , acceptor(context, endpoint)
         {
@@ -136,18 +133,35 @@ namespace nil::service::tcp
     };
 
     Server::Server(Server::Options options)
-        : mImpl(std::make_unique<Impl>(std::move(options)))
+        : mImpl(std::make_unique<Impl>(options))
     {
     }
 
     Server::~Server() noexcept = default;
 
-    void Server::on(std::uint32_t type, MsgHandler handler)
+    void Server::start()
+    {
+        mImpl->start();
+        mImpl->context.run();
+    }
+
+    void Server::stop()
+    {
+        mImpl->context.stop();
+    }
+
+    void Server::on(
+        std::uint32_t type,
+        MsgHandler handler //
+    )
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Server::on(Event event, EventHandler handler)
+    void Server::on(
+        Event event,
+        EventHandler handler //
+    )
     {
         switch (event)
         {
@@ -160,17 +174,6 @@ namespace nil::service::tcp
             default:
                 throw std::runtime_error("unknown type");
         }
-    }
-
-    void Server::start()
-    {
-        mImpl->start();
-        mImpl->context.run();
-    }
-
-    void Server::stop()
-    {
-        mImpl->context.stop();
     }
 
     void Server::send(

@@ -23,11 +23,17 @@ namespace nil::service::tcp
         Client(Options options);
         ~Client() noexcept override;
 
-        void on(std::uint32_t type, MsgHandler handler) override;
-        void on(Event event, EventHandler handler) override;
-
         void start() override;
         void stop() override;
+
+        void on(
+            std::uint32_t type,
+            MsgHandler handler //
+        ) override;
+        void on(
+            Event event,
+            EventHandler handler //
+        ) override;
 
         void send(
             std::uint16_t id,

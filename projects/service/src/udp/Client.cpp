@@ -10,14 +10,13 @@ namespace nil::service::udp
 {
     struct Client::Impl final
     {
-        Impl(Client::Options options)
+        explicit Impl(Client::Options options)
             : options(std::move(options))
-            , context()
             , socket(context, {boost::asio::ip::make_address("0.0.0.0"), 0})
             , pingtimer(context)
             , timeout(context)
         {
-            buffer.resize(options.buffer);
+            buffer.resize(this->options.buffer);
         }
 
         Client::Options options;
@@ -157,12 +156,29 @@ namespace nil::service::udp
 
     Client::~Client() noexcept = default;
 
-    void Client::on(std::uint32_t type, MsgHandler handler)
+    void Client::start()
+    {
+        mImpl->start();
+        mImpl->context.run();
+    }
+
+    void Client::stop()
+    {
+        mImpl->context.stop();
+    }
+
+    void Client::on(
+        std::uint32_t type,
+        MsgHandler handler //
+    )
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Client::on(Event event, EventHandler handler)
+    void Client::on(
+        Event event,
+        EventHandler handler //
+    )
     {
         switch (event)
         {
@@ -175,17 +191,6 @@ namespace nil::service::udp
             default:
                 throw std::runtime_error("unknown type");
         }
-    }
-
-    void Client::start()
-    {
-        mImpl->start();
-        mImpl->context.run();
-    }
-
-    void Client::stop()
-    {
-        mImpl->context.stop();
     }
 
     void Client::send(

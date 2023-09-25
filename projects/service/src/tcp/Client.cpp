@@ -11,9 +11,8 @@ namespace nil::service::tcp
 {
     struct Client::Impl final: IImpl
     {
-        Impl(Client::Options options)
+        explicit Impl(Client::Options options)
             : options(std::move(options))
-            , context()
             , endpoint(boost::asio::ip::make_address(this->options.host.data()), this->options.port)
             , reconnection(context)
         {
@@ -27,7 +26,7 @@ namespace nil::service::tcp
             context.dispatch(
                 [this, msg = msg.SerializeAsString()]()
                 {
-                    if (connection)
+                    if (connection != nullptr)
                     {
                         connection->write(msg.data(), msg.size());
                     }
@@ -130,12 +129,29 @@ namespace nil::service::tcp
 
     Client::~Client() noexcept = default;
 
-    void Client::on(std::uint32_t type, MsgHandler handler)
+    void Client::start()
+    {
+        mImpl->start();
+        mImpl->context.run();
+    }
+
+    void Client::stop()
+    {
+        mImpl->context.stop();
+    }
+
+    void Client::on(
+        std::uint32_t type,
+        MsgHandler handler //
+    )
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Client::on(Event event, EventHandler handler)
+    void Client::on(
+        Event event,
+        EventHandler handler //
+    )
     {
         switch (event)
         {
@@ -148,17 +164,6 @@ namespace nil::service::tcp
             default:
                 throw std::runtime_error("unknown type");
         }
-    }
-
-    void Client::start()
-    {
-        mImpl->start();
-        mImpl->context.run();
-    }
-
-    void Client::stop()
-    {
-        mImpl->context.stop();
     }
 
     void Client::send(

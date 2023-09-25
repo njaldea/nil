@@ -10,12 +10,11 @@ namespace nil::service::udp
 {
     struct Server::Impl final
     {
-        Impl(Server::Options options)
-            : options(std::move(options))
-            , context()
+        explicit Impl(Server::Options options)
+            : options(options)
             , socket(context, {boost::asio::ip::make_address("0.0.0.0"), this->options.port})
         {
-            buffer.resize(options.buffer);
+            buffer.resize(this->options.buffer);
         }
 
         Server::Options options;
@@ -30,10 +29,10 @@ namespace nil::service::udp
         boost::asio::io_context context;
         boost::asio::ip::udp::socket socket;
 
-        std::unordered_map<
+        using EndPoints = std::unordered_map<
             boost::asio::ip::udp::endpoint,
-            std::unique_ptr<boost::asio::steady_timer>>
-            endpoints;
+            std::unique_ptr<boost::asio::steady_timer>>;
+        EndPoints endpoints;
 
         std::vector<char> buffer;
 
@@ -128,7 +127,7 @@ namespace nil::service::udp
                 }
             );
 
-            publish(true, 0, nullptr, 0);
+            send(true, port, 0, nullptr, 0);
         }
 
         void message(
@@ -173,18 +172,35 @@ namespace nil::service::udp
     };
 
     Server::Server(Server::Options options)
-        : mImpl(std::make_unique<Impl>(std::move(options)))
+        : mImpl(std::make_unique<Impl>(options))
     {
     }
 
     Server::~Server() noexcept = default;
 
-    void Server::on(std::uint32_t type, MsgHandler handler)
+    void Server::start()
+    {
+        mImpl->start();
+        mImpl->context.run();
+    }
+
+    void Server::stop()
+    {
+        mImpl->context.stop();
+    }
+
+    void Server::on(
+        std::uint32_t type,
+        MsgHandler handler //
+    )
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Server::on(Event event, EventHandler handler)
+    void Server::on(
+        Event event,
+        EventHandler handler //
+    )
     {
         switch (event)
         {
@@ -197,17 +213,6 @@ namespace nil::service::udp
             default:
                 throw std::runtime_error("unknown type");
         }
-    }
-
-    void Server::start()
-    {
-        mImpl->start();
-        mImpl->context.run();
-    }
-
-    void Server::stop()
-    {
-        mImpl->context.stop();
     }
 
     void Server::send(

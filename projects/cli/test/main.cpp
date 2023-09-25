@@ -23,7 +23,7 @@ namespace
 
 struct Command: nil::cli::Command
 {
-    Command(std::function<int(const nil::cli::Options&)> runImpl)
+    explicit Command(std::function<int(const nil::cli::Options&)> runImpl)
         : runImpl(std::move(runImpl))
     {
     }
@@ -53,13 +53,8 @@ struct Command: nil::cli::Command
 
 TEST(Cli, base)
 {
-    testing::StrictMock<testing::MockFunction<int(const nil::cli::Options&)>> called;
-
-    auto root = nil::cli::Node::root();
-    const auto argv = 1;
-    const char* sentinel = nullptr;
-    const char* argc[] = {"Program", sentinel};
-    ASSERT_EQ(root.run(argv, argc), 0);
+    auto args = std::array<const char*, 2>({"Program", nullptr});
+    ASSERT_EQ(nil::cli::Node::root().run(args.size() - 1, args.data()), 0);
 }
 
 TEST(Cli, depth_one)
@@ -72,7 +67,7 @@ TEST(Cli, depth_one)
 
     const auto matches = [](const nil::cli::Options& output)
     {
-        return output.flag("flag") == false &&          //
+        return !output.flag("flag") &&                  //
             output.number("number") == 0 &&             //
             output.param("param") == "default value" && //
             output.params("mparam").empty();
@@ -82,10 +77,8 @@ TEST(Cli, depth_one)
         .WillOnce(testing::Return(0))
         .RetiresOnSaturation();
 
-    const auto argv = 1;
-    const char* sentinel = nullptr;
-    const char* argc[] = {"Program", sentinel};
-    ASSERT_EQ(root.run(argv, argc), 0);
+    auto args = std::array<const char*, 2>({"Program", nullptr});
+    ASSERT_EQ(root.run(args.size() - 1, args.data()), 0);
 }
 
 TEST(Cli, depth_deep)
@@ -106,7 +99,7 @@ TEST(Cli, depth_deep)
         std::ostringstream oss;
         output.help(oss);
         return oss.str() == help &&                     //
-            output.flag("flag") == false &&             //
+            !output.flag("flag") &&                     //
             output.number("number") == 0 &&             //
             output.param("param") == "default value" && //
             output.params("mparam").empty();
@@ -116,8 +109,6 @@ TEST(Cli, depth_deep)
         .WillOnce(testing::Return(0))
         .RetiresOnSaturation();
 
-    const auto argv = 3;
-    const char* sentinel = nullptr;
-    const char* argc[] = {"Program", "sub1", "sub2", sentinel};
-    ASSERT_EQ(root.run(argv, argc), 0);
+    auto args = std::array<const char*, 4>({"Program", "sub1", "sub2", nullptr});
+    ASSERT_EQ(root.run(args.size() - 1, args.data()), 0);
 }

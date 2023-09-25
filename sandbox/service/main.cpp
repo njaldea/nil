@@ -6,7 +6,7 @@
 
 struct Help: nil::cli::Command
 {
-    int run(const nil::cli::Options& options) const
+    int run(const nil::cli::Options& options) const override
     {
         options.help(std::cout);
         return 0;
@@ -71,7 +71,7 @@ struct Service: nil::cli::Command
             }
         );
 
-        std::thread t([&]() { service.start(); });
+        const std::thread t([&]() { service.start(); });
         std::string message;
         while (std::getline(std::cin, message))
         {

@@ -20,13 +20,19 @@ namespace nil::service::tcp
         };
 
         Server(Options options);
-        ~Server() override;
-
-        void on(std::uint32_t type, MsgHandler handler) override;
-        void on(Event event, EventHandler handler) override;
+        ~Server() noexcept override;
 
         void start() override;
         void stop() override;
+
+        void on(
+            std::uint32_t type,
+            MsgHandler handler //
+        ) override;
+        void on(
+            Event event,
+            EventHandler handler //
+        ) override;
 
         void send(
             std::uint16_t id,
