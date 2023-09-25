@@ -2,9 +2,10 @@
 
 #include <nil/service/IService.hpp>
 
+#include <chrono>
 #include <memory>
 
-namespace nil::service::tcp
+namespace nil::service::udp
 {
     class Server final: public IService
     {
@@ -13,6 +14,7 @@ namespace nil::service::tcp
         {
             std::uint16_t port;
             std::uint64_t buffer = 1024;
+            std::chrono::microseconds timeout = std::chrono::seconds(2);
         };
 
         Server(Options options);

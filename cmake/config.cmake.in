@@ -8,7 +8,6 @@ if("@ENABLE_FEATURE_CLI@")
 endif()
 
 if("@ENABLE_FEATURE_SERVICE@")
-    find_dependency(Boost REQUIRED)
     find_dependency(Protobuf CONFIG REQUIRED)
     include(${CMAKE_CURRENT_LIST_DIR}/nil-service-targets.cmake)
 endif()

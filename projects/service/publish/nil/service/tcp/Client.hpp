@@ -2,6 +2,8 @@
 
 #include <nil/service/IService.hpp>
 
+#include <memory>
+
 namespace nil::service::tcp
 {
     class Client final: public IService
@@ -17,10 +19,12 @@ namespace nil::service::tcp
         Client(Options options);
         ~Client() noexcept override;
 
-        void on(std::uint32_t type, std::unique_ptr<IHandler> handler) override;
+        void on(std::uint32_t type, MsgHandler handler) override;
+        void on(Event event, EventHandler handler) override;
+
         void start() override;
         void stop() override;
-        void publish(std::uint32_t type, std::string msg) override;
+        void publish(std::uint32_t type, const void* data, std::uint64_t size) override;
 
     private:
         struct Impl;

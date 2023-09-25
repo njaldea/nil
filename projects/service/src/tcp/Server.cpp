@@ -1,6 +1,7 @@
 #include <nil/service/tcp/Server.hpp>
 
 #include "Connection.hpp"
+#include <nil_service_message.pb.h>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -9,7 +10,7 @@
 
 namespace nil::service::tcp
 {
-    struct Server::Impl
+    struct Server::Impl final: IImpl
     {
         Impl(Server::Options options)
             : options(std::move(options))
@@ -20,30 +21,90 @@ namespace nil::service::tcp
         }
 
         Server::Options options;
-        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>> handlers;
+
+        struct Handlers
+        {
+            std::unordered_map<std::uint32_t, MsgHandler> msg;
+            EventHandler connect;
+            EventHandler disconnect;
+        } handlers;
 
         boost::asio::io_context context;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::ip::tcp::acceptor acceptor;
         std::unordered_set<Connection*> connections;
 
-        void connect()
+        void publish(std::uint32_t type, const void* data, std::uint64_t size)
         {
-            auto connection = std::make_shared<Connection>( //
-                options.buffer,
-                context,
-                handlers,
-                &connections
+            Message msg;
+            msg.set_user(true);
+            msg.set_type(type);
+            msg.set_data(data, size);
+            context.dispatch(
+                [this, msg = msg.SerializeAsString()]()
+                {
+                    for (auto* c : connections)
+                    {
+                        c->write(msg.data(), msg.size());
+                    }
+                }
             );
+        }
+
+        void connect(Connection* connection) override
+        {
+            if (!connections.contains(connection))
+            {
+                connections.emplace(connection);
+            }
+            if (handlers.connect)
+            {
+                handlers.connect();
+            }
+        }
+
+        void disconnect(Connection* connection) override
+        {
+            if (connections.contains(connection))
+            {
+                connections.erase(connection);
+            }
+            if (handlers.disconnect)
+            {
+                handlers.disconnect();
+            }
+        }
+
+        void message(const void* data, std::uint64_t size) override
+        {
+            Message message;
+            message.ParseFromArray(data, int(size));
+            if (message.user())
+            {
+                const auto it = handlers.msg.find(message.type());
+                if (it != handlers.msg.end())
+                {
+                    if (it->second)
+                    {
+                        const auto& inner = message.data();
+                        it->second(inner.data(), inner.size());
+                    }
+                }
+            }
+        }
+
+        void start()
+        {
+            auto conn = std::make_shared<Connection>(options.buffer, context, *this);
             acceptor.async_accept(
-                connection->handle(),
-                [this, connection](const boost::system::error_code& ec)
+                conn->handle(),
+                [this, conn](const boost::system::error_code& ec)
                 {
                     if (!ec)
                     {
-                        connection->start();
+                        conn->connected();
                     }
-                    this->connect();
+                    start();
                 }
             );
         }
@@ -56,14 +117,29 @@ namespace nil::service::tcp
 
     Server::~Server() noexcept = default;
 
-    void Server::on(std::uint32_t type, std::unique_ptr<IHandler> handler)
+    void Server::on(std::uint32_t type, MsgHandler handler)
     {
-        mImpl->handlers.emplace(type, std::move(handler));
+        mImpl->handlers.msg.emplace(type, std::move(handler));
+    }
+
+    void Server::on(Event event, EventHandler handler)
+    {
+        switch (event)
+        {
+            case Event::Connect:
+                mImpl->handlers.connect = std::move(handler);
+                break;
+            case Event::Disconnect:
+                mImpl->handlers.disconnect = std::move(handler);
+                break;
+            default:
+                throw std::runtime_error("unknown type");
+        }
     }
 
     void Server::start()
     {
-        mImpl->connect();
+        mImpl->start();
         mImpl->context.run();
     }
 
@@ -72,17 +148,8 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Server::publish(std::uint32_t type, std::string msg)
+    void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        (void)type;
-        mImpl->context.dispatch(
-            [this, type, msg = std::move(msg)]()
-            {
-                for (auto* c : mImpl->connections)
-                {
-                    c->write(type, msg);
-                }
-            }
-        );
+        mImpl->publish(type, data, size);
     }
 }

@@ -2,21 +2,24 @@
 
 #include <nil/service/IService.hpp>
 
+#include <chrono>
 #include <memory>
 
-namespace nil::service::tcp
+namespace nil::service::udp
 {
-    class Server final: public IService
+    class Client final: public IService
     {
     public:
         struct Options
         {
+            std::string host;
             std::uint16_t port;
             std::uint64_t buffer = 1024;
+            std::chrono::microseconds timeout = std::chrono::seconds(2);
         };
 
-        Server(Options options);
-        ~Server() override;
+        Client(Options options);
+        ~Client() noexcept override;
 
         void on(std::uint32_t type, MsgHandler handler) override;
         void on(Event event, EventHandler handler) override;

@@ -4,16 +4,7 @@
 #include <iostream>
 #include <thread>
 
-struct Handler: nil::service::IHandler
-{
-    void exec(const void* data, std::size_t size) override
-    {
-        std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
-        std::cout << std::string_view(static_cast<const char*>(data), size) << std::endl;
-    }
-};
-
-struct Root: nil::cli::Command
+struct Help: nil::cli::Command
 {
     int run(const nil::cli::Options& options) const
     {
@@ -22,7 +13,31 @@ struct Root: nil::cli::Command
     }
 };
 
-struct Server: nil::cli::Command
+template <typename T>
+typename T::Options parse(const nil::cli::Options& options)
+{
+    const auto port = std::uint16_t(options.number("port"));
+    if constexpr (std::is_same_v<nil::service::tcp::Server, T> || std::is_same_v<nil::service::udp::Server, T>)
+    {
+        return {.port = port};
+    }
+    else if constexpr (std::is_same_v<nil::service::tcp::Client, T> || std::is_same_v<nil::service::udp::Client, T>)
+    {
+        return {.host = "127.0.0.1", .port = port};
+    }
+    else
+    {
+        static_assert(
+            std::is_same_v<nil::service::tcp::Server, T> || //
+            std::is_same_v<nil::service::tcp::Client, T> || //
+            std::is_same_v<nil::service::udp::Server, T> || //
+            std::is_same_v<nil::service::udp::Client, T>    //
+        );
+    }
+}
+
+template <typename T>
+struct Service: nil::cli::Command
 {
     nil::cli::OptionInfo options() const override
     {
@@ -33,33 +48,29 @@ struct Server: nil::cli::Command
 
     int run(const nil::cli::Options& options) const
     {
-        nil::service::tcp::Server server({.port = std::uint16_t(options.number("port"))});
-        server.on(1, std::make_unique<Handler>());
-        server.start();
-        return 0;
-    }
-};
-
-struct Client: nil::cli::Command
-{
-    nil::cli::OptionInfo options() const override
-    {
-        return nil::cli::Builder() //
-            .number("port", {.skey = 'p', .msg = "port", .fallback = 8000, .implicit = 8000})
-            .build();
-    }
-
-    int run(const nil::cli::Options& options) const
-    {
-        nil::service::tcp::Client client(
-            {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
+        T service(parse<T>(options));
+        service.on(
+            nil::service::Event::Connect,
+            []() { std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl; }
+        );
+        service.on(
+            nil::service::Event::Disconnect,
+            []() { std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl; }
+        );
+        service.on(
+            1,
+            [](const void* data, std::uint64_t size)
+            {
+                std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
+                std::cout << std::string_view(static_cast<const char*>(data), size) << std::endl;
+            }
         );
 
-        std::thread t([&]() { client.start(); });
+        std::thread t([&]() { service.start(); });
         std::string message;
         while (std::getline(std::cin, message))
         {
-            client.publish(1, std::move(message));
+            service.publish(1, message.data(), message.size());
         }
         return 0;
     }
@@ -67,8 +78,16 @@ struct Client: nil::cli::Command
 
 int main(int argc, const char** argv)
 {
-    auto root = nil::cli::Node::root<Root>();
-    root.add<Server>("server", "server");
-    root.add<Client>("client", "client");
+    auto root = nil::cli::Node::root<Help>();
+    {
+        auto& tcp = root.add<Help>("tcp", "tcp");
+        tcp.add<Service<nil::service::tcp::Server>>("server", "server");
+        tcp.add<Service<nil::service::tcp::Client>>("client", "client");
+    }
+    {
+        auto& udp = root.add<Help>("udp", "udp");
+        udp.add<Service<nil::service::udp::Server>>("server", "server");
+        udp.add<Service<nil::service::udp::Client>>("client", "client");
+    }
     return root.run(argc, argv);
 }

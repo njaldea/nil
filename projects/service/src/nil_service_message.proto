@@ -4,7 +4,9 @@ option optimize_for = LITE_RUNTIME;
 
 package nil.service;
 
-message Message {
-    uint32 type = 1;
-    bytes data = 2;
+message Message
+{
+    bool user = 1;
+    uint32 type = 2;
+    bytes data = 3;
 }

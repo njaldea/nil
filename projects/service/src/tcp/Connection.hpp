@@ -1,32 +1,29 @@
 #pragma once
 
-#include <nil/service/IHandler.hpp>
-
-#include <msg.pb.h>
-
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
-#include <memory>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace nil::service::tcp
 {
+    struct Connection;
+
+    struct IImpl
+    {
+        virtual void message(const void* data, std::uint64_t size) = 0;
+        virtual void connect(Connection* connection) = 0;
+        virtual void disconnect(Connection* connection) = 0;
+    };
+
     class Connection: public std::enable_shared_from_this<Connection>
     {
     public:
-        Connection(
-            std::uint64_t buffer,
-            boost::asio::io_context& context,
-            std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers,
-            std::unordered_set<Connection*>* parent = nullptr
-        );
+        Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl);
         ~Connection();
 
-        void start();
-        void write(std::uint32_t type, std::string message);
+        void connected();
+        void write(const void* data, std::uint64_t size);
         boost::asio::ip::tcp::socket& handle();
 
     private:
@@ -34,8 +31,7 @@ namespace nil::service::tcp
         void readBody(std::uint64_t pos, std::uint64_t size);
 
         boost::asio::ip::tcp::socket socket;
-        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers;
-        std::unordered_set<Connection*>* parent;
+        IImpl& impl;
         std::vector<char> buffer;
     };
 }

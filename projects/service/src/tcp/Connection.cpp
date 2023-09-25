@@ -1,36 +1,22 @@
 #include "Connection.hpp"
 
-#include "msg.pb.h"
-
 namespace nil::service::tcp
 {
-    Connection::Connection(
-        std::uint64_t buffer,
-        boost::asio::io_context& context,
-        std::unordered_map<std::uint32_t, std::unique_ptr<IHandler>>& handlers,
-        std::unordered_set<Connection*>* parent
-    )
+    Connection::Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl)
         : socket(context)
-        , handlers(handlers)
-        , parent(parent)
+        , impl(impl)
     {
         this->buffer.resize(buffer);
     }
 
     Connection::~Connection()
     {
-        if (parent && parent->contains(this))
-        {
-            parent->erase(this);
-        }
+        impl.disconnect(this);
     }
 
-    void Connection::start()
+    void Connection::connected()
     {
-        if (parent)
-        {
-            parent->emplace(this);
-        }
+        impl.connect(this);
         readHeader(0u, 8u);
     }
 
@@ -40,7 +26,7 @@ namespace nil::service::tcp
             boost::asio::buffer(buffer.data() + pos, size - pos),
             [pos, size, self = shared_from_this()]( //
                 const boost::system::error_code& ec,
-                size_t count
+                std::size_t count
             )
             {
                 if (ec)
@@ -72,7 +58,7 @@ namespace nil::service::tcp
             boost::asio::buffer(buffer.data() + pos, size - pos),
             [pos, size, self = shared_from_this()]( //
                 const boost::system::error_code& ec,
-                size_t count
+                std::size_t count
             )
             {
                 if (ec)
@@ -86,37 +72,23 @@ namespace nil::service::tcp
                 }
                 else
                 {
-                    Message message;
-                    message.ParseFromArray(self->buffer.data(), int(size));
-                    const auto it = self->handlers.find(message.type());
-                    if (it != self->handlers.end())
-                    {
-                        const auto& inner = message.data();
-                        it->second->exec(inner.data(), inner.size());
-                    }
+                    self->impl.message(self->buffer.data(), size);
                     self->readHeader(0u, 8u);
                 }
             }
         );
     }
 
-    void Connection::write(std::uint32_t type, std::string message)
+    void Connection::write(const void* data, std::uint64_t size)
     {
-        Message proto;
-        proto.set_type(type);
-        proto.set_data(std::move(message));
-
-        const auto msg = proto.SerializeAsString();
-        const auto msgsize = msg.size();
-
-        std::uint8_t size[8];
+        std::uint8_t header[8];
         for (auto i = 0u; i < 8u; ++i)
         {
-            size[i] = std::uint8_t(msgsize >> (i * 8));
+            header[i] = std::uint8_t(size >> (i * 8));
         }
 
-        socket.write_some(boost::asio::buffer(size, 8));
-        socket.write_some(boost::asio::buffer(msg.data(), msgsize));
+        socket.write_some(boost::asio::buffer(header, 8));
+        socket.write_some(boost::asio::buffer(data, size));
     }
 
     boost::asio::ip::tcp::socket& Connection::handle()
