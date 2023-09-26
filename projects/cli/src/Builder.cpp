@@ -48,7 +48,7 @@ namespace nil::cli
             void apply(const IOption::Impl& impl) const override
             {
                 const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
-                auto* value = boost::program_options::value<int>();
+                auto* value = boost::program_options::value<std::int64_t>();
                 value->value_name("value");
                 value->implicit_value(mOptions.implicit, std::to_string(mOptions.implicit));
                 value->default_value(mOptions.fallback, std::to_string(mOptions.fallback));

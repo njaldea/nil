@@ -14,7 +14,7 @@
 
 namespace nil::cli
 {
-    struct Options::Impl
+    struct Options::Impl final
     {
         explicit Impl(std::string usage)
             : usage(std::move(usage))
@@ -128,9 +128,9 @@ namespace nil::cli
         return mImpl->access<bool>(lkey);
     }
 
-    int Options::number(const std::string& lkey) const
+    std::int64_t Options::number(const std::string& lkey) const
     {
-        return mImpl->access<int>(lkey);
+        return mImpl->access<std::int64_t>(lkey);
     }
 
     std::string Options::param(const std::string& lkey) const

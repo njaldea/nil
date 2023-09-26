@@ -1,11 +1,6 @@
 #include "Connection.hpp"
 
-namespace
-{
-    constexpr auto HEADER_SIZE = 8u;
-    constexpr auto START_INDEX = 0u;
-    constexpr auto TO_BITS = 8u;
-}
+#include "../Utils.hpp"
 
 namespace nil::service::tcp
 {
@@ -24,7 +19,7 @@ namespace nil::service::tcp
     void Connection::connected()
     {
         impl.connect(this);
-        readHeader(0u, HEADER_SIZE);
+        readHeader(0u, TCP_HEADER_SIZE);
     }
 
     void Connection::readHeader(std::uint64_t pos, std::uint64_t size)
@@ -47,13 +42,10 @@ namespace nil::service::tcp
                 }
                 else
                 {
-                    std::uint64_t esize = 0;
-                    for (auto i = 0u; i < HEADER_SIZE; ++i)
-                    {
-                        esize |= std::uint64_t(self->buffer[i]) << (i * TO_BITS);
-                    }
-
-                    self->readBody(START_INDEX, esize);
+                    self->readBody(
+                        START_INDEX,
+                        utils::from_array<std::uint64_t>(self->buffer.data())
+                    );
                 }
             }
         );
@@ -79,32 +71,28 @@ namespace nil::service::tcp
                 }
                 else
                 {
-                    self->impl.message(self->buffer.data(), size);
-                    self->readHeader(START_INDEX, HEADER_SIZE);
+                    self->impl.message(
+                        utils::from_array<std::uint32_t>(self->buffer.data()),
+                        self->buffer.data() + sizeof(std::uint32_t),
+                        size - sizeof(std::uint32_t)
+                    );
+                    self->readHeader(START_INDEX, TCP_HEADER_SIZE);
                 }
             }
         );
     }
 
-    void Connection::write(const void* data, std::uint64_t size)
+    void Connection::write(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        std::array<std::uint8_t, HEADER_SIZE> header = {
-            std::uint8_t(size >> (0 * TO_BITS)),
-            std::uint8_t(size >> (1 * TO_BITS)),
-            std::uint8_t(size >> (2 * TO_BITS)),
-            std::uint8_t(size >> (3 * TO_BITS)),
-            std::uint8_t(size >> (4 * TO_BITS)),
-            std::uint8_t(size >> (5 * TO_BITS)),
-            std::uint8_t(size >> (6 * TO_BITS)),
-            std::uint8_t(size >> (7 * TO_BITS)) //
-        };
-
         boost::system::error_code ec;
-        socket.write_some(boost::asio::buffer(header, HEADER_SIZE), ec);
-        if (!ec)
-        {
-            socket.write_some(boost::asio::buffer(data, size), ec);
-        }
+        socket.write_some(
+            std::array<boost::asio::const_buffer, 3>{
+                boost::asio::buffer(utils::to_array(size + sizeof(type))),
+                boost::asio::buffer(utils::to_array(type)),
+                boost::asio::buffer(data, size)
+            },
+            ec
+        );
     }
 
     boost::asio::ip::tcp::socket& Connection::handle()

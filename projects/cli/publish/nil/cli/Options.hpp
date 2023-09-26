@@ -44,9 +44,9 @@ namespace nil::cli
          *  Expected to be used for options registered using Builder::number
          *
          * @param lkey          registered long key
-         * @return int
+         * @return std::int64_t
          */
-        int number(const std::string& lkey) const;
+        std::int64_t number(const std::string& lkey) const;
 
         /**
          * @brief Access the value from parsed arguments.

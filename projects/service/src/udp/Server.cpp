@@ -1,6 +1,6 @@
 #include <nil/service/udp/Server.hpp>
 
-#include <nil_service_message.pb.h>
+#include "../Utils.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
@@ -37,26 +37,27 @@ namespace nil::service::udp
         std::vector<char> buffer;
 
         void send(
-            bool internal,
+            std::uint8_t internal,
             std::uint16_t id,
             std::uint32_t type,
             const void* data,
-            std::uint64_t size //
+            std::uint64_t size
         )
         {
-            Message msg;
-            msg.set_internal(internal);
-            msg.set_type(type);
-            msg.set_data(data, size);
             context.dispatch(
-                [this, id, msg = msg.SerializeAsString()]()
+                [this, internal, type, id, msg = std::string(static_cast<const char*>(data), size)](
+                )
                 {
                     for (const auto& endpoint : endpoints)
                     {
                         if (endpoint.first.port() == id)
                         {
                             socket.send_to(
-                                boost::asio::buffer(msg.data(), msg.size()),
+                                std::array<boost::asio::const_buffer, 3>{
+                                    boost::asio::buffer(utils::to_array(internal)),
+                                    boost::asio::buffer(utils::to_array(type)),
+                                    boost::asio::buffer(msg.data(), msg.size())
+                                },
                                 endpoint.first
                             );
                             break;
@@ -67,36 +68,38 @@ namespace nil::service::udp
         }
 
         void publish(
-            bool internal,
+            std::uint8_t internal,
             std::uint32_t type,
             const void* data,
-            std::uint64_t size //
+            std::uint64_t size
         )
         {
-            Message msg;
-            msg.set_internal(internal);
-            msg.set_type(type);
-            msg.set_data(data, size);
+            auto msg = std::string(static_cast<const char*>(data), size);
             context.dispatch(
-                [this, msg = msg.SerializeAsString()]()
+                [this,
+                 i = utils::to_array(internal),
+                 t = utils::to_array(type),
+                 msg = std::move(msg)]()
                 {
+                    const auto b = std::array<boost::asio::const_buffer, 3>{
+                        boost::asio::buffer(i),
+                        boost::asio::buffer(t),
+                        boost::asio::buffer(msg)
+                    };
                     for (const auto& endpoint : endpoints)
                     {
-                        socket.send_to(boost::asio::buffer(msg.data(), msg.size()), endpoint.first);
+                        socket.send_to(b, endpoint.first);
                     }
                 }
             );
         }
 
-        void usermsg(std::uint32_t type, const void* data, std::uint64_t size)
+        void usermsg(const char* data, std::uint64_t size)
         {
-            const auto it = handlers.msg.find(type);
-            if (it != handlers.msg.end())
+            const auto it = handlers.msg.find(utils::from_array<std::uint32_t>(data));
+            if (it != handlers.msg.end() && it->second)
             {
-                if (it->second)
-                {
-                    it->second(data, size);
-                }
+                it->second(data + sizeof(std::uint32_t), size - sizeof(std::uint32_t));
             }
         }
 
@@ -127,25 +130,25 @@ namespace nil::service::udp
                 }
             );
 
-            send(true, port, 0, nullptr, 0);
+            send(UDP_INTERNAL_MESSAGE, port, 0, nullptr, 0);
         }
 
         void message(
             const boost::asio::ip::udp::endpoint& endpoint,
-            const void* data,
+            const char* data,
             std::uint64_t size
         )
         {
-            Message msg;
-            msg.ParseFromArray(data, int(size));
-            if (msg.internal())
+            if (size >= UDP_REQUIRED_SIZE)
             {
-                ping(endpoint);
-            }
-            else
-            {
-                const auto& inner = msg.data();
-                usermsg(msg.type(), inner.data(), inner.size());
+                if (utils::from_array<std::uint8_t>(data) > 0u)
+                {
+                    ping(endpoint);
+                }
+                else
+                {
+                    usermsg(data + sizeof(std::uint8_t), size - sizeof(std::uint8_t));
+                }
             }
         }
 
@@ -163,7 +166,7 @@ namespace nil::service::udp
                 {
                     if (!ec)
                     {
-                        this->message(*receiver, buffer.data(), count);
+                        this->message(*receiver, static_cast<const char*>(buffer.data()), count);
                         this->start();
                     }
                 }
@@ -189,18 +192,12 @@ namespace nil::service::udp
         mImpl->context.stop();
     }
 
-    void Server::on(
-        std::uint32_t type,
-        MsgHandler handler //
-    )
+    void Server::on(std::uint32_t type, MsgHandler handler)
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Server::on(
-        Event event,
-        EventHandler handler //
-    )
+    void Server::on(Event event, EventHandler handler)
     {
         switch (event)
         {
@@ -215,22 +212,13 @@ namespace nil::service::udp
         }
     }
 
-    void Server::send(
-        std::uint16_t id,
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size //
-    )
+    void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        mImpl->send(false, id, type, data, size);
+        mImpl->send(UDP_EXTERNAL_MESSAGE, id, type, data, size);
     }
 
-    void Server::publish(
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size //
-    )
+    void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        mImpl->publish(false, type, data, size);
+        mImpl->publish(UDP_EXTERNAL_MESSAGE, type, data, size);
     }
 }

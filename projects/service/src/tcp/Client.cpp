@@ -1,7 +1,6 @@
 #include <nil/service/tcp/Client.hpp>
 
 #include "Connection.hpp"
-#include <nil_service_message.pb.h>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
@@ -20,15 +19,12 @@ namespace nil::service::tcp
 
         void publish(std::uint32_t type, const void* data, std::uint64_t size)
         {
-            Message msg;
-            msg.set_type(type);
-            msg.set_data(data, size);
             context.dispatch(
-                [this, msg = msg.SerializeAsString()]()
+                [this, type, msg = std::string(static_cast<const char*>(data), size)]()
                 {
                     if (connection != nullptr)
                     {
-                        connection->write(msg.data(), msg.size());
+                        connection->write(type, msg.data(), msg.size());
                     }
                 }
             );
@@ -56,21 +52,12 @@ namespace nil::service::tcp
             reconnect();
         }
 
-        void message(const void* data, std::uint64_t size) override
+        void message(std::uint32_t type, const void* data, std::uint64_t size) override
         {
-            Message message;
-            message.ParseFromArray(data, int(size));
-            if (!message.internal())
+            const auto it = handlers.msg.find(type);
+            if (it != handlers.msg.end() && it->second)
             {
-                const auto it = handlers.msg.find(message.type());
-                if (it != handlers.msg.end())
-                {
-                    if (it->second)
-                    {
-                        const auto& inner = message.data();
-                        it->second(inner.data(), inner.size());
-                    }
-                }
+                it->second(data, size);
             }
         }
 
@@ -140,18 +127,12 @@ namespace nil::service::tcp
         mImpl->context.stop();
     }
 
-    void Client::on(
-        std::uint32_t type,
-        MsgHandler handler //
-    )
+    void Client::on(std::uint32_t type, MsgHandler handler)
     {
         mImpl->handlers.msg.emplace(type, std::move(handler));
     }
 
-    void Client::on(
-        Event event,
-        EventHandler handler //
-    )
+    void Client::on(Event event, EventHandler handler)
     {
         switch (event)
         {
@@ -166,12 +147,7 @@ namespace nil::service::tcp
         }
     }
 
-    void Client::send(
-        std::uint16_t id,
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size //
-    )
+    void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
         if (id != mImpl->options.port)
         {
@@ -179,11 +155,7 @@ namespace nil::service::tcp
         }
     }
 
-    void Client::publish(
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size //
-    )
+    void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
         mImpl->publish(type, data, size);
     }

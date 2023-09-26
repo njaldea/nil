@@ -9,7 +9,7 @@ namespace nil::service::tcp
     class Server final: public IService
     {
     public:
-        struct Options
+        struct Options final
         {
             std::uint16_t port;
             /**

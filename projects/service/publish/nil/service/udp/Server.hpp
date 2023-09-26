@@ -10,7 +10,7 @@ namespace nil::service::udp
     class Server final: public IService
     {
     public:
-        struct Options
+        struct Options final
         {
             std::uint16_t port;
             /**

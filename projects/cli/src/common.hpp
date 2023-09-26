@@ -6,7 +6,7 @@
 
 namespace nil::cli
 {
-    struct IOption::Impl
+    struct IOption::Impl final
     {
         boost::program_options::options_description_easy_init& ex;
     };

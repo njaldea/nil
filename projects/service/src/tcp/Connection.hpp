@@ -11,19 +11,19 @@ namespace nil::service::tcp
 
     struct IImpl
     {
-        virtual void message(const void* data, std::uint64_t size) = 0;
+        virtual void message(std::uint32_t type, const void* data, std::uint64_t size) = 0;
         virtual void connect(Connection* connection) = 0;
         virtual void disconnect(Connection* connection) = 0;
     };
 
-    class Connection: public std::enable_shared_from_this<Connection>
+    class Connection final: public std::enable_shared_from_this<Connection>
     {
     public:
         Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl);
         ~Connection();
 
         void connected();
-        void write(const void* data, std::uint64_t size);
+        void write(std::uint32_t type, const void* data, std::uint64_t size);
         boost::asio::ip::tcp::socket& handle();
 
     private:

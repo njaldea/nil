@@ -4,7 +4,7 @@
 #include <iostream>
 #include <thread>
 
-struct Help: nil::cli::Command
+struct Help final: nil::cli::Command
 {
     int run(const nil::cli::Options& options) const override
     {
@@ -41,8 +41,16 @@ struct Service: nil::cli::Command
 {
     nil::cli::OptionInfo options() const override
     {
-        return nil::cli::Builder() //
-            .number("port", {.skey = 'p', .msg = "port", .fallback = 8000, .implicit = 8000})
+        return nil::cli::Builder()
+            .number(
+                "port",
+                {
+                    .skey = 'p',
+                    .msg = "port",
+                    .fallback = 8000,
+                    .implicit = 8000 //
+                }
+            )
             .build();
     }
 

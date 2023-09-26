@@ -9,7 +9,7 @@ namespace nil::service::tcp
     class Client final: public IService
     {
     public:
-        struct Options
+        struct Options final
         {
             std::string host;
             std::uint16_t port;

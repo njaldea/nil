@@ -21,7 +21,7 @@ namespace
           "\n";
 }
 
-struct Command: nil::cli::Command
+struct Command final: nil::cli::Command
 {
     explicit Command(std::function<int(const nil::cli::Options&)> runImpl)
         : runImpl(std::move(runImpl))
@@ -51,13 +51,13 @@ struct Command: nil::cli::Command
     std::function<int(const nil::cli::Options&)> runImpl;
 };
 
-TEST(Cli, base)
+TEST(cli, base)
 {
-    auto args = std::array<const char*, 2>({"Program", nullptr});
-    ASSERT_EQ(nil::cli::Node::root().run(args.size() - 1, args.data()), 0);
+    auto args = std::array{"Program"};
+    ASSERT_EQ(nil::cli::Node::root().run(args.size(), args.data()), 0);
 }
 
-TEST(Cli, depth_one)
+TEST(cli, depth_one)
 {
     testing::StrictMock<testing::MockFunction<int(const nil::cli::Options&)>> called;
 
@@ -77,11 +77,11 @@ TEST(Cli, depth_one)
         .WillOnce(testing::Return(0))
         .RetiresOnSaturation();
 
-    auto args = std::array<const char*, 2>({"Program", nullptr});
-    ASSERT_EQ(root.run(args.size() - 1, args.data()), 0);
+    auto args = std::array{"Program"};
+    ASSERT_EQ(root.run(args.size(), args.data()), 0);
 }
 
-TEST(Cli, depth_deep)
+TEST(cli, depth_deep)
 {
     testing::StrictMock<testing::MockFunction<int(const nil::cli::Options&)>> called;
 
@@ -109,6 +109,6 @@ TEST(Cli, depth_deep)
         .WillOnce(testing::Return(0))
         .RetiresOnSaturation();
 
-    auto args = std::array<const char*, 4>({"Program", "sub1", "sub2", nullptr});
-    ASSERT_EQ(root.run(args.size() - 1, args.data()), 0);
+    auto args = std::array{"Program", "sub1", "sub2"};
+    ASSERT_EQ(root.run(args.size(), args.data()), 0);
 }

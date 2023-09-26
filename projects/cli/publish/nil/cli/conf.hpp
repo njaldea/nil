@@ -33,12 +33,12 @@ namespace nil::cli::conf
         /**
          * @brief Value used when option is not provided
          */
-        int fallback = 0;
+        std::int64_t fallback = 0;
 
         /**
          * @brief Value used when there is no value provided to the option
          */
-        int implicit = 1;
+        std::int64_t implicit = 1;
     };
 
     struct Param final

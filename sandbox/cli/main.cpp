@@ -3,7 +3,7 @@
 #include <iostream>
 
 template <int V>
-struct Command: nil::cli::Command
+struct Command final: nil::cli::Command
 {
     std::string usage() const override
     {
