@@ -17,10 +17,10 @@ namespace nil::service::tcp
         {
         }
 
-        void publish(std::uint32_t type, const void* data, std::uint64_t size)
+        void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
             context.dispatch(
-                [this, type, msg = std::string(static_cast<const char*>(data), size)]()
+                [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     if (connection != nullptr)
                     {
@@ -52,7 +52,7 @@ namespace nil::service::tcp
             reconnect();
         }
 
-        void message(std::uint32_t type, const void* data, std::uint64_t size) override
+        void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
         {
             const auto it = handlers.msg.find(type);
             if (it != handlers.msg.end() && it->second)
@@ -109,7 +109,7 @@ namespace nil::service::tcp
     };
 
     Client::Client(Client::Options options)
-        : mImpl(std::make_unique<Impl>(std::move(options)))
+        : impl(std::make_unique<Impl>(std::move(options)))
 
     {
     }
@@ -118,18 +118,18 @@ namespace nil::service::tcp
 
     void Client::start()
     {
-        mImpl->start();
-        mImpl->context.run();
+        impl->start();
+        impl->context.run();
     }
 
     void Client::stop()
     {
-        mImpl->context.stop();
+        impl->context.stop();
     }
 
     void Client::on(std::uint32_t type, MsgHandler handler)
     {
-        mImpl->handlers.msg.emplace(type, std::move(handler));
+        impl->handlers.msg.emplace(type, std::move(handler));
     }
 
     void Client::on(Event event, EventHandler handler)
@@ -137,10 +137,10 @@ namespace nil::service::tcp
         switch (event)
         {
             case Event::Connect:
-                mImpl->handlers.connect = std::move(handler);
+                impl->handlers.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                mImpl->handlers.disconnect = std::move(handler);
+                impl->handlers.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -149,14 +149,14 @@ namespace nil::service::tcp
 
     void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (id != mImpl->options.port)
+        if (id != impl->options.port)
         {
-            mImpl->publish(type, data, size);
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
         }
     }
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        mImpl->publish(type, data, size);
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

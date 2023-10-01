@@ -11,26 +11,26 @@ namespace nil::cli
         {
         public:
             Option(std::string lkey, conf::Flag options)
-                : mLKey(std::move(lkey))
-                , mOptions(std::move(options))
+                : lkey(std::move(lkey))
+                , options(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                const auto opt = options.skey ? (lkey + ',' + *options.skey) : lkey;
                 auto* value = boost::program_options::value<bool>();
                 value->zero_tokens();
                 value->default_value(false);
-                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
+                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
-            std::string mLKey;
-            conf::Flag mOptions;
+            std::string lkey;
+            conf::Flag options;
         };
 
-        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
+        info.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -40,27 +40,27 @@ namespace nil::cli
         {
         public:
             Option(std::string lkey, conf::Number options)
-                : mLKey(std::move(lkey))
-                , mOptions(std::move(options))
+                : lkey(std::move(lkey))
+                , options(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                const auto opt = options.skey ? (lkey + ',' + *options.skey) : lkey;
                 auto* value = boost::program_options::value<std::int64_t>();
                 value->value_name("value");
-                value->implicit_value(mOptions.implicit, std::to_string(mOptions.implicit));
-                value->default_value(mOptions.fallback, std::to_string(mOptions.fallback));
-                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
+                value->implicit_value(options.implicit, std::to_string(options.implicit));
+                value->default_value(options.fallback, std::to_string(options.fallback));
+                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
-            std::string mLKey;
-            conf::Number mOptions;
+            std::string lkey;
+            conf::Number options;
         };
 
-        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
+        info.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -70,36 +70,36 @@ namespace nil::cli
         {
         public:
             Option(std::string lkey, conf::Param options)
-                : mLKey(std::move(lkey))
-                , mOptions(std::move(options))
+                : lkey(std::move(lkey))
+                , options(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                const auto opt = options.skey ? (lkey + ',' + *options.skey) : lkey;
                 auto* value = boost::program_options::value<std::string>();
                 value->value_name("text");
-                if (mOptions.fallback.has_value())
+                if (options.fallback.has_value())
                 {
                     value->default_value(
-                        mOptions.fallback.value(),
-                        "\"" + mOptions.fallback.value() + "\""
+                        options.fallback.value(),
+                        "\"" + options.fallback.value() + "\""
                     );
                 }
                 else
                 {
                     value->required();
                 }
-                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
+                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
-            std::string mLKey;
-            conf::Param mOptions;
+            std::string lkey;
+            conf::Param options;
         };
 
-        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
+        info.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
@@ -109,32 +109,32 @@ namespace nil::cli
         {
         public:
             Option(std::string lkey, conf::Params options)
-                : mLKey(std::move(lkey))
-                , mOptions(std::move(options))
+                : lkey(std::move(lkey))
+                , options(std::move(options))
             {
             }
 
             void apply(const IOption::Impl& impl) const override
             {
-                const auto opt = mOptions.skey ? (mLKey + ',' + *mOptions.skey) : mLKey;
+                const auto opt = options.skey ? (lkey + ',' + *options.skey) : lkey;
                 auto* value = boost::program_options::value<std::vector<std::string>>();
                 value->value_name("text");
                 value->multitoken();
                 value->default_value({}, "");
-                impl.ex(opt.c_str(), value, mOptions.msg.value_or("").c_str());
+                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
-            std::string mLKey;
-            conf::Params mOptions;
+            std::string lkey;
+            conf::Params options;
         };
 
-        mInfo.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
+        info.emplace_back(std::make_unique<Option>(std::move(lkey), std::move(options)));
         return *this;
     }
 
     OptionInfo Builder::build()
     {
-        return std::move(mInfo);
+        return std::move(info);
     }
 }

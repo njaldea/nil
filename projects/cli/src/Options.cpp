@@ -48,10 +48,10 @@ namespace nil::cli
         int argc,
         const char** argv
     )
-        : mImpl(std::make_unique<Impl>(std::move(usage)))
+        : impl(std::make_unique<Impl>(std::move(usage)))
 
     {
-        auto options = mImpl->desc.add_options();
+        auto options = impl->desc.add_options();
         for (const auto& option : info)
         {
             option->apply({options});
@@ -64,11 +64,11 @@ namespace nil::cli
             positional.add("__nil_cli_pos_args", 0);
 
             boost::program_options::command_line_parser parser(argc, argv);
-            parser                    //
-                .options(mImpl->desc) //
+            parser                   //
+                .options(impl->desc) //
                 .positional(positional);
 
-            boost::program_options::store(parser.run(), mImpl->vm);
+            boost::program_options::store(parser.run(), impl->vm);
         }
         catch (const std::exception& ex)
         {
@@ -77,7 +77,7 @@ namespace nil::cli
 
         for (const auto& node : subnodes)
         {
-            mImpl->sub.emplace_back(std::get<0>(node), std::get<1>(node));
+            impl->sub.emplace_back(std::get<0>(node), std::get<1>(node));
         }
     }
 
@@ -85,22 +85,22 @@ namespace nil::cli
 
     void Options::help(std::ostream& os) const
     {
-        if (!mImpl->usage.empty())
+        if (!impl->usage.empty())
         {
-            os << mImpl->usage << '\n';
+            os << impl->usage << '\n';
         }
 
-        if (!mImpl->desc.options().empty())
+        if (!impl->desc.options().empty())
         {
-            mImpl->desc.print(os);
+            impl->desc.print(os);
             os << '\n';
         }
 
-        if (!mImpl->sub.empty())
+        if (!impl->sub.empty())
         {
             os << "SUBCOMMANDS:\n";
-            const auto width = mImpl->desc.get_option_column_width();
-            for (const auto& [key, desc] : mImpl->sub)
+            const auto width = impl->desc.get_option_column_width();
+            for (const auto& [key, desc] : impl->sub)
             {
                 os << "  "                      //
                    << std::left                 //
@@ -125,21 +125,21 @@ namespace nil::cli
 
     bool Options::flag(const std::string& lkey) const
     {
-        return mImpl->access<bool>(lkey);
+        return impl->access<bool>(lkey);
     }
 
     std::int64_t Options::number(const std::string& lkey) const
     {
-        return mImpl->access<std::int64_t>(lkey);
+        return impl->access<std::int64_t>(lkey);
     }
 
     std::string Options::param(const std::string& lkey) const
     {
-        return mImpl->access<std::string>(lkey);
+        return impl->access<std::string>(lkey);
     }
 
     std::vector<std::string> Options::params(const std::string& lkey) const
     {
-        return mImpl->access<std::vector<std::string>>(lkey);
+        return impl->access<std::vector<std::string>>(lkey);
     }
 }

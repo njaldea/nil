@@ -68,6 +68,6 @@ namespace nil::cli
 
     private:
         struct Impl;
-        std::unique_ptr<Impl> mImpl;
+        std::unique_ptr<Impl> impl;
     };
 }

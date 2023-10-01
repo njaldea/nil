@@ -30,10 +30,15 @@ namespace nil::service::tcp
         boost::asio::ip::tcp::acceptor acceptor;
         std::unordered_map<std::uint16_t, Connection*> connections;
 
-        void send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
+        void send(
+            std::uint16_t id,
+            std::uint32_t type,
+            const std::uint8_t* data,
+            std::uint64_t size
+        )
         {
             context.dispatch(
-                [this, id, type, msg = std::string(static_cast<const char*>(data), size)]()
+                [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     const auto it = connections.find(id);
                     if (it != connections.end())
@@ -44,10 +49,10 @@ namespace nil::service::tcp
             );
         }
 
-        void publish(std::uint32_t type, const void* data, std::uint64_t size)
+        void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
             context.dispatch(
-                [this, type, msg = std::string(static_cast<const char*>(data), size)]()
+                [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     for (const auto& item : connections)
                     {
@@ -83,7 +88,7 @@ namespace nil::service::tcp
             }
         }
 
-        void message(std::uint32_t type, const void* data, std::uint64_t size) override
+        void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
         {
             const auto it = handlers.msg.find(type);
             if (it != handlers.msg.end() && it->second)
@@ -110,7 +115,7 @@ namespace nil::service::tcp
     };
 
     Server::Server(Server::Options options)
-        : mImpl(std::make_unique<Impl>(options))
+        : impl(std::make_unique<Impl>(options))
     {
     }
 
@@ -118,18 +123,18 @@ namespace nil::service::tcp
 
     void Server::start()
     {
-        mImpl->start();
-        mImpl->context.run();
+        impl->start();
+        impl->context.run();
     }
 
     void Server::stop()
     {
-        mImpl->context.stop();
+        impl->context.stop();
     }
 
     void Server::on(std::uint32_t type, MsgHandler handler)
     {
-        mImpl->handlers.msg.emplace(type, std::move(handler));
+        impl->handlers.msg.emplace(type, std::move(handler));
     }
 
     void Server::on(Event event, EventHandler handler)
@@ -137,10 +142,10 @@ namespace nil::service::tcp
         switch (event)
         {
             case Event::Connect:
-                mImpl->handlers.connect = std::move(handler);
+                impl->handlers.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                mImpl->handlers.disconnect = std::move(handler);
+                impl->handlers.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -149,11 +154,11 @@ namespace nil::service::tcp
 
     void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        mImpl->send(id, type, data, size);
+        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        mImpl->publish(type, data, size);
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

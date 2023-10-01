@@ -21,7 +21,6 @@ set(
 
 set(
     SOURCES
-        src/Utils.cpp
         src/udp/Client.cpp
         src/udp/Server.cpp
         src/tcp/Client.cpp
@@ -32,9 +31,12 @@ set(
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE $<TARGET_PROPERTY:Boost::boost,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(
+    ${PROJECT_NAME}
+    SYSTEM PRIVATE
+    $<TARGET_PROPERTY:Boost::boost,INTERFACE_INCLUDE_DIRECTORIES>
+)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(
     ${PROJECT_NAME}
     PUBLIC

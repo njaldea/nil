@@ -56,35 +56,35 @@ struct Service: nil::cli::Command
 
     int run(const nil::cli::Options& options) const override
     {
-        T service(parse<T>(options));
-        service.on(
+        static_assert(std::is_base_of_v<nil::service::IService, T>);
+        const std::unique_ptr<nil::service::IService> service
+            = std::make_unique<T>(parse<T>(options));
+        service->on(
             nil::service::Event::Connect,
-            // should this receive connection object for identifying the connection
-            [](std::uint32_t id) { std::cout << "connected " << id << std::endl; } //
+            [](std::uint32_t id) { //
+                std::cout << "connected    : " << id << std::endl;
+            }
         );
-        service.on(
+        service->on(
             nil::service::Event::Disconnect,
-            // should this receive connection object for identifying the connection
-            [](std::uint32_t id) { std::cout << "disconnected: " << id << std::endl; } //
+            [](std::uint32_t id) { //
+                std::cout << "disconnected : " << id << std::endl;
+            }
         );
-        service.on(
+        service->on(
             1,
-            // TODO: add connection object to allow response
             [](const void* data, std::uint64_t size)
             {
-                std::cout                                                     //
-                    << "message: "                                            //
-                    << std::string_view(static_cast<const char*>(data), size) //
-                    << std::endl;
+                const auto message = std::string_view(static_cast<const char*>(data), size);
+                std::cout << "message      : " << message << std::endl;
             }
         );
 
-        const std::thread t([&]() { service.start(); });
+        const std::thread t([&]() { service->start(); });
         std::string message;
         while (std::getline(std::cin, message))
         {
-            // will publish to all connections
-            service.publish(1, message.data(), message.size());
+            service->publish(1, message.data(), message.size());
         }
         return 0;
     }

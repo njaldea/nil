@@ -11,7 +11,7 @@ namespace nil::service::tcp
 
     struct IImpl
     {
-        virtual void message(std::uint32_t type, const void* data, std::uint64_t size) = 0;
+        virtual void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) = 0;
         virtual void connect(Connection* connection) = 0;
         virtual void disconnect(Connection* connection) = 0;
     };
@@ -23,7 +23,7 @@ namespace nil::service::tcp
         ~Connection();
 
         void connected();
-        void write(std::uint32_t type, const void* data, std::uint64_t size);
+        void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
         boost::asio::ip::tcp::socket& handle();
 
     private:
@@ -32,6 +32,6 @@ namespace nil::service::tcp
 
         boost::asio::ip::tcp::socket socket;
         IImpl& impl;
-        std::vector<char> buffer;
+        std::vector<std::uint8_t> buffer;
     };
 }

@@ -68,6 +68,6 @@ namespace nil::cli
         OptionInfo build();
 
     private:
-        OptionInfo mInfo;
+        OptionInfo info;
     };
 }

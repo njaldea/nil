@@ -93,8 +93,8 @@ namespace nil::cli
         int run(int argc, const char** argv) const;
 
     private:
-        std::unique_ptr<Command> mCommand;
-        SubNodes mSubNodes;
+        std::unique_ptr<Command> command;
+        SubNodes sub;
 
         Node& add(std::string key, std::string description, std::unique_ptr<Command> command);
         const Node* find(std::string_view name) const;

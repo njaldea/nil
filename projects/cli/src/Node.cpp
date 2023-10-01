@@ -6,7 +6,7 @@
 namespace nil::cli
 {
     Node::Node(std::unique_ptr<Command> command)
-        : mCommand(std::move(command))
+        : command(std::move(command))
     {
     }
 
@@ -22,8 +22,8 @@ namespace nil::cli
             }
         }
 
-        const Options options(mCommand->options(), mCommand->usage(), mSubNodes, argc, argv);
-        return mCommand->run(options);
+        const Options options(command->options(), command->usage(), sub, argc, argv);
+        return command->run(options);
     }
 
     Node& Node::add(std::string key, std::string description, std::unique_ptr<Command> command)
@@ -33,23 +33,23 @@ namespace nil::cli
             throw std::invalid_argument("[nil][cli][" + key + "] already exists");
         }
 
-        mSubNodes.emplace_back(std::make_tuple(
+        sub.emplace_back(std::make_tuple(
             std::move(key),
             std::move(description),
             std::make_unique<Node>(std::move(command))
         ));
-        return *std::get<2>(mSubNodes.back());
+        return *std::get<2>(sub.back());
     }
 
     const Node* Node::find(std::string_view name) const
     {
         auto result = std::find_if(
-            std::begin(mSubNodes),
-            std::end(mSubNodes),
+            std::begin(sub),
+            std::end(sub),
             [&](const auto& subnode) { return std::get<0>(subnode) == name; }
         );
 
-        if (result != std::end(mSubNodes))
+        if (result != std::end(sub))
         {
             return std::get<2>(*result).get();
         }
