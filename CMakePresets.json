@@ -1,0 +1,47 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 27,
+        "patch": 1
+    },
+    "configurePresets": [
+        {
+            "name": "base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/.build",
+            "environment": {
+                "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+                "CMAKE_BUILD_PARALLEL_LEVEL": "8"
+            },
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "dev",
+            "inherits": "base",
+            "displayName": "dev",
+            "cacheVariables": {
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;test",
+                "ENABLE_FEATURE_CLI": "ON",
+                "ENABLE_FEATURE_SERVICE": "ON",
+                "ENABLE_FEATURE_PULSE": "ON",
+                "ENABLE_TEST": "ON",
+                "ENABLE_SANDBOX": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "dev",
+            "configurePreset": "dev"
+        }
+    ]
+}

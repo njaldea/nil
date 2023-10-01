@@ -7,7 +7,7 @@ int main()
     std::vector<std::function<void()>> unsubscribes;
     std::cout << "setup\n";
     {
-        auto d = Data<bool>::create(false);
+        auto d = nil::pulse::Data<bool>::create(false);
         std::cout << "data create\n";
         {
             unsubscribes.emplace_back(
@@ -20,7 +20,7 @@ int main()
             std::cout << "unsub 2\n";
             auto unsub3 = d->subscribe(
                 [](bool v) { std::cout << "subscribe 3: " << v << std::endl; },
-                Data<bool>::Mode::Weak
+                nil::pulse::Mode::Weak
             );
             std::cout << "unsub 3 weak\n";
             d->set(true);

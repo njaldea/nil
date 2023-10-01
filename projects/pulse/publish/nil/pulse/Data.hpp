@@ -5,15 +5,8 @@
 #include <memory>
 #include <set>
 
-template <typename T>
-class Data: public std::enable_shared_from_this<Data<T>>
+namespace nil::pulse
 {
-    Data(T data)
-        : data(std::move(data))
-    {
-    }
-
-public:
     enum class Mode
     {
         // automatically
@@ -25,85 +18,100 @@ public:
         Weak
     };
 
-    static std::shared_ptr<Data<T>> create(T data)
+    template <typename T>
+    class Data: public std::enable_shared_from_this<Data<T>>
     {
-        return std::shared_ptr<Data<T>>(new Data<T>(std::move(data)));
-    }
+    private:
+        using Subscriber = std::function<void(const T&)>;
+        using Subscribers = std::list<Subscriber>;
 
-    ~Data() = default;
-
-    Data(Data&&) = default;
-    Data(const Data&) = default;
-    Data& operator=(Data&&) = default;
-    Data& operator=(const Data&) = default;
-
-    const T& get() const
-    {
-        return data;
-    }
-
-    void set(T value)
-    {
-        if (data != value)
+        Data(T data)
+            : data(std::move(data))
         {
-            data = std::move(value);
-            for (const auto& subscription : subscriptions)
+        }
+
+    public:
+        using ptr = std::shared_ptr<Data<T>>;
+
+        static std::shared_ptr<Data<T>> create(T data)
+        {
+            return std::shared_ptr<Data<T>>(new Data<T>(std::move(data)));
+        }
+
+        ~Data() = default;
+
+        Data(Data&&) = default;
+        Data(const Data&) = default;
+        Data& operator=(Data&&) = default;
+        Data& operator=(const Data&) = default;
+
+        const T& get() const
+        {
+            return data;
+        }
+
+        void set(T value)
+        {
+            if (data != value)
             {
-                subscription(data);
+                data = std::move(value);
+                for (const auto& sub : subscribers)
+                {
+                    sub(data);
+                }
             }
         }
-    }
 
-    std::function<void()> subscribe(std::function<void(const T&)> call, Mode mode = Mode::Strong)
-    {
-        call(data);
-        subscriptions.emplace_back(std::move(call));
-
-        struct Unsubsciber
+        std::function<void()> subscribe(Subscriber call, Mode mode = Mode::Strong)
         {
-            Unsubsciber(
-                std::weak_ptr<Data<T>> parent,
-                std::list<std::function<void(const T&)>>::iterator it,
-                Mode mode
-            )
-                : parent(std::move(parent))
-                , it(std::move(it))
-                , mode(mode)
-            {
-            }
+            call(data);
 
-            Unsubsciber(Unsubsciber&&) = default;
-            Unsubsciber(const Unsubsciber&) = default;
-            Unsubsciber& operator=(Unsubsciber&&) = default;
-            Unsubsciber& operator=(const Unsubsciber&) = default;
-
-            ~Unsubsciber()
+            struct Unsubsciber
             {
-                if (mode == Mode::Strong)
+                Unsubsciber(std::weak_ptr<Data<T>> parent, Subscribers::iterator it, Mode mode)
+                    : parent(std::move(parent))
+                    , it(std::move(it))
+                    , mode(mode)
                 {
-                    (*this)();
                 }
-            }
 
-            void operator()()
-            {
-                auto ptr = parent.lock();
-                if (ptr)
+                Unsubsciber(Unsubsciber&&) = default;
+                Unsubsciber(const Unsubsciber&) = default;
+                Unsubsciber& operator=(Unsubsciber&&) = default;
+                Unsubsciber& operator=(const Unsubsciber&) = default;
+
+                ~Unsubsciber()
                 {
-                    ptr->subscriptions.erase(it);
-                    parent = {};
+                    if (mode == Mode::Strong)
+                    {
+                        (*this)();
+                    }
                 }
-            }
 
-            std::weak_ptr<Data<T>> parent;
-            std::list<std::function<void(const T&)>>::iterator it;
-            Mode mode;
-        };
+                void operator()()
+                {
+                    auto ptr = parent.lock();
+                    if (ptr)
+                    {
+                        ptr->subscribers.erase(it);
+                        parent = {};
+                    }
+                }
 
-        return Unsubsciber(this->weak_from_this(), --subscriptions.end(), mode);
-    }
+                std::weak_ptr<Data<T>> parent;
+                Subscribers::iterator it;
+                Mode mode;
+            };
 
-private:
-    T data;
-    std::list<std::function<void(const T&)>> subscriptions;
-};
+            return Unsubsciber(
+                this->weak_from_this(),
+                subscribers.insert(subscribers.end(), std::move(call)),
+                mode
+            );
+        }
+
+    private:
+        T data;
+        Subscribers subscribers;
+    };
+}

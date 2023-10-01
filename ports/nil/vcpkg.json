@@ -36,6 +36,9 @@
                     "version>=": "1.82.0"
                 }
             ]
+        },
+        "pulse": {
+            "description": "straight forward implementation of reactive variables"
         }
     }
 }

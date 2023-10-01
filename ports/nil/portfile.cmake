@@ -10,6 +10,7 @@ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
     FEATURES
         cli           ENABLE_FEATURE_CLI
         service       ENABLE_FEATURE_SERVICE
+        pulse         ENABLE_FEATURE_PULSE
 )
 
 if(NOT FEATURE_OPTIONS MATCHES "^.*=ON.*$")
@@ -20,6 +21,7 @@ if(NOT FEATURE_OPTIONS MATCHES "^.*=ON.*$")
         "\nAvailable features:"
         "\n   -  cli"
         "\n   -  service"
+        "\n   -  pulse"
         "\n"
         "\n  ${Red}No feature provided. Terminating...${ColorReset}"
         "\n"

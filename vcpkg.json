@@ -24,6 +24,9 @@
                 }
             ]
         },
+        "pulse": {
+            "description": "straight forward implementation of reactive variables"
+        },
         "proto": {
             "description": "nil/proto",
             "dependencies": [
