@@ -9,21 +9,6 @@
 namespace nil::pulse
 {
     /**
-     * @brief Describes the behavior of unsubscribers returned by subscribe
-     */
-    enum class Mode
-    {
-        /**
-         * @brief Automatically unsubscribe upon destruction
-         */
-        Strong,
-        /**
-         * @brief Will not unsubscribe when destroyed
-         */
-        Weak
-    };
-
-    /**
      * @brief Stub and default handler for threadsafety.
      *  Masks implementation compatible with std::unique_lock.
      */
@@ -110,55 +95,22 @@ namespace nil::pulse
          * @brief Registers a callback to be invoked when the data chanes
          *
          * @param call                      callback to be called
-         * @param mode                      unsubscriber's behavior on destruction
          * @return std::function<void()>    unsubscribes the callback
          */
-        std::function<void()> subscribe(Subscriber call, Mode mode = Mode::Strong)
+        std::function<void()> subscribe(Subscriber call)
         {
             call(value);
-
-            struct Unsubsciber
+            auto parent = this->weak_from_this();
+            auto it = subscribers.insert(subscribers.end(), std::move(call));
+            return [parent = std::move(parent), it = std::move(it)]() mutable
             {
-                Unsubsciber(std::weak_ptr<Data<T>> parent, Subscribers::iterator it, Mode mode)
-                    : parent(std::move(parent))
-                    , it(std::move(it))
-                    , mode(mode)
+                if (auto ptr = parent.lock(); ptr)
                 {
+                    auto lock = std::unique_lock(ptr->mutex);
+                    ptr->subscribers.erase(it);
+                    parent = {};
                 }
-
-                Unsubsciber(Unsubsciber&&) = default;
-                Unsubsciber(const Unsubsciber&) = default;
-                Unsubsciber& operator=(Unsubsciber&&) = default;
-                Unsubsciber& operator=(const Unsubsciber&) = default;
-
-                ~Unsubsciber()
-                {
-                    if (mode == Mode::Strong)
-                    {
-                        (*this)();
-                    }
-                }
-
-                void operator()()
-                {
-                    if (auto ptr = parent.lock(); ptr)
-                    {
-                        auto lock = std::unique_lock(ptr->mutex);
-                        ptr->subscribers.erase(it);
-                        parent = {};
-                    }
-                }
-
-                std::weak_ptr<Data<T>> parent;
-                Subscribers::iterator it;
-                Mode mode;
             };
-
-            return Unsubsciber(
-                this->weak_from_this(),
-                subscribers.insert(subscribers.end(), std::move(call)),
-                mode
-            );
         }
 
     private:
