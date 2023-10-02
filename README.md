@@ -18,14 +18,14 @@ features are necessary for vcpkg to pull and install all dependencies   <br/>
 targets are necessary to actually build the source code                 <br/>
 make sure to enable a feature when working on a specific target
 
-|            | feature name | flag                          | description                                           |
-| ---------- | ------------ | ----------------------------- | ----------------------------------------------------- |
-| cli        | cli          | `-DENABLE_FEATURE_CLI=ON`     | command line parser / boost::program_options          |
-| service    | service      | `-DENABLE_FEATURE_SERVICE=ON` | event handling / boost::asio                          |
-| pulse      | pulse        | `-DENABLE_FEATURE_PULSE=ON`   | straight forward implementation of reactive variables |
-| proto      | proto        | `-DENABLE_FEATURE_PROTO=ON`   | testing of using protobuf                             |
-| tests      | test         | `-DENABLE_TEST=ON`            | tests / might require other targets                   |
-| clang-tidy |              | `-DENABLE_CLANG_TIDY=ON`      | enable clang-tidy for all source files                |
+|                                          | feature name | flag                          | description                                           |
+| ---------------------------------------- | ------------ | ----------------------------- | ----------------------------------------------------- |
+| [cli](projects/cli/README.md)            | cli          | `-DENABLE_FEATURE_CLI=ON`     | command line parser / boost::program_options          |
+| [service](projects/service/README.md)    | service      | `-DENABLE_FEATURE_SERVICE=ON` | event handling / boost::asio                          |
+| [pulse](projects/pulse/README.md)        | pulse        | `-DENABLE_FEATURE_PULSE=ON`   | straight forward implementation of reactive variables |
+| proto                                    | proto        | `-DENABLE_FEATURE_PROTO=ON`   | testing of using protobuf                             |
+| tests                                    | test         | `-DENABLE_TEST=ON`            | tests / might require other targets                   |
+| clang-tidy                               |              | `-DENABLE_CLANG_TIDY=ON`      | enable clang-tidy for all source files                |
 
 to enable cli:
 
