@@ -40,7 +40,7 @@ The classes provided by this library conforms in similar API. available protocol
 | `send(id, type, data, size)` | send message to a specific id/connection |
 | `publish(type, data, size)`  | sends message to all connection          |
 
-for client, `publish` works the same as `send`` to servier
+for client, `publish` works the same as `send` to server
 
 ## NOTES: (will be fixed in the future)
 - currently works only in one single thread only (calling start in multiple threads is not expected)
