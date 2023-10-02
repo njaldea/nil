@@ -3,39 +3,71 @@
 #include <functional>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <set>
 
 namespace nil::pulse
 {
+    /**
+     * @brief Describes the behavior of unsubscribers returned by subscribe
+     */
     enum class Mode
     {
-        // automatically
-        // unsubscribe
-        // upon destruction
+        /**
+         * @brief Automatically unsubscribe upon destruction
+         */
         Strong,
-        // will not unsubscribe
-        // when destroyed
+        /**
+         * @brief Will not unsubscribe when destroyed
+         */
         Weak
     };
 
-    template <typename T>
+    /**
+     * @brief Stub and default handler for threadsafety.
+     *  Masks implementation compatible with std::unique_lock.
+     */
+    struct NoMutex
+    {
+        void lock()
+        {
+        }
+
+        void unlock()
+        {
+        }
+    };
+
+    /**
+     * @brief A reactive object
+     *
+     * @tparam T                data type
+     * @tparam ThreadSafety     type to use to guarantee thread safety
+     */
+    template <typename T, typename ThreadSafety = NoMutex>
     class Data: public std::enable_shared_from_this<Data<T>>
     {
     private:
         using Subscriber = std::function<void(const T&)>;
         using Subscribers = std::list<Subscriber>;
 
-        Data(T data)
-            : data(std::move(data))
+        Data(T value)
+            : value(std::move(value))
         {
         }
 
     public:
         using ptr = std::shared_ptr<Data<T>>;
 
-        static std::shared_ptr<Data<T>> create(T data)
+        /**
+         * @brief Creates a new Data<T>
+         *
+         * @param value
+         * @return std::shared_ptr<Data<T>>
+         */
+        static std::shared_ptr<Data<T>> create(T value)
         {
-            return std::shared_ptr<Data<T>>(new Data<T>(std::move(data)));
+            return std::shared_ptr<Data<T>>(new Data<T>(std::move(value)));
         }
 
         ~Data() = default;
@@ -45,26 +77,45 @@ namespace nil::pulse
         Data& operator=(Data&&) = default;
         Data& operator=(const Data&) = default;
 
+        /**
+         * @brief Returns the current value held by the object.
+         *
+         * @return const T&
+         */
         const T& get() const
         {
-            return data;
+            return value;
         }
 
+        /**
+         * @brief Updates the current value held by the object.
+         *  Calls all the subscribers before the function end.
+         *
+         * @param value
+         */
         void set(T value)
         {
-            if (data != value)
+            if (this->value != value)
             {
-                data = std::move(value);
+                this->value = std::move(value);
+                auto lock = std::unique_lock(mutex);
                 for (const auto& sub : subscribers)
                 {
-                    sub(data);
+                    sub(this->value);
                 }
             }
         }
 
+        /**
+         * @brief Registers a callback to be invoked when the data chanes
+         *
+         * @param call                      callback to be called
+         * @param mode                      unsubscriber's behavior on destruction
+         * @return std::function<void()>    unsubscribes the callback
+         */
         std::function<void()> subscribe(Subscriber call, Mode mode = Mode::Strong)
         {
-            call(data);
+            call(value);
 
             struct Unsubsciber
             {
@@ -90,9 +141,9 @@ namespace nil::pulse
 
                 void operator()()
                 {
-                    auto ptr = parent.lock();
-                    if (ptr)
+                    if (auto ptr = parent.lock(); ptr)
                     {
+                        auto lock = std::unique_lock(ptr->mutex);
                         ptr->subscribers.erase(it);
                         parent = {};
                     }
@@ -111,7 +162,8 @@ namespace nil::pulse
         }
 
     private:
-        T data;
+        T value;
         Subscribers subscribers;
+        ThreadSafety mutex;
     };
 }

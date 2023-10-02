@@ -17,11 +17,19 @@ template <typename T>
 typename T::Options parse(const nil::cli::Options& options)
 {
     const auto port = std::uint16_t(options.number("port"));
-    if constexpr (std::is_same_v<nil::service::tcp::Server, T> || std::is_same_v<nil::service::udp::Server, T>)
+    if constexpr (
+        std::is_same_v<nil::service::tcp::Server, T> || //
+        std::is_same_v<nil::service::udp::Server, T> || //
+        std::is_same_v<nil::service::ws::Server, T>
+    )
     {
         return {.port = port};
     }
-    else if constexpr (std::is_same_v<nil::service::tcp::Client, T> || std::is_same_v<nil::service::udp::Client, T>)
+    else if constexpr (
+        std::is_same_v<nil::service::tcp::Client, T> || //
+        std::is_same_v<nil::service::udp::Client, T> || //
+        std::is_same_v<nil::service::ws::Client, T>
+    )
     {
         return {.host = "127.0.0.1", .port = port};
     }
@@ -31,7 +39,9 @@ typename T::Options parse(const nil::cli::Options& options)
             std::is_same_v<nil::service::tcp::Server, T> || //
             std::is_same_v<nil::service::tcp::Client, T> || //
             std::is_same_v<nil::service::udp::Server, T> || //
-            std::is_same_v<nil::service::udp::Client, T>    //
+            std::is_same_v<nil::service::udp::Client, T> || //
+            std::is_same_v<nil::service::ws::Server, T> ||  //
+            std::is_same_v<nil::service::ws::Client, T>     //
         );
     }
 }
@@ -102,6 +112,11 @@ int main(int argc, const char** argv)
         auto& udp = root.add<Help>("udp", "udp");
         udp.add<Service<nil::service::udp::Server>>("server", "server");
         udp.add<Service<nil::service::udp::Client>>("client", "client");
+    }
+    {
+        auto& ws = root.add<Help>("ws", "ws");
+        ws.add<Service<nil::service::ws::Server>>("server", "server");
+        ws.add<Service<nil::service::ws::Client>>("client", "client");
     }
     return root.run(argc, argv);
 }

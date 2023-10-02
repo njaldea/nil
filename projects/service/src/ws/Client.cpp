@@ -1,4 +1,4 @@
-#include <nil/service/tcp/Client.hpp>
+#include <nil/service/ws/Client.hpp>
 
 #include "Connection.hpp"
 
@@ -6,7 +6,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
 
-namespace nil::service::tcp
+namespace nil::service::ws
 {
     struct Client::Impl final: IImpl
     {
@@ -110,6 +110,7 @@ namespace nil::service::tcp
 
     Client::Client(Client::Options options)
         : impl(std::make_unique<Impl>(std::move(options)))
+
     {
     }
 
