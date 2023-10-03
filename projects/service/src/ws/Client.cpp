@@ -64,7 +64,8 @@ namespace nil::service::ws
         void start()
         {
             auto socket = std::make_unique<boost::asio::ip::tcp::socket>(context);
-            socket->async_connect(
+            auto* socket_ptr = socket.get();
+            socket_ptr->async_connect(
                 endpoint,
                 [this, socket = std::move(socket)](const boost::system::error_code& ec)
                 {
@@ -89,7 +90,8 @@ namespace nil::service::ws
                             );
                         }
                     ));
-                    ws->async_handshake(
+                    auto* ws_ptr = ws.get();
+                    ws_ptr->async_handshake(
                         options.host + ':' + std::to_string(options.port),
                         "/",
                         [this, ws = std::move(ws)](boost::beast::error_code ec)

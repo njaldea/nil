@@ -64,7 +64,8 @@ namespace nil::service::tcp
         void start()
         {
             auto socket = std::make_unique<boost::asio::ip::tcp::socket>(context);
-            socket->async_connect(
+            auto* socket_ptr = socket.get();
+            socket_ptr->async_connect(
                 endpoint,
                 [this, socket = std::move(socket)](const boost::system::error_code& ec)
                 {

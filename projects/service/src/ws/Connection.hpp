@@ -23,7 +23,7 @@ namespace nil::service::ws
     public:
         Connection(
             std::uint64_t buffer,
-            boost::beast::websocket::stream<boost::beast::tcp_stream> socket,
+            boost::beast::websocket::stream<boost::beast::tcp_stream> ws,
             IImpl& impl
         );
         ~Connection();

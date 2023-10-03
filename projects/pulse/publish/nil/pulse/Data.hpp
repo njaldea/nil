@@ -132,8 +132,11 @@ namespace nil::pulse
                 this->weak_from_this(),
                 subscribers.insert(subscribers.end(), std::move(call))
             );
-
-            return [unsub = std::move(unsub)]() { unsub->exec(); };
+            return [unsub]() mutable
+            {
+                unsub->exec();
+                unsub = {};
+            };
         }
 
     private:

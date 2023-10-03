@@ -121,7 +121,8 @@ namespace nil::service::ws
                                 );
                             }
                         ));
-                        ws->async_accept(
+                        auto* ws_ptr = ws.get();
+                        ws_ptr->async_accept(
                             [this, ws = std::move(ws)](boost::beast::error_code ec)
                             {
                                 if (ec)
