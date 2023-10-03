@@ -10,19 +10,12 @@ Inspired mainly by svelte stores (in javascript)
 
 Due to possible lifetime issues, Data<T> is implemented with `std::shared_ptr` in mind.
 
-| method name                 | description                                                              |
-| --------------------------- | ------------------------------------------------------------------------ |
-| `create(T value)`           | creates a shared_ptr of Data<T>                                          |
-| `get() const`               | returns the current value held by Data<T>                                |
-| `set(T value)`              | updates the current value held by the object and invokes all subscribers |
-| `subscribe(callback, mode)` | register a callback and returns an unsubscriber for cleanup              |
-
-### mode
-
-Registering a callback as subscriber returns an unsubscriber which is intended to be used to unregister the callback.
-`mode` is used to configure the unsubscriber's behavior during its destructor.
-By default, `Strong` mode is used which will automatically unregister during destructor.
-`Weak` mode is provided to relax it and will only unregister when the unsubscriber is invoked.
+| method name           | description                                                              |
+| --------------------- | ------------------------------------------------------------------------ |
+| `create(T value)`     | creates a shared_ptr of Data<T>                                          |
+| `get() const`         | returns the current value held by Data<T>                                |
+| `set(T value)`        | updates the current value held by the object and invokes all subscribers |
+| `subscribe(callback)` | register a callback and returns an unsubscriber for cleanup              |
 
 ### `ThreadSafety`
 

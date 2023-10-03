@@ -1,6 +1,6 @@
 # nil/cli
 
-This library is only intended to simplify arg parsing and allow nesting of sub commands. Internally uses boost::program_options.
+This library is only intended to simplify arg parsing and allow nesting of sub commands. Internally uses `boost::program_options`.
 
 Simplification is done by limiting the touch points to the internal library and providing more concrete option types with very opinionated defaults.
 
@@ -12,15 +12,14 @@ Boost program options does not inherently support nesting of commands. This Node
 
 - initialize a root Node via `nil::cli::Node::root<Command>()`
 - add another command to the node via `node.add<AnotherCommand>("key")`
-- trigger run to parse thar arguments and execute the `Command`
+- trigger run to parse arguments and execute the `Command`
 
-### `Command` (`nil::cli::Command`)
+### `Command` (inherits from `nil::cli::Command`)
 
 This class is the implementation to be triggered per node. It should inherit from `nil::cli::Command` which provides default and overridable methods.
 
 | method                                    | description                                                          |
 | ----------------------------------------- | -------------------------------------------------------------------- |
-| `std::string description() const`         | message to be printed when being used as a sub command (during help) |
 | `std::string usage() const`               | message to be printed for its own help                               |
 | `nil::cli::OptionInfo options() const`    | returns available options for the command. use `nil::cli::Builder`   |
 | `int run(const nil::cli::Options&) const` | to be executed after parsing the options                             |
@@ -29,12 +28,19 @@ This class is the implementation to be triggered per node. It should inherit fro
 
 Builds the objects that will represent each options
 
-| method                                                          | type                       | fallback          | implicit          | required       |
-| --------------------------------------------------------------- | -------------------------- | ----------------- | ----------------- | -------------- |
-| `nil::cli::Builder& flag(std::string lkey, Flag options)`       | `bool`                     | `false`           |                   | NO             |
-| `nil::cli::Builder& number(std::string lkey, Number options)`   | `int`                      | `0` (overridable) | `1` (overridable) | NO             |
-| `nil::cli::Builder& param(std::string lkey, Param  options)`    | `std::string`              |                   |                   | if no fallback |
-| `nil::cli::Builder& params(std::string lkey, Params options)`   | `std::vector<std::string>` | `[]`              |                   | NO             |
+NOTE:
+- `implicit` is the value when the option is provided without the actual value
+    - only `number` has implicit value
+- `fallback` is the default value when the option is not provided at all
+    - only `number` and `param` has fallback value
+    - `param` is required if fallback is not provided
+
+| method                                    | type                       | fallback          | implicit          | required       |
+| ----------------------------------------- | -------------------------- | ----------------- | ----------------- | -------------- |
+| `Builder& flag(lkey, Flag options)`       | `bool`                     | `false`           | (N/A)             | NO             |
+| `Builder& number(lkey, Number options)`   | `int`                      | `0` (overridable) | `1` (overridable) | NO             |
+| `Builder& param(lkey, Param  options)`    | `std::string`              |     (overridable) | (N/A)             | if no fallback |
+| `Builder& params(lkey, Params options)`   | `std::vector<std::string>` | `[]`              | (N/A)             | NO             |
 
 call `nil::cli::Builder::build()` to retrieve `nil::cli::OptionInfo`.
 
@@ -42,12 +48,12 @@ call `nil::cli::Builder::build()` to retrieve `nil::cli::OptionInfo`.
 
 This class provides a way to access the parsed options. Methods mainly reflects the methods from `nil::cli::Builder`.
 
-| method                                                   |
-| -------------------------------------------------------- |
-| `bool flag(std::string lkey) const`                      |
-| `int number(std::string lkey) const`                     |
-| `std::string param(std::string lkey) const`              |
-| `std::vector<std::string params(std::string lkey) const` |
+| method                                       |
+| -------------------------------------------- |
+| `bool flag(lkey) const`                      |
+| `int number(lkey) const`                     |
+| `std::string param(lkey) const`              |
+| `std::vector<std::string params(lkey) const` |
 
 ## Example
 
@@ -62,11 +68,6 @@ struct Command: nil::cli::Command
     std::string usage() const override
     {
         return " >  <binary> [OPTIONS...]";
-    }
-
-    std::string description() const override
-    {
-        return "some description for sub commands: " + std::to_string(V);
     }
 
     nil::cli::OptionInfo options() const override
@@ -105,10 +106,10 @@ struct Command: nil::cli::Command
 int main(int argc, const char** argv)
 {
     auto root = nil::cli::Node::root<Command<0>>();
-    root.add<Command<1>>("hello")
-        .add<Command<2>>("world");
-    root.add<Command<3>>("another")
-        .add<Command<4>>("dimension");
+    root.add<Command<1>>("hello", "command for 1:hello") //
+        .add<Command<2>>("world", "command for 2:world");
+    root.add<Command<3>>("another", "command for 3:another") //
+        .add<Command<4>>("dimension", "command for 4:dimension");
     return root.run(argc, argv);
 }
 ```
@@ -125,5 +126,5 @@ OPTIONS:
   -m [ --mparam ] text              multiple params
 
 SUBCOMMANDS:
- >  world              some description for sub commands: 2     //<-- from subcommand's description()
+ >  world              some description for sub commands: 2
 ```
