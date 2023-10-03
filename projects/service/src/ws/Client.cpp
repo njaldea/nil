@@ -32,7 +32,7 @@ namespace nil::service::ws
 
         void connect(Connection* connection) override
         {
-            (void)connection;
+            this->connection = connection;
             if (handlers.connect)
             {
                 handlers.connect(options.port);
@@ -63,18 +63,46 @@ namespace nil::service::ws
 
         void start()
         {
-            auto conn = std::make_shared<Connection>(options.buffer, context, *this);
-            conn->handle().async_connect(
+            auto socket = std::make_unique<boost::asio::ip::tcp::socket>(context);
+            socket->async_connect(
                 endpoint,
-                [this, conn](const boost::system::error_code& ec)
+                [this, socket = std::move(socket)](const boost::system::error_code& ec)
                 {
                     if (ec)
                     {
                         reconnect();
                         return;
                     }
-                    connection = conn.get();
-                    connection->connected();
+                    namespace websocket = boost::beast::websocket;
+                    auto ws = std::make_unique<websocket::stream<boost::beast::tcp_stream>>(
+                        std::move(*socket)
+                    );
+                    ws->set_option(
+                        websocket::stream_base::timeout::suggested(boost::beast::role_type::client)
+                    );
+                    ws->set_option(websocket::stream_base::decorator(
+                        [](websocket::request_type& req)
+                        {
+                            req.set(
+                                boost::beast::http::field::user_agent,
+                                std::string(BOOST_BEAST_VERSION_STRING) + " websocket-client-async"
+                            );
+                        }
+                    ));
+                    ws->async_handshake(
+                        options.host + ':' + std::to_string(options.port),
+                        "/",
+                        [this, ws = std::move(ws)](boost::beast::error_code ec)
+                        {
+                            if (ec)
+                            {
+                                reconnect();
+                                return;
+                            }
+                            std::make_shared<Connection>(options.buffer, std::move(*ws), *this)
+                                ->start();
+                        }
+                    );
                 }
             );
         }
@@ -110,7 +138,6 @@ namespace nil::service::ws
 
     Client::Client(Client::Options options)
         : impl(std::make_unique<Impl>(std::move(options)))
-
     {
     }
 

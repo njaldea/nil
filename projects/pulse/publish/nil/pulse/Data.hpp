@@ -23,6 +23,10 @@ namespace nil::pulse
         }
     };
 
+    template <typename T>
+    using Subscriber = std::function<void(const T&)>;
+    using Unsubscriber = std::function<void()>;
+
     /**
      * @brief A reactive object
      *
@@ -30,11 +34,10 @@ namespace nil::pulse
      * @tparam ThreadSafety     type to use to guarantee thread safety
      */
     template <typename T, typename ThreadSafety = NoMutex>
-    class Data: public std::enable_shared_from_this<Data<T>>
+    class Data final: public std::enable_shared_from_this<Data<T>>
     {
     private:
-        using Subscriber = std::function<void(const T&)>;
-        using Subscribers = std::list<Subscriber>;
+        using Subscribers = std::list<Subscriber<T>>;
 
         Data(T value)
             : value(std::move(value))
@@ -42,7 +45,7 @@ namespace nil::pulse
         }
 
     public:
-        using ptr = std::shared_ptr<Data<T>>;
+        using ptr_t = std::shared_ptr<Data<T>>;
 
         /**
          * @brief Creates a new Data<T>
@@ -50,9 +53,9 @@ namespace nil::pulse
          * @param value
          * @return std::shared_ptr<Data<T>>
          */
-        static std::shared_ptr<Data<T>> create(T value)
+        static ptr_t create(T value)
         {
-            return std::shared_ptr<Data<T>>(new Data<T>(std::move(value)));
+            return ptr_t(new Data<T>(std::move(value)));
         }
 
         ~Data() = default;
@@ -97,20 +100,40 @@ namespace nil::pulse
          * @param call                      callback to be called
          * @return std::function<void()>    unsubscribes the callback
          */
-        std::function<void()> subscribe(Subscriber call)
+        Unsubscriber subscribe(Subscriber<T> call)
         {
             call(value);
-            auto parent = this->weak_from_this();
-            auto it = subscribers.insert(subscribers.end(), std::move(call));
-            return [parent = std::move(parent), it = std::move(it)]() mutable
+
+            struct Unsub
             {
-                if (auto ptr = parent.lock(); ptr)
+                Unsub(std::weak_ptr<Data<T>> parent, Subscribers::iterator it)
+                    : parent(std::move(parent))
+                    , it(std::move(it))
                 {
-                    auto lock = std::unique_lock(ptr->mutex);
-                    ptr->subscribers.erase(it);
-                    parent = {};
                 }
+
+                void exec()
+                {
+                    if (auto ptr = parent.lock(); ptr)
+                    {
+                        auto lock = std::unique_lock(ptr->mutex);
+                        ptr->subscribers.erase(it);
+                        parent = {};
+                    }
+                }
+
+                std::weak_ptr<Data<T>> parent;
+                Subscribers::iterator it;
             };
+
+            // This is done using shared_ptr to allow copying of std::function<void()>
+            // to prevent issues of double unsub when it is copied.
+            auto unsub = std::make_shared<Unsub>(
+                this->weak_from_this(),
+                subscribers.insert(subscribers.end(), std::move(call))
+            );
+
+            return [unsub = std::move(unsub)]() { unsub->exec(); };
         }
 
     private:

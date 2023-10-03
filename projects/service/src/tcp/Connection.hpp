@@ -19,12 +19,12 @@ namespace nil::service::tcp
     class Connection final: public std::enable_shared_from_this<Connection>
     {
     public:
-        Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl);
+        Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl);
         ~Connection();
 
-        void connected();
+        void start();
         void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
-        boost::asio::ip::tcp::socket& handle();
+        std::uint16_t id() const;
 
     private:
         void readHeader(std::uint64_t pos, std::uint64_t size);

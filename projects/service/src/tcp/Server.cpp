@@ -12,7 +12,7 @@ namespace nil::service::tcp
         explicit Impl(Server::Options options)
             : options(options)
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
-            , acceptor(context, endpoint)
+            , acceptor(context, endpoint, true)
         {
         }
 
@@ -64,27 +64,27 @@ namespace nil::service::tcp
 
         void connect(Connection* connection) override
         {
-            const auto port = connection->handle().remote_endpoint().port();
-            if (!connections.contains(port))
+            const auto id = connection->id();
+            if (!connections.contains(id))
             {
-                connections.emplace(port, connection);
+                connections.emplace(id, connection);
             }
             if (handlers.connect)
             {
-                handlers.connect(port);
+                handlers.connect(id);
             }
         }
 
         void disconnect(Connection* connection) override
         {
-            const auto port = connection->handle().remote_endpoint().port();
-            if (connections.contains(port))
+            const auto id = connection->id();
+            if (connections.contains(id))
             {
-                connections.erase(port);
+                connections.erase(id);
             }
             if (handlers.disconnect)
             {
-                handlers.disconnect(port);
+                handlers.disconnect(id);
             }
         }
 
@@ -99,14 +99,13 @@ namespace nil::service::tcp
 
         void start()
         {
-            auto conn = std::make_shared<Connection>(options.buffer, context, *this);
             acceptor.async_accept(
-                conn->handle(),
-                [this, conn](const boost::system::error_code& ec)
+                [this](const boost::system::error_code& ec, boost::asio::ip::tcp::socket socket)
                 {
                     if (!ec)
                     {
-                        conn->connected();
+                        std::make_shared<Connection>(options.buffer, std::move(socket), *this)
+                            ->start();
                     }
                     start();
                 }

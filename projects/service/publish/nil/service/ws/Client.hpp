@@ -19,10 +19,6 @@ namespace nil::service::ws
              *  - one for receiving
              */
             std::uint64_t buffer = 1024;
-            /**
-             * @brief time to wait until a "connection" is considered as disconnected
-             */
-            std::chrono::nanoseconds timeout = std::chrono::seconds(2);
         };
 
         Client(Options options);

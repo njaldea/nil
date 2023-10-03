@@ -12,7 +12,7 @@ namespace nil::service::ws
         explicit Impl(Server::Options options)
             : options(options)
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
-            , acceptor(context, endpoint)
+            , acceptor(context, endpoint, true)
         {
         }
 
@@ -64,27 +64,27 @@ namespace nil::service::ws
 
         void connect(Connection* connection) override
         {
-            const auto port = connection->handle().remote_endpoint().port();
-            if (!connections.contains(port))
+            const auto id = connection->id();
+            if (!connections.contains(id))
             {
-                connections.emplace(port, connection);
+                connections.emplace(id, connection);
             }
             if (handlers.connect)
             {
-                handlers.connect(port);
+                handlers.connect(id);
             }
         }
 
         void disconnect(Connection* connection) override
         {
-            const auto port = connection->handle().remote_endpoint().port();
-            if (connections.contains(port))
+            const auto id = connection->id();
+            if (connections.contains(id))
             {
-                connections.erase(port);
+                connections.erase(id);
             }
             if (handlers.disconnect)
             {
-                handlers.disconnect(port);
+                handlers.disconnect(id);
             }
         }
 
@@ -99,14 +99,39 @@ namespace nil::service::ws
 
         void start()
         {
-            auto conn = std::make_shared<Connection>(options.buffer, context, *this);
             acceptor.async_accept(
-                conn->handle(),
-                [this, conn](const boost::system::error_code& ec)
+                [this](const boost::system::error_code& ec, boost::asio::ip::tcp::socket socket)
                 {
                     if (!ec)
                     {
-                        conn->connected();
+                        namespace websocket = boost::beast::websocket;
+                        auto ws = std::make_unique<websocket::stream<boost::beast::tcp_stream>>(
+                            std::move(socket)
+                        );
+                        ws->set_option(websocket::stream_base::timeout::suggested(
+                            boost::beast::role_type::server
+                        ));
+                        ws->set_option(websocket::stream_base::decorator(
+                            [](websocket::response_type& res)
+                            {
+                                res.set(
+                                    boost::beast::http::field::server,
+                                    std::string(BOOST_BEAST_VERSION_STRING)
+                                        + " websocket-server-async"
+                                );
+                            }
+                        ));
+                        ws->async_accept(
+                            [this, ws = std::move(ws)](boost::beast::error_code ec)
+                            {
+                                if (ec)
+                                {
+                                    return;
+                                }
+                                std::make_shared<Connection>(options.buffer, std::move(*ws), *this)
+                                    ->start();
+                            }
+                        );
                     }
                     start();
                 }

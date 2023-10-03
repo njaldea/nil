@@ -4,11 +4,12 @@
 
 namespace nil::service::tcp
 {
-    Connection::Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl)
-        : socket(context)
+    Connection::Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl)
+        : socket(std::move(socket))
         , impl(impl)
     {
         this->buffer.resize(buffer);
+        impl.connect(this);
     }
 
     Connection::~Connection()
@@ -16,9 +17,8 @@ namespace nil::service::tcp
         impl.disconnect(this);
     }
 
-    void Connection::connected()
+    void Connection::start()
     {
-        impl.connect(this);
         readHeader(0u, utils::TCP_HEADER_SIZE);
     }
 
@@ -93,8 +93,8 @@ namespace nil::service::tcp
         );
     }
 
-    boost::asio::ip::tcp::socket& Connection::handle()
+    std::uint16_t Connection::id() const
     {
-        return socket;
+        return socket.remote_endpoint().port();
     }
 }

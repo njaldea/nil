@@ -12,22 +12,22 @@ The classes provided by this library conforms in similar API. available protocol
 
 - Options
 
-| name    | protocol | description                              | default   |
-| ------- | -------- | ---------------------------------------- | --------- |
-| port    | tcp/udp  | network port to use                      |           |
-| buffer  | tcp/udp  | buffer size to use                       | 1024      |
-| timeout | udp      | timeuout to consier a connection is lost | 2 seconds |
+| name    | protocol    | description                              | default   |
+| ------- | ----------- | ---------------------------------------- | --------- |
+| port    | tcp/udp/ws  | network port to use                      |           |
+| buffer  | tcp/udp/ws  | buffer size to use                       | 1024      |
+| timeout | udp         | timeuout to consier a connection is lost | 2 seconds |
 
 ### `nil::service::<protocol>:::Client`
 
 - Options
 
-| name    | protocol | description                              | default   |
-| ------- | -------- | ---------------------------------------- | --------- |
-| host    | tcp/udp  | network host to connect to               |           |
-| port    | tcp/udp  | network port to connect to               |           |
-| buffer  | tcp/udp  | buffer size to use                       | 1024      |
-| timeout | udp      | timeuout to consier a connection is lost | 2 seconds |
+| name    | protocol    | description                              | default   |
+| ------- | ----------- | ---------------------------------------- | --------- |
+| host    | tcp/udp/ws  | network host to connect to               |           |
+| port    | tcp/udp/ws  | network port to connect to               |           |
+| buffer  | tcp/udp/ws  | buffer size to use                       | 1024      |
+| timeout | udp         | timeuout to consier a connection is lost | 2 seconds |
 
 ### methods
 

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <boost/asio/io_context.hpp>
-#include <boost/asio/ip/tcp.hpp>
+
+#include <boost/beast/core.hpp>
+#include <boost/beast/websocket.hpp>
 
 #include <vector>
 
@@ -19,19 +21,23 @@ namespace nil::service::ws
     class Connection final: public std::enable_shared_from_this<Connection>
     {
     public:
-        Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl);
+        Connection(
+            std::uint64_t buffer,
+            boost::beast::websocket::stream<boost::beast::tcp_stream> socket,
+            IImpl& impl
+        );
         ~Connection();
 
-        void connected();
+        void start();
         void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
-        boost::asio::ip::tcp::socket& handle();
+        std::uint16_t id() const;
 
     private:
-        void readHeader(std::uint64_t pos, std::uint64_t size);
-        void readBody(std::uint64_t pos, std::uint64_t size);
+        void read();
 
-        boost::asio::ip::tcp::socket socket;
+        boost::beast::websocket::stream<boost::beast::tcp_stream> ws;
         IImpl& impl;
         std::vector<std::uint8_t> buffer;
+        boost::beast::flat_static_buffer_base flat_buffer;
     };
 }

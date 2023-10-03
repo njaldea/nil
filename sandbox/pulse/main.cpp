@@ -26,8 +26,9 @@ int main()
             std::cout << "set true\n";
             unsubscribes[0]();
             std::cout << "unsub 1 done\n";
+            auto copy = unsub3;
             unsub3();
-            unsub3();
+            copy();
             d->set(false);
             std::cout << "set false\n";
         }

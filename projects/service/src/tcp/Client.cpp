@@ -32,7 +32,7 @@ namespace nil::service::tcp
 
         void connect(Connection* connection) override
         {
-            (void)connection;
+            this->connection = connection;
             if (handlers.connect)
             {
                 handlers.connect(options.port);
@@ -63,18 +63,18 @@ namespace nil::service::tcp
 
         void start()
         {
-            auto conn = std::make_shared<Connection>(options.buffer, context, *this);
-            conn->handle().async_connect(
+            auto socket = std::make_unique<boost::asio::ip::tcp::socket>(context);
+            socket->async_connect(
                 endpoint,
-                [this, conn](const boost::system::error_code& ec)
+                [this, socket = std::move(socket)](const boost::system::error_code& ec)
                 {
                     if (ec)
                     {
                         reconnect();
                         return;
                     }
-                    connection = conn.get();
-                    connection->connected();
+                    std::make_shared<Connection>(options.buffer, std::move(*socket), *this)
+                        ->start();
                 }
             );
         }

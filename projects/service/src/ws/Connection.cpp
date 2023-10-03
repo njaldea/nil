@@ -4,11 +4,22 @@
 
 namespace nil::service::ws
 {
-    Connection::Connection(std::uint64_t buffer, boost::asio::io_context& context, IImpl& impl)
-        : socket(context)
+    Connection::Connection(
+        std::uint64_t buffer,
+        boost::beast::websocket::stream<boost::beast::tcp_stream> ws,
+        IImpl& impl
+    )
+        : ws(std::move(ws))
         , impl(impl)
+        , flat_buffer(
+              [](std::vector<std::uint8_t>& b, std::size_t size)
+              {
+                  b.resize(size);
+                  return boost::beast::flat_static_buffer_base(b.data(), b.size());
+              }(this->buffer, buffer)
+          )
     {
-        this->buffer.resize(buffer);
+        impl.connect(this);
     }
 
     Connection::~Connection()
@@ -16,66 +27,29 @@ namespace nil::service::ws
         impl.disconnect(this);
     }
 
-    void Connection::connected()
+    void Connection::start()
     {
-        impl.connect(this);
-        readHeader(0u, utils::TCP_HEADER_SIZE);
+        read();
     }
 
-    void Connection::readHeader(std::uint64_t pos, std::uint64_t size)
+    void Connection::read()
     {
-        socket.async_read_some(
-            boost::asio::buffer(buffer.data() + pos, size - pos),
-            [pos, size, self = shared_from_this()](
-                const boost::system::error_code& ec,
-                std::size_t count //
-            )
+        ws.async_read(
+            flat_buffer,
+            [self = shared_from_this()](boost::beast::error_code ec, std::size_t count)
             {
                 if (ec)
                 {
                     return;
                 }
 
-                if (pos + count != size)
-                {
-                    self->readHeader(pos + count, size);
-                }
-                else
-                {
-                    const auto msgsize = utils::from_array<std::uint64_t>(self->buffer.data());
-                    self->readBody(utils::START_INDEX, msgsize);
-                }
-            }
-        );
-    }
-
-    void Connection::readBody(std::uint64_t pos, std::uint64_t size)
-    {
-        socket.async_read_some(
-            boost::asio::buffer(buffer.data() + pos, size - pos),
-            [pos, size, self = shared_from_this()](
-                const boost::system::error_code& ec,
-                std::size_t count //
-            )
-            {
-                if (ec)
-                {
-                    return;
-                }
-
-                if (pos + count != size)
-                {
-                    self->readBody(pos + count, size);
-                }
-                else
-                {
-                    self->impl.message(
-                        utils::from_array<std::uint32_t>(self->buffer.data()),
-                        self->buffer.data() + sizeof(std::uint32_t),
-                        size - sizeof(std::uint32_t)
-                    );
-                    self->readHeader(utils::START_INDEX, utils::TCP_HEADER_SIZE);
-                }
+                self->impl.message(
+                    utils::from_array<std::uint32_t>(self->buffer.data()),
+                    self->buffer.data() + sizeof(std::uint32_t),
+                    count - sizeof(std::uint32_t)
+                );
+                self->flat_buffer.consume(count);
+                self->read();
             }
         );
     }
@@ -83,9 +57,8 @@ namespace nil::service::ws
     void Connection::write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
     {
         boost::system::error_code ec;
-        socket.write_some(
-            std::array<boost::asio::const_buffer, 3>{
-                boost::asio::buffer(utils::to_array(size + sizeof(type))),
+        ws.write(
+            std::array<boost::asio::const_buffer, 2>{
                 boost::asio::buffer(utils::to_array(type)),
                 boost::asio::buffer(data, size)
             },
@@ -93,8 +66,8 @@ namespace nil::service::ws
         );
     }
 
-    boost::asio::ip::tcp::socket& Connection::handle()
+    std::uint16_t Connection::id() const
     {
-        return socket;
+        return boost::beast::get_lowest_layer(ws).socket().remote_endpoint().port();
     }
 }
