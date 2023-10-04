@@ -4,6 +4,7 @@
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/strand.hpp>
 
 namespace nil::service::ws
 {
@@ -11,8 +12,9 @@ namespace nil::service::ws
     {
         explicit Impl(Server::Options options)
             : options(options)
+            , strand(boost::asio::make_strand(context))
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
-            , acceptor(context, endpoint, true)
+            , acceptor(strand, endpoint, true)
         {
         }
 
@@ -26,6 +28,7 @@ namespace nil::service::ws
         } handlers;
 
         boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::ip::tcp::acceptor acceptor;
         std::unordered_map<std::uint16_t, Connection*> connections;
@@ -37,7 +40,8 @@ namespace nil::service::ws
             std::uint64_t size
         )
         {
-            context.dispatch(
+            boost::asio::dispatch(
+                strand,
                 [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     const auto it = connections.find(id);
@@ -51,7 +55,8 @@ namespace nil::service::ws
 
         void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
-            context.dispatch(
+            boost::asio::dispatch(
+                strand,
                 [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     for (const auto& item : connections)
@@ -64,28 +69,40 @@ namespace nil::service::ws
 
         void connect(Connection* connection) override
         {
-            const auto id = connection->id();
-            if (!connections.contains(id))
-            {
-                connections.emplace(id, connection);
-            }
-            if (handlers.connect)
-            {
-                handlers.connect(id);
-            }
+            boost::asio::dispatch(
+                strand,
+                [this, connection]()
+                {
+                    const auto id = connection->id();
+                    if (!connections.contains(id))
+                    {
+                        connections.emplace(id, connection);
+                    }
+                    if (handlers.connect)
+                    {
+                        handlers.connect(id);
+                    }
+                }
+            );
         }
 
         void disconnect(Connection* connection) override
         {
-            const auto id = connection->id();
-            if (connections.contains(id))
-            {
-                connections.erase(id);
-            }
-            if (handlers.disconnect)
-            {
-                handlers.disconnect(id);
-            }
+            boost::asio::dispatch(
+                strand,
+                [this, connection]()
+                {
+                    const auto id = connection->id();
+                    if (connections.contains(id))
+                    {
+                        connections.erase(id);
+                    }
+                    if (handlers.disconnect)
+                    {
+                        handlers.disconnect(id);
+                    }
+                }
+            );
         }
 
         void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
@@ -97,9 +114,10 @@ namespace nil::service::ws
             }
         }
 
-        void start()
+        void accept()
         {
             acceptor.async_accept(
+                boost::asio::make_strand(context),
                 [this](const boost::system::error_code& ec, boost::asio::ip::tcp::socket socket)
                 {
                     if (!ec)
@@ -134,7 +152,7 @@ namespace nil::service::ws
                             }
                         );
                     }
-                    start();
+                    accept();
                 }
             );
         }
@@ -147,9 +165,13 @@ namespace nil::service::ws
 
     Server::~Server() noexcept = default;
 
-    void Server::start()
+    void Server::prepare()
     {
-        impl->start();
+        impl->accept();
+    }
+
+    void Server::run()
+    {
         impl->context.run();
     }
 

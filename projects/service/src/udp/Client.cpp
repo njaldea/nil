@@ -5,6 +5,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/strand.hpp>
 
 namespace nil::service::udp
 {
@@ -12,9 +13,10 @@ namespace nil::service::udp
     {
         explicit Impl(Client::Options options)
             : options(std::move(options))
-            , socket(context, {boost::asio::ip::make_address("0.0.0.0"), 0})
-            , pingtimer(context)
-            , timeout(context)
+            , strand(boost::asio::make_strand(context))
+            , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), 0})
+            , pingtimer(strand)
+            , timeout(strand)
         {
             buffer.resize(this->options.buffer);
         }
@@ -29,6 +31,7 @@ namespace nil::service::udp
         Client::Options options;
 
         boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::udp::socket socket;
         boost::asio::steady_timer pingtimer;
         boost::asio::steady_timer timeout;
@@ -39,7 +42,8 @@ namespace nil::service::udp
 
         void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
-            context.dispatch(
+            boost::asio::dispatch(
+                strand,
                 [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     socket.send_to(
@@ -146,7 +150,7 @@ namespace nil::service::udp
             );
         }
 
-        void start()
+        void prepare()
         {
             ping();
             receive();
@@ -160,9 +164,13 @@ namespace nil::service::udp
 
     Client::~Client() noexcept = default;
 
-    void Client::start()
+    void Client::prepare()
     {
-        impl->start();
+        impl->prepare();
+    }
+
+    void Client::run()
+    {
         impl->context.run();
     }
 

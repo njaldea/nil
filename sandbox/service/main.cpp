@@ -87,10 +87,12 @@ struct Service: nil::cli::Command
             {
                 const auto message = std::string_view(static_cast<const char*>(data), size);
                 std::cout << "message      : " << message << std::endl;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         );
 
-        const std::thread t([&]() { service->start(); });
+        service->prepare();
+        const std::thread t1([&]() { service->run(); });
         std::string message;
         while (std::getline(std::cin, message))
         {

@@ -22,7 +22,8 @@ namespace nil::service::tcp
         Server(Options options);
         ~Server() noexcept override;
 
-        void start() override;
+        void prepare() override;
+        void run() override;
         void stop() override;
 
         void on(

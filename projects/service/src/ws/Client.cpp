@@ -5,6 +5,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/asio/strand.hpp>
 
 namespace nil::service::ws
 {
@@ -12,14 +13,16 @@ namespace nil::service::ws
     {
         explicit Impl(Client::Options options)
             : options(std::move(options))
+            , strand(boost::asio::make_strand(context))
             , endpoint(boost::asio::ip::make_address(this->options.host.data()), this->options.port)
-            , reconnection(context)
+            , reconnection(strand)
         {
         }
 
         void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
-            context.dispatch(
+            boost::asio::dispatch(
+                strand,
                 [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     if (connection != nullptr)
@@ -32,24 +35,36 @@ namespace nil::service::ws
 
         void connect(Connection* connection) override
         {
-            this->connection = connection;
-            if (handlers.connect)
-            {
-                handlers.connect(options.port);
-            }
+            boost::asio::dispatch(
+                strand,
+                [this, connection]()
+                {
+                    this->connection = connection;
+                    if (handlers.connect)
+                    {
+                        handlers.connect(options.port);
+                    }
+                }
+            );
         }
 
         void disconnect(Connection* connection) override
         {
-            if (this->connection == connection)
-            {
-                this->connection = nullptr;
-                if (handlers.disconnect)
+            boost::asio::dispatch(
+                strand,
+                [this, connection]()
                 {
-                    handlers.disconnect(options.port);
+                    if (this->connection == connection)
+                    {
+                        this->connection = nullptr;
+                        if (handlers.disconnect)
+                        {
+                            handlers.disconnect(options.port);
+                        }
+                    }
+                    reconnect();
                 }
-            }
-            reconnect();
+            );
         }
 
         void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
@@ -61,9 +76,9 @@ namespace nil::service::ws
             }
         }
 
-        void start()
+        void connect()
         {
-            auto socket = std::make_unique<boost::asio::ip::tcp::socket>(context);
+            auto socket = std::make_unique<boost::asio::ip::tcp::socket>(strand);
             auto* socket_ptr = socket.get();
             socket_ptr->async_connect(
                 endpoint,
@@ -117,7 +132,7 @@ namespace nil::service::ws
                 {
                     if (ec != boost::asio::error::operation_aborted)
                     {
-                        start();
+                        connect();
                     }
                 }
             );
@@ -133,6 +148,7 @@ namespace nil::service::ws
         } handlers;
 
         boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::steady_timer reconnection;
         Connection* connection = nullptr;
@@ -145,9 +161,13 @@ namespace nil::service::ws
 
     Client::~Client() noexcept = default;
 
-    void Client::start()
+    void Client::prepare()
     {
-        impl->start();
+        impl->connect();
+    }
+
+    void Client::run()
+    {
         impl->context.run();
     }
 

@@ -10,9 +10,14 @@ namespace nil::service
         virtual ~IService() noexcept = default;
 
         /**
-         * @brief start the service. blocking.
+         * @brief Prepare the service. Should be called once before running.
          */
-        virtual void start() = 0;
+        virtual void prepare() = 0;
+
+        /**
+         * @brief run the service. blocking.
+         */
+        virtual void run() = 0;
 
         /**
          * @brief stop the service.

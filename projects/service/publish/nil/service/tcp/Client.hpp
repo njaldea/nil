@@ -23,7 +23,8 @@ namespace nil::service::tcp
         Client(Options options);
         ~Client() noexcept override;
 
-        void start() override;
+        void prepare() override;
+        void run() override;
         void stop() override;
 
         void on(

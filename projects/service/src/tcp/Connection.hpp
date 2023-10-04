@@ -32,6 +32,7 @@ namespace nil::service::tcp
 
         boost::asio::ip::tcp::socket socket;
         IImpl& impl;
-        std::vector<std::uint8_t> buffer;
+        std::vector<std::uint8_t> r_buffer;
+        std::vector<std::uint8_t> w_buffer;
     };
 }

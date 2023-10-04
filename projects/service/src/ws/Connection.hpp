@@ -37,7 +37,8 @@ namespace nil::service::ws
 
         boost::beast::websocket::stream<boost::beast::tcp_stream> ws;
         IImpl& impl;
-        std::vector<std::uint8_t> buffer;
+        std::vector<std::uint8_t> r_buffer;
+        std::vector<std::uint8_t> w_buffer;
         boost::beast::flat_static_buffer_base flat_buffer;
     };
 }

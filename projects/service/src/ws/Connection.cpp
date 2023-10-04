@@ -12,11 +12,12 @@ namespace nil::service::ws
         : ws(std::move(ws))
         , impl(impl)
         , flat_buffer(
-              [](std::vector<std::uint8_t>& b, std::size_t size)
+              [](std::vector<std::uint8_t>& r, std::vector<std::uint8_t>& w, std::size_t size)
               {
-                  b.resize(size);
-                  return boost::beast::flat_static_buffer_base(b.data(), b.size());
-              }(this->buffer, buffer)
+                  r.resize(size);
+                  w.resize(size);
+                  return boost::beast::flat_static_buffer_base(r.data(), r.size());
+              }(r_buffer, w_buffer, buffer)
           )
     {
         impl.connect(this);
@@ -44,8 +45,8 @@ namespace nil::service::ws
                 }
 
                 self->impl.message(
-                    utils::from_array<std::uint32_t>(self->buffer.data()),
-                    self->buffer.data() + sizeof(std::uint32_t),
+                    utils::from_array<std::uint32_t>(self->r_buffer.data()),
+                    self->r_buffer.data() + sizeof(std::uint32_t),
                     count - sizeof(std::uint32_t)
                 );
                 self->flat_buffer.consume(count);
@@ -56,13 +57,16 @@ namespace nil::service::ws
 
     void Connection::write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
     {
-        boost::system::error_code ec;
-        ws.write(
-            std::array<boost::asio::const_buffer, 2>{
-                boost::asio::buffer(utils::to_array(type)),
-                boost::asio::buffer(data, size)
-            },
-            ec
+        const auto t = utils::to_array(type);
+        std::memcpy(w_buffer.data(), t.begin(), t.size());
+        std::memcpy(w_buffer.data() + t.size(), data, size);
+        ws.async_write(
+            boost::asio::buffer(w_buffer.data(), t.size() + size),
+            [](boost::system::error_code ec, std::size_t count)
+            {
+                (void)ec;
+                (void)count;
+            }
         );
     }
 

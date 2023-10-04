@@ -8,7 +8,8 @@ namespace nil::service::tcp
         : socket(std::move(socket))
         , impl(impl)
     {
-        this->buffer.resize(buffer);
+        this->r_buffer.resize(buffer);
+        this->w_buffer.resize(buffer);
         impl.connect(this);
     }
 
@@ -25,7 +26,7 @@ namespace nil::service::tcp
     void Connection::readHeader(std::uint64_t pos, std::uint64_t size)
     {
         socket.async_read_some(
-            boost::asio::buffer(buffer.data() + pos, size - pos),
+            boost::asio::buffer(r_buffer.data() + pos, size - pos),
             [pos, size, self = shared_from_this()](
                 const boost::system::error_code& ec,
                 std::size_t count //
@@ -42,7 +43,7 @@ namespace nil::service::tcp
                 }
                 else
                 {
-                    const auto msgsize = utils::from_array<std::uint64_t>(self->buffer.data());
+                    const auto msgsize = utils::from_array<std::uint64_t>(self->r_buffer.data());
                     self->readBody(utils::START_INDEX, msgsize);
                 }
             }
@@ -52,7 +53,7 @@ namespace nil::service::tcp
     void Connection::readBody(std::uint64_t pos, std::uint64_t size)
     {
         socket.async_read_some(
-            boost::asio::buffer(buffer.data() + pos, size - pos),
+            boost::asio::buffer(r_buffer.data() + pos, size - pos),
             [pos, size, self = shared_from_this()](
                 const boost::system::error_code& ec,
                 std::size_t count //
@@ -70,8 +71,8 @@ namespace nil::service::tcp
                 else
                 {
                     self->impl.message(
-                        utils::from_array<std::uint32_t>(self->buffer.data()),
-                        self->buffer.data() + sizeof(std::uint32_t),
+                        utils::from_array<std::uint32_t>(self->r_buffer.data()),
+                        self->r_buffer.data() + sizeof(std::uint32_t),
                         size - sizeof(std::uint32_t)
                     );
                     self->readHeader(utils::START_INDEX, utils::TCP_HEADER_SIZE);
@@ -82,14 +83,18 @@ namespace nil::service::tcp
 
     void Connection::write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
     {
-        boost::system::error_code ec;
-        socket.write_some(
-            std::array<boost::asio::const_buffer, 3>{
-                boost::asio::buffer(utils::to_array(size + sizeof(type))),
-                boost::asio::buffer(utils::to_array(type)),
-                boost::asio::buffer(data, size)
-            },
-            ec
+        const auto s = utils::to_array(size + sizeof(type));
+        const auto t = utils::to_array(type);
+        std::memcpy(w_buffer.data(), s.begin(), s.size());
+        std::memcpy(w_buffer.data() + s.size(), t.begin(), t.size());
+        std::memcpy(w_buffer.data() + s.size() + t.size(), data, size);
+        socket.async_write_some(
+            boost::asio::buffer(w_buffer.data(), s.size() + t.size() + size),
+            [](boost::system::error_code ec, std::size_t count)
+            {
+                (void)ec;
+                (void)count;
+            }
         );
     }
 
