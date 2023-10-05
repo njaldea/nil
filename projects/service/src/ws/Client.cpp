@@ -18,6 +18,25 @@ namespace nil::service::ws
         {
         }
 
+        void send(
+            const std::string& id,
+            std::uint32_t type,
+            const std::uint8_t* data,
+            std::uint64_t size
+        )
+        {
+            boost::asio::dispatch(
+                strand,
+                [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
+                {
+                    if (connection != nullptr && connection->id() == id)
+                    {
+                        connection->write(type, msg.data(), msg.size());
+                    }
+                }
+            );
+        }
+
         void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
@@ -202,8 +221,7 @@ namespace nil::service::ws
         std::uint64_t size
     )
     {
-        (void)id;
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)

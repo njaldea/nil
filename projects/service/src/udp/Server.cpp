@@ -191,7 +191,7 @@ namespace nil::service::udp
     };
 
     Server::Server(Server::Options options)
-        : storage{std::move(options)}
+        : storage{options}
         , impl(std::make_unique<Impl>(storage))
     {
         impl->receive();

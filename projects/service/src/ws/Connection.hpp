@@ -30,11 +30,12 @@ namespace nil::service::ws
 
         void start();
         void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
-        std::string id() const;
+        const std::string& id() const;
 
     private:
         void read();
 
+        std::string identifier;
         boost::beast::websocket::stream<boost::beast::tcp_stream> ws;
         IImpl& impl;
         std::vector<std::uint8_t> r_buffer;

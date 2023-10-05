@@ -24,15 +24,15 @@ namespace nil::service::tcp
 
         void start();
         void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
-        std::string id() const;
+        const std::string& id() const;
 
     private:
         void readHeader(std::uint64_t pos, std::uint64_t size);
         void readBody(std::uint64_t pos, std::uint64_t size);
 
+        std::string identifier;
         boost::asio::ip::tcp::socket socket;
         IImpl& impl;
         std::vector<std::uint8_t> r_buffer;
-        std::vector<std::uint8_t> w_buffer;
     };
 }

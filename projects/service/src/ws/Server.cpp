@@ -58,7 +58,7 @@ namespace nil::service::ws
                 strand,
                 [this, connection]()
                 {
-                    const auto id = connection->id();
+                    const auto& id = connection->id();
                     if (!connections.contains(id))
                     {
                         connections.emplace(id, connection);
@@ -75,9 +75,8 @@ namespace nil::service::ws
         {
             boost::asio::dispatch(
                 strand,
-                [this, connection]()
+                [this, id = connection->id()]()
                 {
-                    const auto id = connection->id();
                     if (connections.contains(id))
                     {
                         connections.erase(id);
@@ -156,7 +155,7 @@ namespace nil::service::ws
     };
 
     Server::Server(Server::Options options)
-        : storage{std::move(options)}
+        : storage{options}
         , impl(std::make_unique<Impl>(storage))
     {
         impl->accept();

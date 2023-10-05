@@ -205,8 +205,10 @@ namespace nil::service::udp
         std::uint64_t size
     )
     {
-        (void)id;
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        if (impl->targetID != id)
+        {
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)

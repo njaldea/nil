@@ -93,6 +93,9 @@ struct Service: nil::cli::Command
         while (true)
         {
             std::thread t1([&]() { service->run(); });
+            std::thread t2([&]() { service->run(); });
+            std::thread t3([&]() { service->run(); });
+            std::thread t4([&]() { service->run(); });
             std::string message;
             while (std::getline(std::cin, message))
             {
@@ -104,6 +107,9 @@ struct Service: nil::cli::Command
             }
             service->stop();
             t1.join();
+            t2.join();
+            t3.join();
+            t4.join();
             service->restart();
         }
         return 0;

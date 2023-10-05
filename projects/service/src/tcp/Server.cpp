@@ -28,6 +28,11 @@ namespace nil::service::tcp
             std::uint64_t size
         )
         {
+            // TODO: investigate if the connection which is presumably in different strand
+            // is destroyed, can connections point to a dangling pointer?
+            // or should i keep a weak_ptr and lock every time?
+            //
+            // maybe keep a weak_ptr to connections instead
             boost::asio::dispatch(
                 strand,
                 [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
@@ -61,7 +66,7 @@ namespace nil::service::tcp
                 strand,
                 [this, connection]()
                 {
-                    const auto id = connection->id();
+                    const auto& id = connection->id();
                     if (!connections.contains(id))
                     {
                         connections.emplace(id, connection);
@@ -78,9 +83,8 @@ namespace nil::service::tcp
         {
             boost::asio::dispatch(
                 strand,
-                [this, connection]()
+                [this, id = connection->id()]()
                 {
-                    const auto id = connection->id();
                     if (connections.contains(id))
                     {
                         connections.erase(id);
@@ -131,7 +135,7 @@ namespace nil::service::tcp
     };
 
     Server::Server(Server::Options options)
-        : storage{std::move(options)}
+        : storage{options}
         , impl(std::make_unique<Impl>(storage))
     {
         impl->accept();

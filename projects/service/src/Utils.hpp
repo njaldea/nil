@@ -1,9 +1,16 @@
 #pragma once
 
+#include <boost/asio/ip/tcp.hpp>
+
 #include <array>
 
 namespace nil::service::utils
 {
+    inline std::string to_string(const boost::asio::ip::tcp::endpoint& endpoint)
+    {
+        return endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+    }
+
     // in tcp, we need to know the size of the actual message
     // to know until when to stop
     constexpr auto TCP_HEADER_SIZE = sizeof(std::uint64_t);
