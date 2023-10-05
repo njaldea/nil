@@ -19,4 +19,16 @@ namespace nil::service
      *  Currently, it uses the port of the connecting agent.
      */
     using EventHandler = std::function<void(std::uint32_t)>;
+
+    namespace detail
+    {
+        template <typename Options>
+        struct Storage
+        {
+            const Options options;
+            std::unordered_map<std::uint32_t, MsgHandler> msg = {};
+            EventHandler connect = {};
+            EventHandler disconnect = {};
+        };
+    }
 }

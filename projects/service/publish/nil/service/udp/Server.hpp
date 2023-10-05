@@ -27,6 +27,11 @@ namespace nil::service::udp
         Server(Options options);
         ~Server() noexcept override;
 
+        Server(Server&&) = delete;
+        Server(const Server&) = delete;
+        Server& operator=(Server&&) = delete;
+        Server& operator=(const Server&) = delete;
+
         void prepare() override;
         void run() override;
         void stop() override;
@@ -53,6 +58,8 @@ namespace nil::service::udp
         ) override;
 
     private:
+        detail::Storage<Options> storage;
+
         struct Impl;
         std::unique_ptr<Impl> impl;
     };

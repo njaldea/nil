@@ -11,34 +11,15 @@ namespace nil::service::udp
 {
     struct Client::Impl final
     {
-        explicit Impl(Client::Options options)
-            : options(std::move(options))
+        explicit Impl(const detail::Storage<Options>& storage)
+            : storage(storage)
             , strand(boost::asio::make_strand(context))
             , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), 0})
             , pingtimer(strand)
             , timeout(strand)
         {
-            buffer.resize(this->options.buffer);
+            buffer.resize(storage.options.buffer);
         }
-
-        struct Handlers
-        {
-            std::unordered_map<std::uint32_t, MsgHandler> msg;
-            EventHandler connect;
-            EventHandler disconnect;
-        } handlers;
-
-        Client::Options options;
-
-        boost::asio::io_context context;
-        boost::asio::strand<boost::asio::io_context::executor_type> strand;
-        boost::asio::ip::udp::socket socket;
-        boost::asio::steady_timer pingtimer;
-        boost::asio::steady_timer timeout;
-
-        std::vector<std::uint8_t> buffer;
-
-        bool connected = false;
 
         void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
         {
@@ -52,7 +33,7 @@ namespace nil::service::udp
                             boost::asio::buffer(utils::to_array(type)),
                             boost::asio::buffer(msg)
                         },
-                        {boost::asio::ip::make_address(options.host), options.port}
+                        {boost::asio::ip::make_address(storage.options.host), storage.options.port}
                     );
                 }
             );
@@ -62,8 +43,8 @@ namespace nil::service::udp
         {
             if (size >= sizeof(std::uint32_t))
             {
-                const auto it = handlers.msg.find(utils::from_array<std::uint32_t>(data));
-                if (it != handlers.msg.end() && it->second)
+                const auto it = storage.msg.find(utils::from_array<std::uint32_t>(data));
+                if (it != storage.msg.end() && it->second)
                 {
                     it->second(data + sizeof(std::uint32_t), size - sizeof(std::uint32_t));
                 }
@@ -75,12 +56,12 @@ namespace nil::service::udp
             if (!connected)
             {
                 connected = true;
-                if (handlers.connect)
+                if (storage.connect)
                 {
-                    handlers.connect(options.port);
+                    storage.connect(storage.options.port);
                 }
             }
-            timeout.expires_from_now(options.timeout);
+            timeout.expires_after(storage.options.timeout);
             timeout.async_wait(
                 [this](const boost::system::error_code& ec)
                 {
@@ -91,9 +72,9 @@ namespace nil::service::udp
                     if (connected)
                     {
                         connected = false;
-                        if (handlers.disconnect)
+                        if (storage.disconnect)
                         {
-                            handlers.disconnect(options.port);
+                            storage.disconnect(storage.options.port);
                         }
                     }
                 }
@@ -136,9 +117,9 @@ namespace nil::service::udp
         {
             socket.send_to(
                 boost::asio::buffer(utils::to_array(utils::UDP_INTERNAL_MESSAGE)),
-                {boost::asio::ip::make_address(options.host), options.port}
+                {boost::asio::ip::make_address(storage.options.host), storage.options.port}
             );
-            pingtimer.expires_from_now(options.timeout / 2);
+            pingtimer.expires_after(storage.options.timeout / 2);
             pingtimer.async_wait(
                 [this](const boost::system::error_code& ec)
                 {
@@ -155,10 +136,23 @@ namespace nil::service::udp
             ping();
             receive();
         }
+
+        const detail::Storage<Options>& storage;
+
+        boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
+        boost::asio::ip::udp::socket socket;
+        boost::asio::steady_timer pingtimer;
+        boost::asio::steady_timer timeout;
+
+        std::vector<std::uint8_t> buffer;
+
+        bool connected = false;
     };
 
     Client::Client(Client::Options options)
-        : impl(std::make_unique<Impl>(std::move(options)))
+        : storage{std::move(options)}
+        , impl()
     {
     }
 
@@ -166,22 +160,30 @@ namespace nil::service::udp
 
     void Client::prepare()
     {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
         impl->prepare();
     }
 
     void Client::run()
     {
-        impl->context.run();
+        if (impl)
+        {
+            impl->context.run();
+        }
     }
 
     void Client::stop()
     {
-        impl->context.stop();
+        if (impl)
+        {
+            impl->context.stop();
+        }
     }
 
     void Client::on(std::uint32_t type, MsgHandler handler)
     {
-        impl->handlers.msg.emplace(type, std::move(handler));
+        storage.msg.emplace(type, std::move(handler));
     }
 
     void Client::on(Event event, EventHandler handler)
@@ -189,10 +191,10 @@ namespace nil::service::udp
         switch (event)
         {
             case Event::Connect:
-                impl->handlers.connect = std::move(handler);
+                storage.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                impl->handlers.disconnect = std::move(handler);
+                storage.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -201,7 +203,7 @@ namespace nil::service::udp
 
     void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (id == impl->options.port)
+        if (impl && id == storage.options.port)
         {
             impl->publish(type, static_cast<const std::uint8_t*>(data), size);
         }
@@ -209,6 +211,9 @@ namespace nil::service::udp
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 }

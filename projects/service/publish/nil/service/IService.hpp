@@ -9,8 +9,16 @@ namespace nil::service
     public:
         virtual ~IService() noexcept = default;
 
+        IService() = default;
+        IService(IService&&) = delete;
+        IService(const IService&) = delete;
+        IService& operator=(IService&&) = delete;
+        IService& operator=(const IService&) = delete;
+
         /**
-         * @brief Prepare the service. Should be called once before running.
+         * @brief Prepare the service.
+         *  Should be called once before running.
+         *  Call before calling other methods.
          */
         virtual void prepare() = 0;
 

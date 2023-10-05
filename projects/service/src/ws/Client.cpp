@@ -11,10 +11,13 @@ namespace nil::service::ws
 {
     struct Client::Impl final: IImpl
     {
-        explicit Impl(Client::Options options)
-            : options(std::move(options))
+        explicit Impl(const detail::Storage<Options>& storage)
+            : storage(storage)
             , strand(boost::asio::make_strand(context))
-            , endpoint(boost::asio::ip::make_address(this->options.host.data()), this->options.port)
+            , endpoint(
+                  boost::asio::ip::make_address(storage.options.host.data()),
+                  storage.options.port
+              )
             , reconnection(strand)
         {
         }
@@ -40,9 +43,9 @@ namespace nil::service::ws
                 [this, connection]()
                 {
                     this->connection = connection;
-                    if (handlers.connect)
+                    if (storage.connect)
                     {
-                        handlers.connect(options.port);
+                        storage.connect(storage.options.port);
                     }
                 }
             );
@@ -57,9 +60,9 @@ namespace nil::service::ws
                     if (this->connection == connection)
                     {
                         this->connection = nullptr;
-                        if (handlers.disconnect)
+                        if (storage.disconnect)
                         {
-                            handlers.disconnect(options.port);
+                            storage.disconnect(storage.options.port);
                         }
                     }
                     reconnect();
@@ -69,8 +72,8 @@ namespace nil::service::ws
 
         void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
         {
-            const auto it = handlers.msg.find(type);
-            if (it != handlers.msg.end() && it->second)
+            const auto it = storage.msg.find(type);
+            if (it != storage.msg.end() && it->second)
             {
                 it->second(data, size);
             }
@@ -107,7 +110,7 @@ namespace nil::service::ws
                     ));
                     auto* ws_ptr = ws.get();
                     ws_ptr->async_handshake(
-                        options.host + ':' + std::to_string(options.port),
+                        storage.options.host + ':' + std::to_string(storage.options.port),
                         "/",
                         [this, ws = std::move(ws)](boost::beast::error_code ec)
                         {
@@ -116,7 +119,11 @@ namespace nil::service::ws
                                 reconnect();
                                 return;
                             }
-                            std::make_shared<Connection>(options.buffer, std::move(*ws), *this)
+                            std::make_shared<Connection>(
+                                storage.options.buffer,
+                                std::move(*ws),
+                                *this
+                            )
                                 ->start();
                         }
                     );
@@ -126,7 +133,7 @@ namespace nil::service::ws
 
         void reconnect()
         {
-            reconnection.expires_from_now(std::chrono::milliseconds(25));
+            reconnection.expires_after(std::chrono::milliseconds(25));
             reconnection.async_wait(
                 [this](const boost::system::error_code& ec)
                 {
@@ -138,14 +145,7 @@ namespace nil::service::ws
             );
         }
 
-        Client::Options options;
-
-        struct Handlers
-        {
-            std::unordered_map<std::uint32_t, MsgHandler> msg;
-            EventHandler connect;
-            EventHandler disconnect;
-        } handlers;
+        const detail::Storage<Options>& storage;
 
         boost::asio::io_context context;
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
@@ -155,7 +155,8 @@ namespace nil::service::ws
     };
 
     Client::Client(Client::Options options)
-        : impl(std::make_unique<Impl>(std::move(options)))
+        : storage{std::move(options)}
+        , impl()
     {
     }
 
@@ -163,22 +164,30 @@ namespace nil::service::ws
 
     void Client::prepare()
     {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
         impl->connect();
     }
 
     void Client::run()
     {
-        impl->context.run();
+        if (impl)
+        {
+            impl->context.run();
+        }
     }
 
     void Client::stop()
     {
-        impl->context.stop();
+        if (impl)
+        {
+            impl->context.stop();
+        }
     }
 
     void Client::on(std::uint32_t type, MsgHandler handler)
     {
-        impl->handlers.msg.emplace(type, std::move(handler));
+        storage.msg.emplace(type, std::move(handler));
     }
 
     void Client::on(Event event, EventHandler handler)
@@ -186,10 +195,10 @@ namespace nil::service::ws
         switch (event)
         {
             case Event::Connect:
-                impl->handlers.connect = std::move(handler);
+                storage.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                impl->handlers.disconnect = std::move(handler);
+                storage.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -198,7 +207,7 @@ namespace nil::service::ws
 
     void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (id != impl->options.port)
+        if (impl && id != storage.options.port)
         {
             impl->publish(type, static_cast<const std::uint8_t*>(data), size);
         }
@@ -206,6 +215,9 @@ namespace nil::service::ws
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 }

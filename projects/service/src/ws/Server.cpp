@@ -10,28 +10,13 @@ namespace nil::service::ws
 {
     struct Server::Impl final: IImpl
     {
-        explicit Impl(Server::Options options)
-            : options(options)
+        explicit Impl(const detail::Storage<Options>& storage)
+            : storage(storage)
             , strand(boost::asio::make_strand(context))
-            , endpoint(boost::asio::ip::make_address("0.0.0.0"), this->options.port)
+            , endpoint(boost::asio::ip::make_address("0.0.0.0"), storage.options.port)
             , acceptor(strand, endpoint, true)
         {
         }
-
-        Server::Options options;
-
-        struct Handlers
-        {
-            std::unordered_map<std::uint32_t, MsgHandler> msg;
-            EventHandler connect;
-            EventHandler disconnect;
-        } handlers;
-
-        boost::asio::io_context context;
-        boost::asio::strand<boost::asio::io_context::executor_type> strand;
-        boost::asio::ip::tcp::endpoint endpoint;
-        boost::asio::ip::tcp::acceptor acceptor;
-        std::unordered_map<std::uint16_t, Connection*> connections;
 
         void send(
             std::uint16_t id,
@@ -78,9 +63,9 @@ namespace nil::service::ws
                     {
                         connections.emplace(id, connection);
                     }
-                    if (handlers.connect)
+                    if (storage.connect)
                     {
-                        handlers.connect(id);
+                        storage.connect(id);
                     }
                 }
             );
@@ -97,9 +82,9 @@ namespace nil::service::ws
                     {
                         connections.erase(id);
                     }
-                    if (handlers.disconnect)
+                    if (storage.disconnect)
                     {
-                        handlers.disconnect(id);
+                        storage.disconnect(id);
                     }
                 }
             );
@@ -107,8 +92,8 @@ namespace nil::service::ws
 
         void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
         {
-            const auto it = handlers.msg.find(type);
-            if (it != handlers.msg.end() && it->second)
+            const auto it = storage.msg.find(type);
+            if (it != storage.msg.end() && it->second)
             {
                 it->second(data, size);
             }
@@ -147,7 +132,11 @@ namespace nil::service::ws
                                 {
                                     return;
                                 }
-                                std::make_shared<Connection>(options.buffer, std::move(*ws), *this)
+                                std::make_shared<Connection>(
+                                    storage.options.buffer,
+                                    std::move(*ws),
+                                    *this
+                                )
                                     ->start();
                             }
                         );
@@ -156,10 +145,19 @@ namespace nil::service::ws
                 }
             );
         }
+
+        const detail::Storage<Options>& storage;
+
+        boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
+        boost::asio::ip::tcp::endpoint endpoint;
+        boost::asio::ip::tcp::acceptor acceptor;
+        std::unordered_map<std::uint16_t, Connection*> connections;
     };
 
     Server::Server(Server::Options options)
-        : impl(std::make_unique<Impl>(options))
+        : storage{std::move(options)}
+        , impl()
     {
     }
 
@@ -167,22 +165,30 @@ namespace nil::service::ws
 
     void Server::prepare()
     {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
         impl->accept();
     }
 
     void Server::run()
     {
-        impl->context.run();
+        if (impl)
+        {
+            impl->context.run();
+        }
     }
 
     void Server::stop()
     {
-        impl->context.stop();
+        if (impl)
+        {
+            impl->context.stop();
+        }
     }
 
     void Server::on(std::uint32_t type, MsgHandler handler)
     {
-        impl->handlers.msg.emplace(type, std::move(handler));
+        storage.msg.emplace(type, std::move(handler));
     }
 
     void Server::on(Event event, EventHandler handler)
@@ -190,10 +196,10 @@ namespace nil::service::ws
         switch (event)
         {
             case Event::Connect:
-                impl->handlers.connect = std::move(handler);
+                storage.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                impl->handlers.disconnect = std::move(handler);
+                storage.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -202,11 +208,17 @@ namespace nil::service::ws
 
     void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 
     void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 }

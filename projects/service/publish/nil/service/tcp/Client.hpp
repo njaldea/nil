@@ -23,6 +23,11 @@ namespace nil::service::tcp
         Client(Options options);
         ~Client() noexcept override;
 
+        Client(Client&&) = delete;
+        Client(const Client&) = delete;
+        Client& operator=(Client&&) = delete;
+        Client& operator=(const Client&) = delete;
+
         void prepare() override;
         void run() override;
         void stop() override;
@@ -49,6 +54,8 @@ namespace nil::service::tcp
         ) override;
 
     private:
+        detail::Storage<Options> storage;
+
         struct Impl;
         std::unique_ptr<Impl> impl;
     };

@@ -91,12 +91,21 @@ struct Service: nil::cli::Command
             }
         );
 
-        service->prepare();
-        const std::thread t1([&]() { service->run(); });
-        std::string message;
-        while (std::getline(std::cin, message))
+        while (true)
         {
-            service->publish(1, message.data(), message.size());
+            service->prepare();
+            std::thread t1([&]() { service->run(); });
+            std::string message;
+            while (std::getline(std::cin, message))
+            {
+                if (message == "reconnect")
+                {
+                    break;
+                }
+                service->publish(1, message.data(), message.size());
+            }
+            service->stop();
+            t1.join();
         }
         return 0;
     }
@@ -106,17 +115,17 @@ int main(int argc, const char** argv)
 {
     auto root = nil::cli::Node::root<Help>();
     {
-        auto& tcp = root.add<Help>("tcp", "tcp");
-        tcp.add<Service<nil::service::tcp::Server>>("server", "server");
-        tcp.add<Service<nil::service::tcp::Client>>("client", "client");
-    }
-    {
-        auto& udp = root.add<Help>("udp", "udp");
+        auto& udp = root.add<Help>("udp", "use udp protocol");
         udp.add<Service<nil::service::udp::Server>>("server", "server");
         udp.add<Service<nil::service::udp::Client>>("client", "client");
     }
     {
-        auto& ws = root.add<Help>("ws", "ws");
+        auto& tcp = root.add<Help>("tcp", "use tcp protocol");
+        tcp.add<Service<nil::service::tcp::Server>>("server", "server");
+        tcp.add<Service<nil::service::tcp::Client>>("client", "client");
+    }
+    {
+        auto& ws = root.add<Help>("ws", "use ws protocol");
         ws.add<Service<nil::service::ws::Server>>("server", "server");
         ws.add<Service<nil::service::ws::Client>>("client", "client");
     }

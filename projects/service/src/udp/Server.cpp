@@ -11,33 +11,13 @@ namespace nil::service::udp
 {
     struct Server::Impl final
     {
-        explicit Impl(Server::Options options)
-            : options(options)
+        explicit Impl(const detail::Storage<Options>& storage)
+            : storage(storage)
             , strand(boost::asio::make_strand(context))
-            , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), this->options.port})
+            , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), storage.options.port})
         {
-            buffer.resize(this->options.buffer);
+            buffer.resize(storage.options.buffer);
         }
-
-        Server::Options options;
-
-        struct Handlers
-        {
-            std::unordered_map<std::uint32_t, MsgHandler> msg;
-            EventHandler connect;
-            EventHandler disconnect;
-        } handlers;
-
-        boost::asio::io_context context;
-        boost::asio::strand<boost::asio::io_context::executor_type> strand;
-        boost::asio::ip::udp::socket socket;
-
-        using EndPoints = std::unordered_map<
-            boost::asio::ip::udp::endpoint,
-            std::unique_ptr<boost::asio::steady_timer>>;
-        EndPoints endpoints;
-
-        std::vector<std::uint8_t> buffer;
 
         void send(
             std::uint16_t id,
@@ -99,12 +79,12 @@ namespace nil::service::udp
             if (!timer)
             {
                 timer = std::make_unique<boost::asio::steady_timer>(strand);
-                if (handlers.connect)
+                if (storage.connect)
                 {
-                    handlers.connect(endpoint.port());
+                    storage.connect(endpoint.port());
                 }
             }
-            timer->expires_from_now(options.timeout);
+            timer->expires_after(storage.options.timeout);
             timer->async_wait(
                 [this, endpoint](const boost::system::error_code& ec)
                 {
@@ -112,9 +92,9 @@ namespace nil::service::udp
                     {
                         return;
                     }
-                    if (handlers.disconnect)
+                    if (storage.disconnect)
                     {
-                        handlers.disconnect(endpoint.port());
+                        storage.disconnect(endpoint.port());
                     }
                     endpoints.erase(endpoint);
                 }
@@ -130,8 +110,8 @@ namespace nil::service::udp
         {
             if (size >= sizeof(std::uint32_t))
             {
-                const auto it = handlers.msg.find(utils::from_array<std::uint32_t>(data));
-                if (it != handlers.msg.end() && it->second)
+                const auto it = storage.msg.find(utils::from_array<std::uint32_t>(data));
+                if (it != storage.msg.end() && it->second)
                 {
                     it->second(data + sizeof(std::uint32_t), size - sizeof(std::uint32_t));
                 }
@@ -177,10 +157,24 @@ namespace nil::service::udp
                 }
             );
         }
+
+        const detail::Storage<Options>& storage;
+
+        boost::asio::io_context context;
+        boost::asio::strand<boost::asio::io_context::executor_type> strand;
+        boost::asio::ip::udp::socket socket;
+
+        using EndPoints = std::unordered_map<
+            boost::asio::ip::udp::endpoint,
+            std::unique_ptr<boost::asio::steady_timer>>;
+        EndPoints endpoints;
+
+        std::vector<std::uint8_t> buffer;
     };
 
     Server::Server(Server::Options options)
-        : impl(std::make_unique<Impl>(options))
+        : storage{std::move(options)}
+        , impl()
     {
     }
 
@@ -188,22 +182,30 @@ namespace nil::service::udp
 
     void Server::prepare()
     {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
         impl->receive();
     }
 
     void Server::run()
     {
-        impl->context.run();
+        if (impl)
+        {
+            impl->context.run();
+        }
     }
 
     void Server::stop()
     {
-        impl->context.stop();
+        if (impl)
+        {
+            impl->context.stop();
+        }
     }
 
     void Server::on(std::uint32_t type, MsgHandler handler)
     {
-        impl->handlers.msg.emplace(type, std::move(handler));
+        storage.msg.emplace(type, std::move(handler));
     }
 
     void Server::on(Event event, EventHandler handler)
@@ -211,10 +213,10 @@ namespace nil::service::udp
         switch (event)
         {
             case Event::Connect:
-                impl->handlers.connect = std::move(handler);
+                storage.connect = std::move(handler);
                 break;
             case Event::Disconnect:
-                impl->handlers.disconnect = std::move(handler);
+                storage.disconnect = std::move(handler);
                 break;
             default:
                 throw std::runtime_error("unknown type");
@@ -223,11 +225,17 @@ namespace nil::service::udp
 
     void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 
     void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        if (impl)
+        {
+            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        }
     }
 }

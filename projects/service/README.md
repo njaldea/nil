@@ -33,7 +33,7 @@ The classes provided by this library conforms in similar API. available protocol
 
 | name                         | description                              |
 | ---------------------------- | ---------------------------------------- |
-| `start()`                    | starts the service                       |
+| `run()`                      | runs the service                         |
 | `stop()`                     | signals to stop the service              |
 | `on(event, handler)`         | register connect/disconnect handler      |
 | `on(type, handler)`          | register message handler                 |

@@ -42,6 +42,7 @@ target_include_directories(
     SYSTEM PRIVATE
     $<TARGET_PROPERTY:Boost::boost,INTERFACE_INCLUDE_DIRECTORIES>
 )
+target_compile_definitions(${PROJECT_NAME} PRIVATE BOOST_ASIO_NO_DEPRECATED)
 
 target_include_directories(
     ${PROJECT_NAME}
