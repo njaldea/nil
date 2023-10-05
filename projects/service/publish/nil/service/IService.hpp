@@ -16,13 +16,6 @@ namespace nil::service
         IService& operator=(const IService&) = delete;
 
         /**
-         * @brief Prepare the service.
-         *  Should be called once before running.
-         *  Call before calling other methods.
-         */
-        virtual void prepare() = 0;
-
-        /**
          * @brief run the service. blocking.
          */
         virtual void run() = 0;
@@ -31,6 +24,13 @@ namespace nil::service
          * @brief stop the service.
          */
         virtual void stop() = 0;
+
+        /**
+         * @brief Prepare the service.
+         *  Should be called once before running.
+         *  Call before calling other methods.
+         */
+        virtual void restart() = 0;
 
         /**
          * @brief Add a message handler for a specific message type
@@ -64,7 +64,7 @@ namespace nil::service
          * @param size  - payload size
          */
         virtual void send(
-            std::uint16_t id,
+            const std::string& id,
             std::uint32_t type,
             const void* data,
             std::uint64_t size //

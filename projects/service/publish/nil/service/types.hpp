@@ -18,7 +18,7 @@ namespace nil::service
      *  Argument is an identifier for the connection.
      *  Currently, it uses the port of the connecting agent.
      */
-    using EventHandler = std::function<void(std::uint32_t)>;
+    using EventHandler = std::function<void(const std::string&)>;
 
     namespace detail
     {

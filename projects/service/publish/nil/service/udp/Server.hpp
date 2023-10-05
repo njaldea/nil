@@ -32,9 +32,9 @@ namespace nil::service::udp
         Server& operator=(Server&&) = delete;
         Server& operator=(const Server&) = delete;
 
-        void prepare() override;
         void run() override;
         void stop() override;
+        void restart() override;
 
         void on(
             std::uint32_t type,
@@ -46,7 +46,7 @@ namespace nil::service::udp
         ) override;
 
         void send(
-            std::uint16_t id,
+            const std::string& id,
             std::uint32_t type,
             const void* data,
             std::uint64_t size //

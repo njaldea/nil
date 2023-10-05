@@ -67,17 +67,16 @@ struct Service: nil::cli::Command
     int run(const nil::cli::Options& options) const override
     {
         static_assert(std::is_base_of_v<nil::service::IService, T>);
-        const std::unique_ptr<nil::service::IService> service
-            = std::make_unique<T>(parse<T>(options));
+        const auto service = std::make_unique<T>(parse<T>(options));
         service->on(
             nil::service::Event::Connect,
-            [](std::uint32_t id) { //
+            [](const std::string& id) { //
                 std::cout << "connected    : " << id << std::endl;
             }
         );
         service->on(
             nil::service::Event::Disconnect,
-            [](std::uint32_t id) { //
+            [](const std::string& id) { //
                 std::cout << "disconnected : " << id << std::endl;
             }
         );
@@ -93,7 +92,6 @@ struct Service: nil::cli::Command
 
         while (true)
         {
-            service->prepare();
             std::thread t1([&]() { service->run(); });
             std::string message;
             while (std::getline(std::cin, message))
@@ -106,6 +104,7 @@ struct Service: nil::cli::Command
             }
             service->stop();
             t1.join();
+            service->restart();
         }
         return 0;
     }

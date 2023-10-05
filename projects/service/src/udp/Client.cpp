@@ -17,6 +17,7 @@ namespace nil::service::udp
             , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), 0})
             , pingtimer(strand)
             , timeout(strand)
+            , targetID(storage.options.host + ":" + std::to_string(storage.options.port))
         {
             buffer.resize(storage.options.buffer);
         }
@@ -58,7 +59,7 @@ namespace nil::service::udp
                 connected = true;
                 if (storage.connect)
                 {
-                    storage.connect(storage.options.port);
+                    storage.connect(targetID);
                 }
             }
             timeout.expires_after(storage.options.timeout);
@@ -74,7 +75,7 @@ namespace nil::service::udp
                         connected = false;
                         if (storage.disconnect)
                         {
-                            storage.disconnect(storage.options.port);
+                            storage.disconnect(targetID);
                         }
                     }
                 }
@@ -148,37 +149,33 @@ namespace nil::service::udp
         std::vector<std::uint8_t> buffer;
 
         bool connected = false;
+        std::string targetID;
     };
 
     Client::Client(Client::Options options)
         : storage{std::move(options)}
-        , impl()
+        , impl(std::make_unique<Impl>(storage))
     {
+        impl->prepare();
     }
 
     Client::~Client() noexcept = default;
 
-    void Client::prepare()
-    {
-        impl.reset();
-        impl = std::make_unique<Impl>(storage);
-        impl->prepare();
-    }
-
     void Client::run()
     {
-        if (impl)
-        {
-            impl->context.run();
-        }
+        impl->context.run();
     }
 
     void Client::stop()
     {
-        if (impl)
-        {
-            impl->context.stop();
-        }
+        impl->context.stop();
+    }
+
+    void Client::restart()
+    {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
+        impl->prepare();
     }
 
     void Client::on(std::uint32_t type, MsgHandler handler)
@@ -201,19 +198,19 @@ namespace nil::service::udp
         }
     }
 
-    void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
+    void Client::send(
+        const std::string& id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size
+    )
     {
-        if (impl && id == storage.options.port)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        (void)id;
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (impl)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

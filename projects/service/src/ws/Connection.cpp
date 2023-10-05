@@ -70,8 +70,10 @@ namespace nil::service::ws
         );
     }
 
-    std::uint16_t Connection::id() const
+    std::string Connection::id() const
     {
-        return boost::beast::get_lowest_layer(ws).socket().remote_endpoint().port();
+        auto& socket = boost::beast::get_lowest_layer(ws).socket();
+        return socket.remote_endpoint().address().to_string() + ":"
+            + std::to_string(socket.remote_endpoint().port());
     }
 }

@@ -28,9 +28,9 @@ namespace nil::service::tcp
         Client& operator=(Client&&) = delete;
         Client& operator=(const Client&) = delete;
 
-        void prepare() override;
         void run() override;
         void stop() override;
+        void restart() override;
 
         void on(
             std::uint32_t type,
@@ -42,7 +42,7 @@ namespace nil::service::tcp
         ) override;
 
         void send(
-            std::uint16_t id,
+            const std::string& id,
             std::uint32_t type,
             const void* data,
             std::uint64_t size //

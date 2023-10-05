@@ -30,7 +30,7 @@ namespace nil::service::ws
 
         void start();
         void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
-        std::uint16_t id() const;
+        std::string id() const;
 
     private:
         void read();

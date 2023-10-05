@@ -19,8 +19,14 @@ namespace nil::service::udp
             buffer.resize(storage.options.buffer);
         }
 
+        std::string id() const
+        {
+            return socket.remote_endpoint().address().to_string() + ":"
+                + std::to_string(socket.remote_endpoint().port());
+        }
+
         void send(
-            std::uint16_t id,
+            const std::string& id,
             std::uint32_t type,
             const std::uint8_t* data,
             std::uint64_t size
@@ -30,21 +36,17 @@ namespace nil::service::udp
                 strand,
                 [this, type, id, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
-                    for (const auto& endpoint : endpoints)
+                    for (const auto& connection : connections)
                     {
-                        if (endpoint.first.port() == id)
-                        {
-                            namespace basio = boost::asio;
-                            socket.send_to(
-                                std::array<basio::const_buffer, 3>{
-                                    basio::buffer(utils::to_array(utils::UDP_EXTERNAL_MESSAGE)),
-                                    basio::buffer(utils::to_array(type)),
-                                    basio::buffer(msg)
-                                },
-                                endpoint.first
-                            );
-                            break;
-                        }
+                        namespace basio = boost::asio;
+                        socket.send_to(
+                            std::array<basio::const_buffer, 3>{
+                                basio::buffer(utils::to_array(utils::UDP_EXTERNAL_MESSAGE)),
+                                basio::buffer(utils::to_array(type)),
+                                basio::buffer(msg)
+                            },
+                            connection.second->endpoint
+                        );
                     }
                 }
             );
@@ -65,28 +67,28 @@ namespace nil::service::udp
                         boost::asio::buffer(t),
                         boost::asio::buffer(msg)
                     };
-                    for (const auto& endpoint : endpoints)
+                    for (const auto& connection : connections)
                     {
-                        socket.send_to(b, endpoint.first);
+                        socket.send_to(b, connection.second->endpoint);
                     }
                 }
             );
         }
 
-        void ping(const boost::asio::ip::udp::endpoint& endpoint)
+        void ping(const boost::asio::ip::udp::endpoint& endpoint, const std::string& id)
         {
-            auto& timer = endpoints[endpoint];
-            if (!timer)
+            auto& connection = connections[id];
+            if (!connection)
             {
-                timer = std::make_unique<boost::asio::steady_timer>(strand);
+                connection = std::make_unique<Connection>(endpoint, strand);
                 if (storage.connect)
                 {
-                    storage.connect(endpoint.port());
+                    storage.connect(id);
                 }
             }
-            timer->expires_after(storage.options.timeout);
-            timer->async_wait(
-                [this, endpoint](const boost::system::error_code& ec)
+            connection->timer.expires_after(storage.options.timeout);
+            connection->timer.async_wait(
+                [this, endpoint, id](const boost::system::error_code& ec)
                 {
                     if (ec == boost::asio::error::operation_aborted)
                     {
@@ -94,9 +96,9 @@ namespace nil::service::udp
                     }
                     if (storage.disconnect)
                     {
-                        storage.disconnect(endpoint.port());
+                        storage.disconnect(id);
                     }
-                    endpoints.erase(endpoint);
+                    connections.erase(id);
                 }
             );
 
@@ -128,7 +130,10 @@ namespace nil::service::udp
             {
                 if (utils::from_array<std::uint8_t>(data) > 0u)
                 {
-                    ping(endpoint);
+                    ping(
+                        endpoint,
+                        endpoint.address().to_string() + ":" + std::to_string(endpoint.port())
+                    );
                 }
                 else
                 {
@@ -164,43 +169,51 @@ namespace nil::service::udp
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::udp::socket socket;
 
-        using EndPoints = std::unordered_map<
-            boost::asio::ip::udp::endpoint,
-            std::unique_ptr<boost::asio::steady_timer>>;
-        EndPoints endpoints;
+        struct Connection
+        {
+            Connection(
+                boost::asio::ip::udp::endpoint endpoint,
+                boost::asio::strand<boost::asio::io_context::executor_type>& strand
+            )
+                : endpoint(std::move(endpoint))
+                , timer(strand)
+            {
+            }
+
+            boost::asio::ip::udp::endpoint endpoint;
+            boost::asio::steady_timer timer;
+        };
+
+        using Connections = std::unordered_map<std::string, std::unique_ptr<Connection>>;
+        Connections connections;
 
         std::vector<std::uint8_t> buffer;
     };
 
     Server::Server(Server::Options options)
         : storage{std::move(options)}
-        , impl()
+        , impl(std::make_unique<Impl>(storage))
     {
+        impl->receive();
     }
 
     Server::~Server() noexcept = default;
 
-    void Server::prepare()
-    {
-        impl.reset();
-        impl = std::make_unique<Impl>(storage);
-        impl->receive();
-    }
-
     void Server::run()
     {
-        if (impl)
-        {
-            impl->context.run();
-        }
+        impl->context.run();
     }
 
     void Server::stop()
     {
-        if (impl)
-        {
-            impl->context.stop();
-        }
+        impl->context.stop();
+    }
+
+    void Server::restart()
+    {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
+        impl->receive();
     }
 
     void Server::on(std::uint32_t type, MsgHandler handler)
@@ -223,19 +236,18 @@ namespace nil::service::udp
         }
     }
 
-    void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
+    void Server::send(
+        const std::string& id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size
+    )
     {
-        if (impl)
-        {
-            impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (impl)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

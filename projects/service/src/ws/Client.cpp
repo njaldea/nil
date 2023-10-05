@@ -14,10 +14,6 @@ namespace nil::service::ws
         explicit Impl(const detail::Storage<Options>& storage)
             : storage(storage)
             , strand(boost::asio::make_strand(context))
-            , endpoint(
-                  boost::asio::ip::make_address(storage.options.host.data()),
-                  storage.options.port
-              )
             , reconnection(strand)
         {
         }
@@ -45,7 +41,7 @@ namespace nil::service::ws
                     this->connection = connection;
                     if (storage.connect)
                     {
-                        storage.connect(storage.options.port);
+                        storage.connect(connection->id());
                     }
                 }
             );
@@ -62,7 +58,7 @@ namespace nil::service::ws
                         this->connection = nullptr;
                         if (storage.disconnect)
                         {
-                            storage.disconnect(storage.options.port);
+                            storage.disconnect(connection->id());
                         }
                     }
                     reconnect();
@@ -84,7 +80,7 @@ namespace nil::service::ws
             auto socket = std::make_unique<boost::asio::ip::tcp::socket>(strand);
             auto* socket_ptr = socket.get();
             socket_ptr->async_connect(
-                endpoint,
+                {boost::asio::ip::make_address(storage.options.host.data()), storage.options.port},
                 [this, socket = std::move(socket)](const boost::system::error_code& ec)
                 {
                     if (ec)
@@ -149,40 +145,34 @@ namespace nil::service::ws
 
         boost::asio::io_context context;
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
-        boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::steady_timer reconnection;
         Connection* connection = nullptr;
     };
 
     Client::Client(Client::Options options)
         : storage{std::move(options)}
-        , impl()
+        , impl(std::make_unique<Impl>(storage))
     {
+        impl->connect();
     }
 
     Client::~Client() noexcept = default;
 
-    void Client::prepare()
-    {
-        impl.reset();
-        impl = std::make_unique<Impl>(storage);
-        impl->connect();
-    }
-
     void Client::run()
     {
-        if (impl)
-        {
-            impl->context.run();
-        }
+        impl->context.run();
     }
 
     void Client::stop()
     {
-        if (impl)
-        {
-            impl->context.stop();
-        }
+        impl->context.stop();
+    }
+
+    void Client::restart()
+    {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
+        impl->connect();
     }
 
     void Client::on(std::uint32_t type, MsgHandler handler)
@@ -205,19 +195,19 @@ namespace nil::service::ws
         }
     }
 
-    void Client::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
+    void Client::send(
+        const std::string& id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size
+    )
     {
-        if (impl && id != storage.options.port)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        (void)id;
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (impl)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

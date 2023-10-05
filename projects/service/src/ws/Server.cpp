@@ -19,7 +19,7 @@ namespace nil::service::ws
         }
 
         void send(
-            std::uint16_t id,
+            const std::string& id,
             std::uint32_t type,
             const std::uint8_t* data,
             std::uint64_t size
@@ -152,38 +152,33 @@ namespace nil::service::ws
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::ip::tcp::acceptor acceptor;
-        std::unordered_map<std::uint16_t, Connection*> connections;
+        std::unordered_map<std::string, Connection*> connections;
     };
 
     Server::Server(Server::Options options)
         : storage{std::move(options)}
-        , impl()
+        , impl(std::make_unique<Impl>(storage))
     {
+        impl->accept();
     }
 
     Server::~Server() noexcept = default;
 
-    void Server::prepare()
-    {
-        impl.reset();
-        impl = std::make_unique<Impl>(storage);
-        impl->accept();
-    }
-
     void Server::run()
     {
-        if (impl)
-        {
-            impl->context.run();
-        }
+        impl->context.run();
     }
 
     void Server::stop()
     {
-        if (impl)
-        {
-            impl->context.stop();
-        }
+        impl->context.stop();
+    }
+
+    void Server::restart()
+    {
+        impl.reset();
+        impl = std::make_unique<Impl>(storage);
+        impl->accept();
     }
 
     void Server::on(std::uint32_t type, MsgHandler handler)
@@ -206,19 +201,18 @@ namespace nil::service::ws
         }
     }
 
-    void Server::send(std::uint16_t id, std::uint32_t type, const void* data, std::uint64_t size)
+    void Server::send(
+        const std::string& id,
+        std::uint32_t type,
+        const void* data,
+        std::uint64_t size
+    )
     {
-        if (impl)
-        {
-            impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
     }
 
     void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
     {
-        if (impl)
-        {
-            impl->publish(type, static_cast<const std::uint8_t*>(data), size);
-        }
+        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
     }
 }

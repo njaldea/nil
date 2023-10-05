@@ -31,19 +31,21 @@ The classes provided by this library conforms in similar API. available protocol
 
 ### methods
 
-| name                         | description                              |
-| ---------------------------- | ---------------------------------------- |
-| `run()`                      | runs the service                         |
-| `stop()`                     | signals to stop the service              |
-| `on(event, handler)`         | register connect/disconnect handler      |
-| `on(type, handler)`          | register message handler                 |
-| `send(id, type, data, size)` | send message to a specific id/connection |
-| `publish(type, data, size)`  | sends message to all connection          |
+| name                         | description                                |
+| ---------------------------- | ------------------------------------------ |
+| `run()`                      | runs the service                           |
+| `stop()`                     | signals to stop the service                |
+| `restart()`                  | restart service after stop                 |
+| `on(event, handler)`         | register connect/disconnect handler        |
+| `on(type, handler)`          | register message handler                   |
+| `send(id, type, data, size)` | send message to a specific id/connection   |
+| `publish(type, data, size)`  | sends message to all connection            |
 
-for client, `publish` works the same as `send` to server
+for client, `publish` works the same as `send` to server.
+
+NOTE:
+- `restart` is required to be called when `stop`-ed and `run` is about to be called.
+- due to the nature of UDP, if one side gets "destroyed" and is able to reconnect "immediately", disconnection will not be "detected".
 
 ## NOTES: (will be fixed in the future)
-- currently works only in one single thread only (calling start in multiple threads is not expected)
-- ws is in WIP state
-- id currently is just port. this is not enough
 - host is not resolved. currently expects only IP.

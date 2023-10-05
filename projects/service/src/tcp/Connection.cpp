@@ -98,8 +98,9 @@ namespace nil::service::tcp
         );
     }
 
-    std::uint16_t Connection::id() const
+    std::string Connection::id() const
     {
-        return socket.remote_endpoint().port();
+        return socket.remote_endpoint().address().to_string() + ":"
+            + std::to_string(socket.remote_endpoint().port());
     }
 }
