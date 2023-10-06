@@ -1,12 +1,18 @@
 #pragma once
 
 #include <boost/asio/ip/tcp.hpp>
+#include <boost/asio/ip/udp.hpp>
 
 #include <array>
 
 namespace nil::service::utils
 {
     inline std::string to_string(const boost::asio::ip::tcp::endpoint& endpoint)
+    {
+        return endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
+    }
+
+    inline std::string to_string(const boost::asio::ip::udp::endpoint& endpoint)
     {
         return endpoint.address().to_string() + ":" + std::to_string(endpoint.port());
     }

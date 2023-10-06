@@ -7,8 +7,6 @@
 #include <boost/asio/steady_timer.hpp>
 #include <boost/asio/strand.hpp>
 
-#include <iostream>
-
 namespace nil::service::tcp
 {
     struct Client::Impl final: IImpl
@@ -20,49 +18,29 @@ namespace nil::service::tcp
         {
         }
 
-        void send(
-            const std::string& id,
-            std::uint32_t type,
-            const std::uint8_t* data,
-            std::uint64_t size
-        )
+        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
                 strand,
-                [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     if (connection != nullptr && connection->id() == id)
                     {
-                        connection->write(type, msg.data(), msg.size());
+                        connection->write(msg.data(), msg.size());
                     }
                 }
             );
         }
 
-        void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
+        void publish(const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
                 strand,
-                [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     if (connection != nullptr)
                     {
-                        connection->write(type, msg.data(), msg.size());
-                    }
-                }
-            );
-        }
-
-        void connect(Connection* connection) override
-        {
-            boost::asio::dispatch(
-                strand,
-                [this, connection]()
-                {
-                    this->connection = connection;
-                    if (storage.connect)
-                    {
-                        storage.connect(connection->id());
+                        connection->write(msg.data(), msg.size());
                     }
                 }
             );
@@ -74,25 +52,24 @@ namespace nil::service::tcp
                 strand,
                 [this, connection]()
                 {
-                    if (this->connection == connection)
+                    if (this->connection.get() == connection)
                     {
-                        this->connection = nullptr;
                         if (storage.disconnect)
                         {
-                            storage.disconnect(connection->id());
+                            storage.disconnect(this->connection->id());
                         }
+                        this->connection.reset();
                     }
                     reconnect();
                 }
             );
         }
 
-        void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
+        void message(const std::string& id, const std::uint8_t* data, std::uint64_t size) override
         {
-            const auto it = storage.msg.find(type);
-            if (it != storage.msg.end() && it->second)
+            if (storage.msg)
             {
-                it->second(data, size);
+                storage.msg(id, data, size);
             }
         }
 
@@ -106,12 +83,15 @@ namespace nil::service::tcp
                 {
                     if (!ec)
                     {
-                        std::make_shared<Connection>(
+                        connection = std::make_unique<Connection>(
                             storage.options.buffer,
                             std::move(*socket),
                             *this
-                        )
-                            ->start();
+                        );
+                        if (storage.connect)
+                        {
+                            storage.connect(connection->id());
+                        }
                         return;
                     }
                     reconnect();
@@ -138,7 +118,7 @@ namespace nil::service::tcp
         boost::asio::io_context context;
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::steady_timer reconnection;
-        Connection* connection = nullptr;
+        std::unique_ptr<Connection> connection;
     };
 
     Client::Client(Client::Options options)
@@ -167,38 +147,28 @@ namespace nil::service::tcp
         impl->connect();
     }
 
-    void Client::on(std::uint32_t type, MsgHandler handler)
+    void Client::on_message(MessageHandler handler)
     {
-        storage.msg.emplace(type, std::move(handler));
+        storage.msg = std::move(handler);
     }
 
-    void Client::on(Event event, EventHandler handler)
+    void Client::on_connect(ConnectHandler handler)
     {
-        switch (event)
-        {
-            case Event::Connect:
-                storage.connect = std::move(handler);
-                break;
-            case Event::Disconnect:
-                storage.disconnect = std::move(handler);
-                break;
-            default:
-                throw std::runtime_error("unknown type");
-        }
+        storage.connect = std::move(handler);
     }
 
-    void Client::send(
-        const std::string& id,
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size
-    )
+    void Client::on_disconnect(DisconnectHandler handler)
     {
-        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        storage.disconnect = std::move(handler);
     }
 
-    void Client::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Client::send(const std::string& id, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+    }
+
+    void Client::publish(const void* data, std::uint64_t size)
+    {
+        impl->publish(static_cast<const std::uint8_t*>(data), size);
     }
 }

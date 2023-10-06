@@ -1,9 +1,26 @@
 #pragma once
 
-#include <nil/service/types.hpp>
+#include <functional>
+#include <string>
 
 namespace nil::service
 {
+    using MessageHandler = std::function<void(const std::string&, const void*, std::uint64_t)>;
+    using ConnectHandler = std::function<void(const std::string&)>;
+    using DisconnectHandler = std::function<void(const std::string&)>;
+
+    namespace detail
+    {
+        template <typename Options>
+        struct Storage
+        {
+            const Options options;
+            MessageHandler msg = {};
+            ConnectHandler connect = {};
+            DisconnectHandler disconnect = {};
+        };
+    }
+
     class IService
     {
     public:
@@ -33,42 +50,35 @@ namespace nil::service
         virtual void restart() = 0;
 
         /**
-         * @brief Add a message handler for a specific message type
+         * @brief Add a message handler
          *
-         * @param type
          * @param handler
          */
-        virtual void on(
-            std::uint32_t type,
-            MsgHandler handler //
-        ) = 0;
+        virtual void on_message(MessageHandler handler) = 0;
 
         /**
-         * @brief Add an event handler for service events.
+         * @brief Add a connect handler for service events.
          *
-         * @param event
          * @param handler
          */
-        virtual void on(
-            Event event,
-            EventHandler handler //
-        ) = 0;
+        virtual void on_connect(ConnectHandler handler) = 0;
+
+        /**
+         * @brief Add a disconnect handler for service events.
+         *
+         * @param handler
+         */
+        virtual void on_disconnect(DisconnectHandler handler) = 0;
 
         /**
          * @brief Send a message to a specific id.
          *  Does nothing if id is unknown.
          *
          * @param id    - identifier
-         * @param type  - message type
          * @param data  - payload
          * @param size  - payload size
          */
-        virtual void send(
-            const std::string& id,
-            std::uint32_t type,
-            const void* data,
-            std::uint64_t size //
-        ) = 0;
+        virtual void send(const std::string& id, const void* data, std::uint64_t size) = 0;
 
         /**
          * @brief Broadcast a message to all listeners
@@ -77,10 +87,6 @@ namespace nil::service
          * @param data  - payload
          * @param size  - payload size
          */
-        virtual void publish(
-            std::uint32_t type,
-            const void* data,
-            std::uint64_t size //
-        ) = 0;
+        virtual void publish(const void* data, std::uint64_t size) = 0;
     };
 }

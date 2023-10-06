@@ -67,35 +67,25 @@ struct Service: nil::cli::Command
     int run(const nil::cli::Options& options) const override
     {
         static_assert(std::is_base_of_v<nil::service::IService, T>);
-        const auto service = std::make_unique<T>(parse<T>(options));
-        service->on(
-            nil::service::Event::Connect,
-            [](const std::string& id) { //
-                std::cout << "connected    : " << id << std::endl;
-            }
-        );
-        service->on(
-            nil::service::Event::Disconnect,
-            [](const std::string& id) { //
-                std::cout << "disconnected : " << id << std::endl;
-            }
-        );
-        service->on(
-            1,
-            [](const void* data, std::uint64_t size)
+        T service(parse<T>(options));
+        service.on_connect([](const std::string& id) { //
+            std::cout << "connected    : " << id << std::endl;
+        });
+        service.on_disconnect([](const std::string& id) { //
+            std::cout << "disconnected : " << id << std::endl;
+        });
+        service.on_message(
+            [](const std::string& id, const void* data, std::uint64_t size)
             {
                 const auto message = std::string_view(static_cast<const char*>(data), size);
+                std::cout << "from         : " << id << std::endl;
                 std::cout << "message      : " << message << std::endl;
-                std::this_thread::sleep_for(std::chrono::seconds(1));
             }
         );
 
         while (true)
         {
-            std::thread t1([&]() { service->run(); });
-            std::thread t2([&]() { service->run(); });
-            std::thread t3([&]() { service->run(); });
-            std::thread t4([&]() { service->run(); });
+            std::thread t1([&]() { service.run(); });
             std::string message;
             while (std::getline(std::cin, message))
             {
@@ -103,36 +93,28 @@ struct Service: nil::cli::Command
                 {
                     break;
                 }
-                service->publish(1, message.data(), message.size());
+                service.publish(message.data(), message.size());
             }
-            service->stop();
+            service.stop();
             t1.join();
-            t2.join();
-            t3.join();
-            t4.join();
-            service->restart();
+            service.restart();
         }
         return 0;
     }
 };
 
+template <typename T>
+void add_sub_nodes(nil::cli::Node& node)
+{
+    node.add<Service<typename T::Server>>("server", "server");
+    node.add<Service<typename T::Client>>("client", "client");
+}
+
 int main(int argc, const char** argv)
 {
     auto root = nil::cli::Node::root<Help>();
-    {
-        auto& udp = root.add<Help>("udp", "use udp protocol");
-        udp.add<Service<nil::service::udp::Server>>("server", "server");
-        udp.add<Service<nil::service::udp::Client>>("client", "client");
-    }
-    {
-        auto& tcp = root.add<Help>("tcp", "use tcp protocol");
-        tcp.add<Service<nil::service::tcp::Server>>("server", "server");
-        tcp.add<Service<nil::service::tcp::Client>>("client", "client");
-    }
-    {
-        auto& ws = root.add<Help>("ws", "use ws protocol");
-        ws.add<Service<nil::service::ws::Server>>("server", "server");
-        ws.add<Service<nil::service::ws::Client>>("client", "client");
-    }
+    add_sub_nodes<nil::service::udp::modes>(root.add<Help>("udp", "use udp protocol"));
+    add_sub_nodes<nil::service::tcp::modes>(root.add<Help>("tcp", "use tcp protocol"));
+    add_sub_nodes<nil::service::ws::modes>(root.add<Help>("ws", "use ws protocol"));
     return root.run(argc, argv);
 }

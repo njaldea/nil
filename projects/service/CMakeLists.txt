@@ -10,16 +10,18 @@ set(
     HEADERS
         publish/nil/service.hpp
         publish/nil/service/IService.hpp
-        publish/nil/service/types.hpp
+        publish/nil/service/udp/modes.hpp
         publish/nil/service/udp/Client.hpp
         publish/nil/service/udp/Server.hpp
+        publish/nil/service/tcp/modes.hpp
         publish/nil/service/tcp/Client.hpp
         publish/nil/service/tcp/Server.hpp
+        publish/nil/service/ws/modes.hpp
         publish/nil/service/ws/Client.hpp
         publish/nil/service/ws/Server.hpp
         src/tcp/Connection.hpp
         src/ws/Connection.hpp
-        src/Utils.hpp
+        src/utils.hpp
 )
 
 set(

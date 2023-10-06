@@ -31,26 +31,12 @@ namespace nil::service::tcp
         void stop() override;
         void restart() override;
 
-        void on(
-            std::uint32_t type,
-            MsgHandler handler //
-        ) override;
-        void on(
-            Event event,
-            EventHandler handler //
-        ) override;
+        void on_message(MessageHandler handler) override;
+        void on_connect(ConnectHandler handler) override;
+        void on_disconnect(DisconnectHandler handler) override;
 
-        void send(
-            const std::string& id,
-            std::uint32_t type,
-            const void* data,
-            std::uint64_t size //
-        ) override;
-        void publish(
-            std::uint32_t type,
-            const void* data,
-            std::uint64_t size //
-        ) override;
+        void send(const std::string& id, const void* data, std::uint64_t size) override;
+        void publish(const void* data, std::uint64_t size) override;
 
     private:
         detail::Storage<Options> storage;

@@ -1,6 +1,6 @@
 #include "Connection.hpp"
 
-#include "../Utils.hpp"
+#include "../utils.hpp"
 
 namespace nil::service::ws
 {
@@ -24,51 +24,34 @@ namespace nil::service::ws
               }(r_buffer, buffer)
           )
     {
-        impl.connect(this);
-    }
-
-    Connection::~Connection()
-    {
-        impl.disconnect(this);
-    }
-
-    void Connection::start()
-    {
         read();
     }
+
+    Connection::~Connection() = default;
 
     void Connection::read()
     {
         ws.async_read(
             flat_buffer,
-            [self = shared_from_this()](boost::beast::error_code ec, std::size_t count)
+            [this](boost::beast::error_code ec, std::size_t count)
             {
                 if (ec)
                 {
+                    impl.disconnect(this);
                     return;
                 }
 
-                self->impl.message(
-                    utils::from_array<std::uint32_t>(self->r_buffer.data()),
-                    self->r_buffer.data() + sizeof(std::uint32_t),
-                    count - sizeof(std::uint32_t)
-                );
-                self->flat_buffer.consume(count);
-                self->read();
+                impl.message(id(), r_buffer.data(), count);
+                flat_buffer.consume(count);
+                read();
             }
         );
     }
 
-    void Connection::write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
+    void Connection::write(const std::uint8_t* data, std::uint64_t size)
     {
         boost::system::error_code ec;
-        ws.write(
-            std::array<boost::asio::const_buffer, 2>{
-                boost::asio::buffer(utils::to_array(type)),
-                boost::asio::buffer(data, size)
-            },
-            ec
-        );
+        ws.write(boost::asio::buffer(data, size), ec);
     }
 
     const std::string& Connection::id() const

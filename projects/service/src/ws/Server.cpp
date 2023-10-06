@@ -18,54 +18,30 @@ namespace nil::service::ws
         {
         }
 
-        void send(
-            const std::string& id,
-            std::uint32_t type,
-            const std::uint8_t* data,
-            std::uint64_t size
-        )
+        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
                 strand,
-                [this, id, type, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     const auto it = connections.find(id);
                     if (it != connections.end())
                     {
-                        it->second->write(type, msg.data(), msg.size());
+                        it->second->write(msg.data(), msg.size());
                     }
                 }
             );
         }
 
-        void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
+        void publish(const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
                 strand,
-                [this, type, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     for (const auto& item : connections)
                     {
-                        item.second->write(type, msg.data(), msg.size());
-                    }
-                }
-            );
-        }
-
-        void connect(Connection* connection) override
-        {
-            boost::asio::dispatch(
-                strand,
-                [this, connection]()
-                {
-                    const auto& id = connection->id();
-                    if (!connections.contains(id))
-                    {
-                        connections.emplace(id, connection);
-                    }
-                    if (storage.connect)
-                    {
-                        storage.connect(id);
+                        item.second->write(msg.data(), msg.size());
                     }
                 }
             );
@@ -89,12 +65,11 @@ namespace nil::service::ws
             );
         }
 
-        void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) override
+        void message(const std::string& id, const std::uint8_t* data, std::uint64_t size) override
         {
-            const auto it = storage.msg.find(type);
-            if (it != storage.msg.end() && it->second)
+            if (storage.msg)
             {
-                it->second(data, size);
+                storage.msg(id, data, size);
             }
         }
 
@@ -131,12 +106,17 @@ namespace nil::service::ws
                                 {
                                     return;
                                 }
-                                std::make_shared<Connection>(
+                                auto connection = std::make_unique<Connection>(
                                     storage.options.buffer,
                                     std::move(*ws),
                                     *this
-                                )
-                                    ->start();
+                                );
+                                auto id = connection->id();
+                                if (storage.connect)
+                                {
+                                    storage.connect(id);
+                                }
+                                connections.emplace(std::move(id), std::move(connection));
                             }
                         );
                     }
@@ -151,7 +131,7 @@ namespace nil::service::ws
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::tcp::endpoint endpoint;
         boost::asio::ip::tcp::acceptor acceptor;
-        std::unordered_map<std::string, Connection*> connections;
+        std::unordered_map<std::string, std::unique_ptr<Connection>> connections;
     };
 
     Server::Server(Server::Options options)
@@ -180,38 +160,28 @@ namespace nil::service::ws
         impl->accept();
     }
 
-    void Server::on(std::uint32_t type, MsgHandler handler)
+    void Server::on_message(MessageHandler handler)
     {
-        storage.msg.emplace(type, std::move(handler));
+        storage.msg = std::move(handler);
     }
 
-    void Server::on(Event event, EventHandler handler)
+    void Server::on_connect(ConnectHandler handler)
     {
-        switch (event)
-        {
-            case Event::Connect:
-                storage.connect = std::move(handler);
-                break;
-            case Event::Disconnect:
-                storage.disconnect = std::move(handler);
-                break;
-            default:
-                throw std::runtime_error("unknown type");
-        }
+        storage.connect = std::move(handler);
     }
 
-    void Server::send(
-        const std::string& id,
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size
-    )
+    void Server::on_disconnect(DisconnectHandler handler)
     {
-        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        storage.disconnect = std::move(handler);
     }
 
-    void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Server::send(const std::string& id, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+    }
+
+    void Server::publish(const void* data, std::uint64_t size)
+    {
+        impl->publish(static_cast<const std::uint8_t*>(data), size);
     }
 }

@@ -1,6 +1,6 @@
 #include <nil/service/udp/Server.hpp>
 
-#include "../Utils.hpp"
+#include "../utils.hpp"
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/udp.hpp>
@@ -25,16 +25,11 @@ namespace nil::service::udp
                 + std::to_string(socket.remote_endpoint().port());
         }
 
-        void send(
-            const std::string& id,
-            std::uint32_t type,
-            const std::uint8_t* data,
-            std::uint64_t size
-        )
+        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
                 strand,
-                [this, type, id, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
                     for (const auto& connection : connections)
                     {
@@ -42,7 +37,6 @@ namespace nil::service::udp
                         socket.send_to(
                             std::array<basio::const_buffer, 3>{
                                 basio::buffer(utils::to_array(utils::UDP_EXTERNAL_MESSAGE)),
-                                basio::buffer(utils::to_array(type)),
                                 basio::buffer(msg)
                             },
                             connection.second->endpoint
@@ -52,19 +46,15 @@ namespace nil::service::udp
             );
         }
 
-        void publish(std::uint32_t type, const std::uint8_t* data, std::uint64_t size)
+        void publish(const std::uint8_t* data, std::uint64_t size)
         {
             auto msg = std::vector<std::uint8_t>(data, data + size);
             boost::asio::dispatch(
                 strand,
-                [this,
-                 i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE),
-                 t = utils::to_array(type),
-                 msg = std::move(msg)]()
+                [this, i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE), msg = std::move(msg)]()
                 {
                     const auto b = std::array<boost::asio::const_buffer, 3>{
                         boost::asio::buffer(i),
-                        boost::asio::buffer(t),
                         boost::asio::buffer(msg)
                     };
                     for (const auto& connection : connections)
@@ -108,15 +98,11 @@ namespace nil::service::udp
             );
         }
 
-        void usermsg(const std::uint8_t* data, std::uint64_t size)
+        void usermsg(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
-            if (size >= sizeof(std::uint32_t))
+            if (storage.msg)
             {
-                const auto it = storage.msg.find(utils::from_array<std::uint32_t>(data));
-                if (it != storage.msg.end() && it->second)
-                {
-                    it->second(data + sizeof(std::uint32_t), size - sizeof(std::uint32_t));
-                }
+                storage.msg(id, data, size);
             }
         }
 
@@ -130,14 +116,15 @@ namespace nil::service::udp
             {
                 if (utils::from_array<std::uint8_t>(data) > 0u)
                 {
-                    ping(
-                        endpoint,
-                        endpoint.address().to_string() + ":" + std::to_string(endpoint.port())
-                    );
+                    ping(endpoint, utils::to_string(endpoint));
                 }
                 else
                 {
-                    usermsg(data + sizeof(std::uint8_t), size - sizeof(std::uint8_t));
+                    usermsg(
+                        utils::to_string(endpoint),
+                        data + sizeof(std::uint8_t),
+                        size - sizeof(std::uint8_t)
+                    );
                 }
             }
         }
@@ -216,38 +203,28 @@ namespace nil::service::udp
         impl->receive();
     }
 
-    void Server::on(std::uint32_t type, MsgHandler handler)
+    void Server::on_message(MessageHandler handler)
     {
-        storage.msg.emplace(type, std::move(handler));
+        storage.msg = std::move(handler);
     }
 
-    void Server::on(Event event, EventHandler handler)
+    void Server::on_connect(ConnectHandler handler)
     {
-        switch (event)
-        {
-            case Event::Connect:
-                storage.connect = std::move(handler);
-                break;
-            case Event::Disconnect:
-                storage.disconnect = std::move(handler);
-                break;
-            default:
-                throw std::runtime_error("unknown type");
-        }
+        storage.connect = std::move(handler);
     }
 
-    void Server::send(
-        const std::string& id,
-        std::uint32_t type,
-        const void* data,
-        std::uint64_t size
-    )
+    void Server::on_disconnect(DisconnectHandler handler)
     {
-        impl->send(id, type, static_cast<const std::uint8_t*>(data), size);
+        storage.disconnect = std::move(handler);
     }
 
-    void Server::publish(std::uint32_t type, const void* data, std::uint64_t size)
+    void Server::send(const std::string& id, const void* data, std::uint64_t size)
     {
-        impl->publish(type, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+    }
+
+    void Server::publish(const void* data, std::uint64_t size)
+    {
+        impl->publish(static_cast<const std::uint8_t*>(data), size);
     }
 }

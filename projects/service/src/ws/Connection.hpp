@@ -13,12 +13,15 @@ namespace nil::service::ws
 
     struct IImpl
     {
-        virtual void message(std::uint32_t type, const std::uint8_t* data, std::uint64_t size) = 0;
-        virtual void connect(Connection* connection) = 0;
+        virtual void message( //
+            const std::string& id,
+            const std::uint8_t* data,
+            std::uint64_t size
+        ) = 0;
         virtual void disconnect(Connection* connection) = 0;
     };
 
-    class Connection final: public std::enable_shared_from_this<Connection>
+    class Connection final
     {
     public:
         Connection(
@@ -28,8 +31,7 @@ namespace nil::service::ws
         );
         ~Connection();
 
-        void start();
-        void write(std::uint32_t type, const std::uint8_t* data, std::uint64_t size);
+        void write(const std::uint8_t* data, std::uint64_t size);
         const std::string& id() const;
 
     private:
@@ -39,7 +41,6 @@ namespace nil::service::ws
         boost::beast::websocket::stream<boost::beast::tcp_stream> ws;
         IImpl& impl;
         std::vector<std::uint8_t> r_buffer;
-        std::vector<std::uint8_t> w_buffer;
         boost::beast::flat_static_buffer_base flat_buffer;
     };
 }
