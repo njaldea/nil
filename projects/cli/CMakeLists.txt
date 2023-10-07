@@ -14,6 +14,7 @@ set(
         publish/nil/cli/Node.hpp
         publish/nil/cli/Options.hpp
         publish/nil/cli/types.hpp
+        publish/nil/cli/nodes/Help.hpp
         src/common.hpp
 )
 

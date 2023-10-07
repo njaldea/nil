@@ -13,4 +13,5 @@ endif()
 add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(pulse)
+add_subdirectory(gate)
 

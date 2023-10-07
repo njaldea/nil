@@ -1,17 +1,9 @@
 #include <nil/cli.hpp>
+#include <nil/cli/nodes/Help.hpp>
 #include <nil/service.hpp>
 
 #include <iostream>
 #include <thread>
-
-struct Help final: nil::cli::Command
-{
-    int run(const nil::cli::Options& options) const override
-    {
-        options.help(std::cout);
-        return 0;
-    }
-};
 
 template <typename T>
 typename T::Options parse(const nil::cli::Options& options)
@@ -47,8 +39,10 @@ typename T::Options parse(const nil::cli::Options& options)
 }
 
 template <typename T>
-struct Service: nil::cli::Command
+struct Service final: nil::cli::Command
 {
+    static_assert(std::is_base_of_v<nil::service::IService, T>);
+
     nil::cli::OptionInfo options() const override
     {
         return nil::cli::Builder()
@@ -64,16 +58,8 @@ struct Service: nil::cli::Command
             .build();
     }
 
-    int run(const nil::cli::Options& options) const override
+    void add_handlers(nil::service::IService& service) const
     {
-        static_assert(std::is_base_of_v<nil::service::IService, T>);
-        T service(parse<T>(options));
-        service.on_connect([](const std::string& id) { //
-            std::cout << "connected    : " << id << std::endl;
-        });
-        service.on_disconnect([](const std::string& id) { //
-            std::cout << "disconnected : " << id << std::endl;
-        });
         service.on_message(
             [](const std::string& id, const void* data, std::uint64_t size)
             {
@@ -82,7 +68,20 @@ struct Service: nil::cli::Command
                 std::cout << "message      : " << message << std::endl;
             }
         );
+        service.on_connect(             //
+            [](const std::string& id) { //
+                std::cout << "connected    : " << id << std::endl;
+            }
+        );
+        service.on_disconnect(          //
+            [](const std::string& id) { //
+                std::cout << "disconnected : " << id << std::endl;
+            }
+        );
+    }
 
+    void loop(nil::service::IService& service) const
+    {
         while (true)
         {
             std::thread t1([&]() { service.run(); });
@@ -99,6 +98,13 @@ struct Service: nil::cli::Command
             t1.join();
             service.restart();
         }
+    }
+
+    int run(const nil::cli::Options& options) const override
+    {
+        T service(parse<T>(options));
+        add_handlers(service);
+        loop(service);
         return 0;
     }
 };
@@ -112,9 +118,15 @@ void add_sub_nodes(nil::cli::Node& node)
 
 int main(int argc, const char** argv)
 {
-    auto root = nil::cli::Node::root<Help>();
-    add_sub_nodes<nil::service::udp::modes>(root.add<Help>("udp", "use udp protocol"));
-    add_sub_nodes<nil::service::tcp::modes>(root.add<Help>("tcp", "use tcp protocol"));
-    add_sub_nodes<nil::service::ws::modes>(root.add<Help>("ws", "use ws protocol"));
+    using nil::cli::Node;
+    using nil::cli::nodes::Help;
+    using udp_modes = nil::service::udp::modes;
+    using tcp_modes = nil::service::tcp::modes;
+    using web_modes = nil::service::ws::modes;
+
+    auto root = Node::root<Help>(std::cout);
+    add_sub_nodes<udp_modes>(root.add<Help>("udp", "use udp protocol", std::cout));
+    add_sub_nodes<tcp_modes>(root.add<Help>("tcp", "use tcp protocol", std::cout));
+    add_sub_nodes<web_modes>(root.add<Help>("ws", "use ws protocol", std::cout));
     return root.run(argc, argv);
 }
