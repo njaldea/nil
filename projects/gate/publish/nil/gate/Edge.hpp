@@ -9,13 +9,13 @@
 namespace nil::gate
 {
     /**
-     * @brief Edge type returned by Core::createNode.
+     * @brief Edge type returned by Core::node.
      *  Prevents mutation.
      *
      * @tparam T
      */
     template <typename T>
-    class UEdge: public IEdge
+    class REdge: public IEdge
     {
     public:
         const T& value() const
@@ -33,13 +33,13 @@ namespace nil::gate
     };
 
     /**
-     * @brief Edge type returned by Core::createEdge.
+     * @brief Edge type returned by Core::edge.
      *  Allows mutation.
      *
      * @tparam T
      */
     template <typename T>
-    class Edge final: public UEdge<T>
+    class Edge final: public REdge<T>
     {
         friend class Core;
 

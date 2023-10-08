@@ -9,8 +9,8 @@ namespace nil::gate
     {
     public:
         template <typename T, typename... Args>
-        typename detail::traits<T>::uedged_o createNode(
-            typename detail::traits<T>::uedged_i edges,
+        typename detail::traits<T>::redged_o node(
+            typename detail::traits<T>::redged_i edges,
             Args&&... args
         )
         {
@@ -24,7 +24,7 @@ namespace nil::gate
         }
 
         template <typename T>
-        Edge<T>* createEdge()
+        Edge<T>* edge()
         {
             edges.emplace_back(Edge<T>::create());
             required_edges.push_back(edges.back().get());
@@ -75,11 +75,11 @@ namespace nil::gate
             std::size_t... o_indices,
             std::size_t... i_indices,
             typename... Args>
-        typename detail::traits<T>::uedged_o create(
+        typename detail::traits<T>::redged_o create(
             detail::types<Outputs...>,
             std::index_sequence<o_indices...>,
             std::index_sequence<i_indices...>,
-            detail::traits<T>::uedged_i edges,
+            detail::traits<T>::redged_i edges,
             Args&&... args
         )
         {
@@ -87,21 +87,24 @@ namespace nil::gate
             Node<T>& node = *static_cast<Node<T>*>(nodes.back().get());
             // attach node to input edges' output
             ( //
-                static_cast<typename detail::traits<T>::template edge_at_i<i_indices>*>(
-                    std::get<i_indices>(edges)
-                )
-                    ->attach_output(&node),
+                down_cast(std::get<i_indices>(edges))->attach_output(&node),
                 ...
             );
             // create output edges and attach it's input to node output
-            return {this->createEdge<Outputs, T, o_indices>(node)...};
+            return {this->output_edge<T, Outputs, o_indices>(node)...};
+        }
+
+        template <typename U>
+        static Edge<U>* down_cast(REdge<U>* edge)
+        {
+            return static_cast<Edge<U>*>(edge);
         }
 
         template <typename T, typename U, std::size_t index>
-        UEdge<T>* createEdge(Node<U>& node)
+        REdge<U>* output_edge(Node<T>& node)
         {
-            edges.emplace_back(Edge<T>::create(&node));
-            auto edge = static_cast<Edge<T>*>(edges.back().get());
+            edges.emplace_back(Edge<U>::create(&node));
+            auto edge = static_cast<Edge<U>*>(edges.back().get());
             node.template attach_output<index>(edge);
             return edge;
         }

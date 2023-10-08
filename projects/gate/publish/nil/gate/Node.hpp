@@ -63,10 +63,10 @@ namespace nil::gate
             return status;
         }
 
-        template <std::uint32_t index>
-        void attach_output(typename detail::traits<T>::template edge_at_o<index>* edge)
+        template <std::uint32_t index, typename U>
+        void attach_output(REdge<U>* edge)
         {
-            std::get<index>(outputs) = edge;
+            std::get<index>(outputs) = down_cast(edge);
         }
 
     private:
@@ -74,7 +74,7 @@ namespace nil::gate
 
         template <typename... Args>
         static std::unique_ptr<INode> create(
-            typename detail::traits<T>::uedged_i inputs,
+            typename detail::traits<T>::redged_i inputs,
             Args&&... args
         )
         {
@@ -85,16 +85,20 @@ namespace nil::gate
             ));
         }
 
+        template <typename U>
+        static Edge<U>* down_cast(REdge<U>* edge)
+        {
+            return static_cast<Edge<U>*>(edge);
+        }
+
         template <typename... Args, std::size_t... indices>
         Node(
-            typename detail::traits<T>::uedged_i inputs,
+            typename detail::traits<T>::redged_i inputs,
             std::index_sequence<indices...>,
             Args&&... args
         )
             : instance(std::forward<Args>(args)...)
-            , inputs(static_cast<typename detail::traits<T>::template edge_at_i<indices>*>(
-                  std::get<indices>(inputs)
-              )...)
+            , inputs(down_cast(std::get<indices>(inputs))...)
         {
             if constexpr (sizeof...(indices) == 0)
             {

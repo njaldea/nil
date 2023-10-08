@@ -33,10 +33,10 @@ int main()
 {
     nil::gate::Core core;
 
-    // const auto edges = core.createNode<V>({}, "abcd");
-    const auto edgei = core.createEdge<int>();
-    const auto edgeo = core.createEdge<bool>();
-    core.createNode<A>({edgei, edgeo});
+    const auto edges = core.node<V>({}, "abcd");
+    const auto edgei = core.edge<int>();
+    const auto edgeo = core.edge<bool>();
+    core.node<A>({edgei, std::get<1>(edges)});
 
     std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
     edgei->set_value(123);

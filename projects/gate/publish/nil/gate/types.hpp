@@ -43,17 +43,7 @@ namespace nil::gate::detail
         using edged_i = std::tuple<Edge<std::decay_t<I>>*...>;
         using edged_o = std::tuple<Edge<std::decay_t<O>>*...>;
 
-        using uedged_i = std::tuple<UEdge<std::decay_t<I>>*...>;
-        using uedged_o = std::tuple<UEdge<std::decay_t<O>>*...>;
-
-        template <std::size_t index>
-        using type_at_i = std::decay_t<decltype(std::get<index>(std::declval<std::tuple<I...>>()))>;
-        template <std::size_t index>
-        using type_at_o = std::decay_t<decltype(std::get<index>(std::declval<std::tuple<O...>>()))>;
-
-        template <std::size_t index>
-        using edge_at_i = Edge<type_at_i<index>>;
-        template <std::size_t index>
-        using edge_at_o = Edge<type_at_o<index>>;
+        using redged_i = std::tuple<REdge<std::decay_t<I>>*...>;
+        using redged_o = std::tuple<REdge<std::decay_t<O>>*...>;
     };
 }
