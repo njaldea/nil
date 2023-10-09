@@ -1,6 +1,6 @@
 #pragma once
 
-namespace nil::gate
+namespace nil::gate::detail
 {
     class INode
     {
@@ -8,6 +8,7 @@ namespace nil::gate
         enum class State
         {
             Pending,
+            Cancelled, // TODO: add handling, how?
             Done
         };
 
@@ -15,6 +16,7 @@ namespace nil::gate
         virtual State state() const = 0;
         virtual void exec() = 0;
         virtual void pend() = 0;
+        virtual void cancel() = 0;
         virtual bool is_runnable() const = 0;
     };
 }

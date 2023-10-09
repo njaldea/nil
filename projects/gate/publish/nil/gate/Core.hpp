@@ -1,69 +1,70 @@
 #pragma once
 
-#include "Edge.hpp"
-#include "Node.hpp"
+#include "detail/Edge.hpp"
+#include "detail/Node.hpp"
 
 namespace nil::gate
 {
     class Core final
     {
     public:
+        /**
+         * @brief create a node
+         *
+         * @tparam T                            node type
+         * @tparam Args
+         * @param edges                         REdge/MEdge pointers
+         * @param args                          additional constructor arguments
+         * @return `std::tuple<REdge*, ...>`    output edges (still owned by core)
+         */
         template <typename T, typename... Args>
-        typename detail::traits<T>::redged_o node(
-            typename detail::traits<T>::redged_i edges,
-            Args&&... args
-        )
+        std::conditional_t< //
+            detail::traits<T>::o::size == 0,
+            void,
+            typename detail::traits<T>::o::redged>
+            node(typename detail::traits<T>::i::redged edges, Args&&... args)
         {
             return create<T>(
-                typename detail::traits<T>::type_o(),
-                std::make_index_sequence<detail::traits<T>::size_o>(),
-                std::make_index_sequence<detail::traits<T>::size_i>(),
+                typename detail::traits<T>::o::type(),
+                typename detail::traits<T>::o::make_sequence(),
+                typename detail::traits<T>::i::make_sequence(),
                 edges,
                 std::forward<Args>(args)...
             );
         }
 
+        /**
+         * @brief create an edge
+         *
+         * @tparam T            edge type
+         * @return `MEdge<T>*`  edge instance (still owned by core)
+         */
         template <typename T>
-        Edge<T>* edge()
+        MEdge<T>* edge()
         {
-            edges.emplace_back(Edge<T>::create());
+            edges.emplace_back(detail::Edge<T>::create(nullptr));
             required_edges.push_back(edges.back().get());
-            return static_cast<Edge<T>*>(edges.back().get());
+            return static_cast<MEdge<T>*>(edges.back().get());
         }
 
+        /**
+         * @brief run all pending nodes
+         */
         void run()
         {
             for (const auto& edge : required_edges)
             {
                 if (!edge->has_value())
                 {
-                    throw std::runtime_error("value for a required edge is not missing");
+                    throw std::runtime_error("value for a required edge not missing");
                 }
             }
 
-            std::size_t count = 0;
-            for (auto& node : nodes)
+            for (const auto& node : this->nodes)
             {
-                if (node->state() == INode::State::Done)
+                if (node->state() == detail::INode::State::Pending && node->is_runnable())
                 {
-                    ++count;
-                }
-            }
-
-            while (count != nodes.size())
-            {
-                const auto cache = count;
-                for (auto& node : nodes)
-                {
-                    if (node->state() == INode::State::Pending && node->is_runnable())
-                    {
-                        node->exec();
-                        ++count;
-                    }
-                }
-                if (cache == count)
-                {
-                    throw std::runtime_error("nothing is resolved");
+                    node->exec();
                 }
             }
         }
@@ -75,41 +76,43 @@ namespace nil::gate
             std::size_t... o_indices,
             std::size_t... i_indices,
             typename... Args>
-        typename detail::traits<T>::redged_o create(
+        auto create(
             detail::types<Outputs...>,
             std::index_sequence<o_indices...>,
-            std::index_sequence<i_indices...>,
-            detail::traits<T>::redged_i edges,
+            std::index_sequence<i_indices...> indices,
+            typename detail::traits<T>::i::redged edges,
             Args&&... args
         )
         {
-            nodes.emplace_back(Node<T>::create(edges, std::forward<Args>(args)...));
-            Node<T>& node = *static_cast<Node<T>*>(nodes.back().get());
-            // attach node to input edges' output
-            ( //
-                down_cast(std::get<i_indices>(edges))->attach_output(&node),
-                ...
+            nodes.emplace_back( //
+                detail::Node<T>::create(edges, indices, std::forward<Args>(args)...)
             );
+            auto node = static_cast<detail::Node<T>*>(nodes.back().get());
+            // attach node to input edges' output
+            (down_cast(std::get<i_indices>(edges))->attach_output(node), ...);
             // create output edges and attach it's input to node output
-            return {this->output_edge<T, Outputs, o_indices>(node)...};
+            if constexpr (sizeof...(Outputs) > 0)
+            {
+                return std::make_tuple(this->output_edge<T, Outputs, o_indices>(*node)...);
+            }
         }
 
         template <typename U>
-        static Edge<U>* down_cast(REdge<U>* edge)
+        static detail::Edge<U>* down_cast(REdge<U>* edge)
         {
-            return static_cast<Edge<U>*>(edge);
+            return static_cast<detail::Edge<U>*>(edge);
         }
 
         template <typename T, typename U, std::size_t index>
-        REdge<U>* output_edge(Node<T>& node)
+        REdge<U>* output_edge(detail::Node<T>& node)
         {
-            edges.emplace_back(Edge<U>::create(&node));
-            auto edge = static_cast<Edge<U>*>(edges.back().get());
+            edges.emplace_back(detail::Edge<U>::create(&node));
+            auto edge = static_cast<detail::Edge<U>*>(edges.back().get());
             node.template attach_output<index>(edge);
             return edge;
         }
 
-        std::vector<std::unique_ptr<INode>> nodes;
+        std::vector<std::unique_ptr<detail::INode>> nodes;
         std::vector<std::unique_ptr<IEdge>> edges;
         std::vector<IEdge*> required_edges;
     };

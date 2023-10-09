@@ -8,11 +8,13 @@ set(
     HEADERS
         publish/nil/gate.hpp
         publish/nil/gate/Core.hpp
-        publish/nil/gate/Edge.hpp
-        publish/nil/gate/Node.hpp
+        publish/nil/gate/REdge.hpp
+        publish/nil/gate/MEdge.hpp
         publish/nil/gate/IEdge.hpp
-        publish/nil/gate/INode.hpp
-        publish/nil/gate/types.hpp
+        publish/nil/gate/detail/Edge.hpp
+        publish/nil/gate/detail/Node.hpp
+        publish/nil/gate/detail/INode.hpp
+        publish/nil/gate/detail/types.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${HEADERS})
