@@ -5,11 +5,6 @@
 #include <memory>
 #include <vector>
 
-namespace nil::gate
-{
-    class Core;
-}
-
 namespace nil::gate::detail
 {
     /**
@@ -21,9 +16,12 @@ namespace nil::gate::detail
     template <typename T>
     class Edge final: public MEdge<T>
     {
-        friend Core;
-
     public:
+        Edge(INode* node)
+            : ins(node)
+        {
+        }
+
         /**
          * @brief set value. propagate node execution
          *
@@ -34,10 +32,7 @@ namespace nil::gate::detail
             this->data = std::move(data);
             for (auto* out : this->outs)
             {
-                if (out->state() == detail::INode::State::Pending && out->is_runnable())
-                {
-                    out->exec();
-                }
+                out->exec();
             }
         }
 
@@ -65,15 +60,9 @@ namespace nil::gate::detail
             }
         }
 
-    private:
-        Edge(INode* node)
-            : ins(node)
+        bool is_required() const override
         {
-        }
-
-        static std::unique_ptr<IEdge> create(INode* node)
-        {
-            return std::unique_ptr<IEdge>(new Edge<T>(node));
+            return ins == nullptr;
         }
 
         void attach_output(INode* node)

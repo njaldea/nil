@@ -36,7 +36,7 @@ namespace nil::gate::detail
         using redged = std::tuple<REdge<std::decay_t<T>>*...>;
         using medged = std::tuple<MEdge<std::decay_t<T>>*...>;
 
-        using make_sequence = std::make_index_sequence<sizeof...(T)>;
+        using make_sequence = std::make_index_sequence<size>;
     };
 
     template <typename... I, typename... O>

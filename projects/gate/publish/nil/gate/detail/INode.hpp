@@ -13,10 +13,8 @@ namespace nil::gate::detail
         };
 
         virtual ~INode() = default;
-        virtual State state() const = 0;
         virtual void exec() = 0;
         virtual void pend() = 0;
         virtual void cancel() = 0;
-        virtual bool is_runnable() const = 0;
     };
 }

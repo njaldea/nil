@@ -42,7 +42,7 @@ namespace nil::gate
         template <typename T>
         MEdge<T>* edge()
         {
-            edges.emplace_back(detail::Edge<T>::create(nullptr));
+            edges.emplace_back(std::make_unique<detail::Edge<T>>(nullptr));
             required_edges.push_back(edges.back().get());
             return static_cast<MEdge<T>*>(edges.back().get());
         }
@@ -62,10 +62,7 @@ namespace nil::gate
 
             for (const auto& node : this->nodes)
             {
-                if (node->state() == detail::INode::State::Pending && node->is_runnable())
-                {
-                    node->exec();
-                }
+                node->exec();
             }
         }
 
@@ -84,8 +81,8 @@ namespace nil::gate
             Args&&... args
         )
         {
-            nodes.emplace_back( //
-                detail::Node<T>::create(edges, indices, std::forward<Args>(args)...)
+            nodes.emplace_back(
+                std::make_unique<detail::Node<T>>(edges, indices, std::forward<Args>(args)...)
             );
             auto node = static_cast<detail::Node<T>*>(nodes.back().get());
             // attach node to input edges' output
@@ -106,7 +103,7 @@ namespace nil::gate
         template <typename T, typename U, std::size_t index>
         REdge<U>* output_edge(detail::Node<T>& node)
         {
-            edges.emplace_back(detail::Edge<U>::create(&node));
+            edges.emplace_back(std::make_unique<detail::Edge<U>>(&node));
             auto edge = static_cast<detail::Edge<U>*>(edges.back().get());
             node.template attach_output<index>(edge);
             return edge;
