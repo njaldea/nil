@@ -11,8 +11,8 @@ namespace nil::service::udp
 {
     struct Client::Impl final
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_storage)
+            : storage(init_storage)
             , strand(boost::asio::make_strand(context))
             , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), 0})
             , pingtimer(strand)

@@ -12,7 +12,7 @@ namespace nil::gate
      * @tparam T
      */
     template <typename T>
-    class REdge: public IEdge
+    class ReadOnlyEdge: public IEdge
     {
     public:
         const T& value() const

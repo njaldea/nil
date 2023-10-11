@@ -14,7 +14,7 @@ namespace nil::gate::detail
      * @tparam T
      */
     template <typename T>
-    class Edge final: public MEdge<T>
+    class Edge final: public MutableEdge<T>
     {
     public:
         Edge(INode* node)
@@ -27,13 +27,16 @@ namespace nil::gate::detail
          *
          * @param data
          */
-        void exec(T data)
+        void exec(T new_data)
         {
-            this->data = std::move(data);
-            for (auto* out : this->outs)
-            {
-                out->exec();
-            }
+            this->data = std::move(new_data);
+            // TODO: evaluate if depth traversal is needed.
+            //  by using variables, the graph becomes
+            //  topologically sorted by default
+            // for (auto* out : this->outs)
+            // {
+            //     out->exec();
+            // }
         }
 
         /**
@@ -58,11 +61,6 @@ namespace nil::gate::detail
             {
                 out->cancel();
             }
-        }
-
-        bool is_required() const override
-        {
-            return ins == nullptr;
         }
 
         void attach_output(INode* node)

@@ -13,7 +13,7 @@ namespace nil::gate
      * @tparam T
      */
     template <typename T>
-    class MEdge: public REdge<T>
+    class MutableEdge: public ReadOnlyEdge<T>
     {
     public:
         /**
@@ -21,11 +21,11 @@ namespace nil::gate
          *
          * @param data
          */
-        void set_value(T data)
+        void set_value(T new_data)
         {
-            if (this->data != data)
+            if (this->data != new_data)
             {
-                this->data = std::move(data);
+                this->data = std::move(new_data);
                 for (auto* out : outs)
                 {
                     out->pend();

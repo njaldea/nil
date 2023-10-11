@@ -9,8 +9,8 @@ namespace nil::cli::nodes
 {
     struct Help final: nil::cli::Command
     {
-        Help(std::ostream& os)
-            : os(os)
+        Help(std::ostream& init_os)
+            : os(init_os)
         {
         }
 

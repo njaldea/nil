@@ -6,6 +6,7 @@
   "editor.fontLigatures": true,
   "editor.maxTokenizationLineLength": 2500,
   "editor.inlayHints.enabled": "offUnlessPressed",
+  "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.expand": true,
   "explorer.fileNesting.patterns": {
     "README.md": ".gitignore, .prettier*, LICENSE",

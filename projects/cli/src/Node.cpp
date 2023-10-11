@@ -5,8 +5,8 @@
 
 namespace nil::cli
 {
-    Node::Node(std::unique_ptr<Command> command)
-        : command(std::move(command))
+    Node::Node(std::unique_ptr<Command> init_command)
+        : command(std::move(init_command))
     {
     }
 
@@ -26,7 +26,7 @@ namespace nil::cli
         return command->run(options);
     }
 
-    Node& Node::add(std::string key, std::string description, std::unique_ptr<Command> command)
+    Node& Node::add(std::string key, std::string description, std::unique_ptr<Command> sub_command)
     {
         if (find(key) != nullptr)
         {
@@ -36,7 +36,7 @@ namespace nil::cli
         sub.emplace_back(std::make_tuple(
             std::move(key),
             std::move(description),
-            std::make_unique<Node>(std::move(command))
+            std::make_unique<Node>(std::move(sub_command))
         ));
         return *std::get<2>(sub.back());
     }

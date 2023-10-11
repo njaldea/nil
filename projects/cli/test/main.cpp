@@ -23,8 +23,8 @@ namespace
 
 struct Command final: nil::cli::Command
 {
-    explicit Command(std::function<int(const nil::cli::Options&)> runImpl)
-        : runImpl(std::move(runImpl))
+    explicit Command(std::function<int(const nil::cli::Options&)> impl)
+        : runImpl(std::move(impl))
     {
     }
 

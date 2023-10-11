@@ -11,8 +11,8 @@ namespace nil::service::tcp
 {
     struct Client::Impl final: IImpl
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_storage)
+            : storage(init_storage)
             , strand(boost::asio::make_strand(context))
             , reconnection(strand)
         {
@@ -46,19 +46,19 @@ namespace nil::service::tcp
             );
         }
 
-        void disconnect(Connection* connection) override
+        void disconnect(Connection* target_connection) override
         {
             boost::asio::dispatch(
                 strand,
-                [this, connection]()
+                [this, target_connection]()
                 {
-                    if (this->connection.get() == connection)
+                    if (connection.get() == target_connection)
                     {
                         if (storage.disconnect)
                         {
-                            storage.disconnect(this->connection->id());
+                            storage.disconnect(connection->id());
                         }
-                        this->connection.reset();
+                        connection.reset();
                     }
                     reconnect();
                 }

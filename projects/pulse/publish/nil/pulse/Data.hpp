@@ -39,8 +39,8 @@ namespace nil::pulse
     private:
         using Subscribers = std::list<Subscriber<T>>;
 
-        Data(T value)
-            : value(std::move(value))
+        Data(T init_value)
+            : value(std::move(init_value))
         {
         }
 
@@ -50,12 +50,12 @@ namespace nil::pulse
         /**
          * @brief Creates a new Data<T>
          *
-         * @param value
+         * @param init_value
          * @return std::shared_ptr<Data<T>>
          */
-        static ptr_t create(T value)
+        static ptr_t create(T init_value)
         {
-            return ptr_t(new Data<T>(std::move(value)));
+            return ptr_t(new Data<T>(std::move(init_value)));
         }
 
         ~Data() = default;
@@ -81,15 +81,15 @@ namespace nil::pulse
          *
          * @param value
          */
-        void set(T value)
+        void set(T new_value)
         {
-            if (this->value != value)
+            if (value != new_value)
             {
-                this->value = std::move(value);
+                value = std::move(new_value);
                 auto lock = std::unique_lock(mutex);
                 for (const auto& sub : subscribers)
                 {
-                    sub(this->value);
+                    sub(value);
                 }
             }
         }
@@ -106,9 +106,9 @@ namespace nil::pulse
 
             struct Unsub
             {
-                Unsub(std::weak_ptr<Data<T>> parent, Subscribers::iterator it)
-                    : parent(std::move(parent))
-                    , it(std::move(it))
+                Unsub(std::weak_ptr<Data<T>> init_parent, Subscribers::iterator init_it)
+                    : parent(std::move(init_parent))
+                    , it(std::move(init_it))
                 {
                 }
 

@@ -6,16 +6,16 @@ namespace nil::service::ws
 {
     Connection::Connection(
         std::uint64_t buffer,
-        boost::beast::websocket::stream<boost::beast::tcp_stream> ws,
-        IImpl& impl
+        boost::beast::websocket::stream<boost::beast::tcp_stream> init_ws,
+        IImpl& init_impl
     )
         : identifier(utils::to_string(         //
             boost::beast::get_lowest_layer(ws) //
                 .socket()
                 .remote_endpoint()
         ))
-        , ws(std::move(ws))
-        , impl(impl)
+        , ws(std::move(init_ws))
+        , impl(init_impl)
         , flat_buffer(
               [](std::vector<std::uint8_t>& r, std::size_t size)
               {

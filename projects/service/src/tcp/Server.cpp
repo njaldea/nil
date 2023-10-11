@@ -10,8 +10,8 @@ namespace nil::service::tcp
 {
     struct Server::Impl final: IImpl
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_usage)
+            : storage(init_usage)
             , strand(boost::asio::make_strand(context))
             , acceptor(
                   strand,

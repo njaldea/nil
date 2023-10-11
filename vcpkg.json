@@ -36,6 +36,9 @@
                 }
             ]
         },
+        "gate": {
+            "description": "nil-/gate js to c++"
+        },
         "test": {
             "description": "Enable tests",
             "dependencies": [

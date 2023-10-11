@@ -4,10 +4,14 @@
 
 namespace nil::service::tcp
 {
-    Connection::Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl)
-        : identifier(utils::to_string(socket.remote_endpoint()))
-        , socket(std::move(socket))
-        , impl(impl)
+    Connection::Connection(
+        std::uint64_t buffer,
+        boost::asio::ip::tcp::socket init_socket,
+        IImpl& init_impl
+    )
+        : identifier(utils::to_string(init_socket.remote_endpoint()))
+        , socket(std::move(init_socket))
+        , impl(init_impl)
     {
         this->r_buffer.resize(buffer);
         readHeader(0u, utils::TCP_HEADER_SIZE);

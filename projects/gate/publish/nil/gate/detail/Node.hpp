@@ -11,16 +11,16 @@ namespace nil::gate::detail
     public:
         template <typename... Args, std::size_t... i_indices>
         Node(
-            typename detail::traits<T>::i::redged inputs,
+            typename detail::traits<T>::i::readonly_edges init_inputs,
             std::index_sequence<i_indices...>,
             Args&&... args
         )
             : instance(std::forward<Args>(args)...)
-            , inputs(down_cast(std::get<i_indices>(inputs))...)
+            , inputs(down_cast(std::get<i_indices>(init_inputs))...)
         {
             if constexpr (sizeof...(i_indices) == 0)
             {
-                (void)inputs;
+                (void)init_inputs;
             }
         }
 
@@ -55,14 +55,14 @@ namespace nil::gate::detail
         }
 
         template <std::uint32_t index, typename U>
-        void attach_output(REdge<U>* edge)
+        void attach_output(ReadOnlyEdge<U>* edge)
         {
             std::get<index>(outputs) = down_cast(edge);
         }
 
     private:
         template <typename U>
-        static Edge<U>* down_cast(REdge<U>* edge)
+        static Edge<U>* down_cast(ReadOnlyEdge<U>* edge)
         {
             return static_cast<Edge<U>*>(edge);
         }
@@ -104,7 +104,7 @@ namespace nil::gate::detail
         State state = State::Pending;
 
         T instance;
-        typename detail::traits<T>::i::edged inputs;
-        typename detail::traits<T>::o::edged outputs;
+        typename detail::traits<T>::i::edges inputs;
+        typename detail::traits<T>::o::edges outputs;
     };
 }

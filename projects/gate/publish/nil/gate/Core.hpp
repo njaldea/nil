@@ -5,24 +5,44 @@
 
 namespace nil::gate
 {
+    /**
+     * @brief Owns the whole graph (Nodes/Edges)
+     *  -  Nodes represent a runnable object
+     *  -  Edges owns the data
+     *  -  Edge type qualifications:
+     *      - not pointer
+     *      - not reference
+     *      - if std::unique_ptr/std::shared_ptr, T should be const
+     *  -  Node type qualifications:
+     *      - not pointer
+     *      - if reference, should be const
+     *      - copy-able
+     *      - if std::unique_ptr/std::shared_ptr, T should be const
+     */
     class Core final
     {
     public:
+        // Invalid types for input/output detected
+        template <typename T, typename... Args>
+        std::enable_if_t<
+            !detail::traits<T>::is_valid,
+            typename detail::traits<T>::o::readonly_edges> //
+            node(typename detail::traits<T>::i::readonly_edges edges, Args&&... args) = delete;
+
         /**
          * @brief create a node
          *
-         * @tparam T                            node type
+         * @tparam T                                node type
          * @tparam Args
-         * @param edges                         REdge/MEdge pointers
-         * @param args                          additional constructor arguments
-         * @return `std::tuple<REdge*, ...>`    output edges (still owned by core)
+         * @param edges                             ReadOnlyEdge/MutableEdge pointers
+         * @param args                              additional constructor arguments
+         * @return `std::tuple<ReadOnlyEdge*, ...>` output edges (still owned by core)
          */
         template <typename T, typename... Args>
-        std::conditional_t< //
-            detail::traits<T>::o::size == 0,
-            void,
-            typename detail::traits<T>::o::redged>
-            node(typename detail::traits<T>::i::redged edges, Args&&... args)
+        std::enable_if_t<
+            detail::traits<T>::is_valid,
+            typename detail::traits<T>::o::readonly_edges> //
+            node(typename detail::traits<T>::i::readonly_edges edges, Args&&... args)
         {
             return create<T>(
                 typename detail::traits<T>::o::type(),
@@ -33,18 +53,43 @@ namespace nil::gate
             );
         }
 
+        // Invalid type passed
+        template <typename... T>
+        std::enable_if_t<
+            !(true && (detail::edge_validate<T>::value && ...)),
+            std::tuple<MutableEdge<T>*...>>
+            edges() = delete;
+
+        /**
+         * @tparam T                                edge type
+         * @return std::tuple<MutableEdge<T>*...>   edge instances (still owned by core)
+         */
+        template <typename... T>
+        std::enable_if_t<
+            (true && (detail::edge_validate<T>::value && ...)),
+            std::tuple<MutableEdge<T>*...>>
+            edges()
+        {
+            return std::tuple(this->edge<T>()...);
+        }
+
+        // Invalid type passed
+        template <typename T>
+        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge() = delete;
+
         /**
          * @brief create an edge
          *
-         * @tparam T            edge type
-         * @return `MEdge<T>*`  edge instance (still owned by core)
+         * @tparam T                    edge type
+         * @return `MutableEdge<T>*`    edge instance (still owned by core)
          */
         template <typename T>
-        MEdge<T>* edge()
+        std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge()
         {
-            edges.emplace_back(std::make_unique<detail::Edge<T>>(nullptr));
-            required_edges.push_back(edges.back().get());
-            return static_cast<MEdge<T>*>(edges.back().get());
+            owned_edges.emplace_back(std::make_unique<detail::Edge<T>>(nullptr));
+            auto* e = owned_edges.back().get();
+            required_edges.push_back(e);
+            return static_cast<MutableEdge<T>*>(e);
         }
 
         /**
@@ -52,17 +97,20 @@ namespace nil::gate
          */
         void run()
         {
+            for (const auto& node : this->owned_nodes)
+            {
+                node->exec();
+            }
+        }
+
+        void validate()
+        {
             for (const auto& edge : required_edges)
             {
                 if (!edge->has_value())
                 {
-                    throw std::runtime_error("value for a required edge not missing");
+                    throw std::runtime_error("value for a required edge is missing");
                 }
-            }
-
-            for (const auto& node : this->nodes)
-            {
-                node->exec();
             }
         }
 
@@ -77,40 +125,47 @@ namespace nil::gate
             detail::types<Outputs...>,
             std::index_sequence<o_indices...>,
             std::index_sequence<i_indices...> indices,
-            typename detail::traits<T>::i::redged edges,
+            typename detail::traits<T>::i::readonly_edges edges,
             Args&&... args
         )
         {
-            nodes.emplace_back(
+            owned_nodes.emplace_back(
                 std::make_unique<detail::Node<T>>(edges, indices, std::forward<Args>(args)...)
             );
-            auto node = static_cast<detail::Node<T>*>(nodes.back().get());
+            auto node = static_cast<detail::Node<T>*>(owned_nodes.back().get());
             // attach node to input edges' output
-            (down_cast(std::get<i_indices>(edges))->attach_output(node), ...);
+            (attach_output(down_cast(std::get<i_indices>(edges)), *node), ...);
             // create output edges and attach it's input to node output
-            if constexpr (sizeof...(Outputs) > 0)
+            return std::make_tuple(this->edge<T, Outputs, o_indices>(*node)...);
+        }
+
+        template <typename T, typename U>
+        void attach_output(detail::Edge<U>* target, detail::Node<T>& node)
+        {
+            if (target == nullptr)
             {
-                return std::make_tuple(this->output_edge<T, Outputs, o_indices>(*node)...);
+                throw std::runtime_error("null edge detected!");
             }
+            target->attach_output(&node);
         }
 
         template <typename U>
-        static detail::Edge<U>* down_cast(REdge<U>* edge)
+        static detail::Edge<U>* down_cast(ReadOnlyEdge<U>* edge)
         {
             return static_cast<detail::Edge<U>*>(edge);
         }
 
         template <typename T, typename U, std::size_t index>
-        REdge<U>* output_edge(detail::Node<T>& node)
+        ReadOnlyEdge<U>* edge(detail::Node<T>& node)
         {
-            edges.emplace_back(std::make_unique<detail::Edge<U>>(&node));
-            auto edge = static_cast<detail::Edge<U>*>(edges.back().get());
+            owned_edges.emplace_back(std::make_unique<detail::Edge<U>>(&node));
+            auto edge = static_cast<detail::Edge<U>*>(owned_edges.back().get());
             node.template attach_output<index>(edge);
             return edge;
         }
 
-        std::vector<std::unique_ptr<detail::INode>> nodes;
-        std::vector<std::unique_ptr<IEdge>> edges;
+        std::vector<std::unique_ptr<detail::INode>> owned_nodes;
+        std::vector<std::unique_ptr<IEdge>> owned_edges;
         std::vector<IEdge*> required_edges;
     };
 }

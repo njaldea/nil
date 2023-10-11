@@ -16,8 +16,8 @@ namespace nil::cli
 {
     struct Options::Impl final
     {
-        explicit Impl(std::string usage)
-            : usage(std::move(usage))
+        explicit Impl(std::string init_usage)
+            : usage(std::move(init_usage))
             , desc("OPTIONS")
         {
         }

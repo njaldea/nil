@@ -10,8 +10,8 @@ namespace nil::service::ws
 {
     struct Server::Impl final: IImpl
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_usage)
+            : storage(init_usage)
             , strand(boost::asio::make_strand(context))
             , endpoint(boost::asio::ip::make_address("0.0.0.0"), storage.options.port)
             , acceptor(strand, endpoint, true)
@@ -77,9 +77,12 @@ namespace nil::service::ws
         {
             acceptor.async_accept(
                 boost::asio::make_strand(context),
-                [this](const boost::system::error_code& ec, boost::asio::ip::tcp::socket socket)
+                [this](
+                    const boost::system::error_code& acceptor_ec,
+                    boost::asio::ip::tcp::socket socket
+                )
                 {
-                    if (!ec)
+                    if (!acceptor_ec)
                     {
                         namespace websocket = boost::beast::websocket;
                         auto ws = std::make_unique<websocket::stream<boost::beast::tcp_stream>>(

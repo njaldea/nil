@@ -11,8 +11,8 @@ namespace nil::service::udp
 {
     struct Server::Impl final
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_storage)
+            : storage(init_storage)
             , strand(boost::asio::make_strand(context))
             , socket(strand, {boost::asio::ip::make_address("0.0.0.0"), storage.options.port})
         {
@@ -159,10 +159,10 @@ namespace nil::service::udp
         struct Connection
         {
             Connection(
-                boost::asio::ip::udp::endpoint endpoint,
+                boost::asio::ip::udp::endpoint init_endpoint,
                 boost::asio::strand<boost::asio::io_context::executor_type>& strand
             )
-                : endpoint(std::move(endpoint))
+                : endpoint(std::move(init_endpoint))
                 , timer(strand)
             {
             }

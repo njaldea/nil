@@ -23,10 +23,11 @@
             "inherits": "base",
             "displayName": "dev",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;test",
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;test",
                 "ENABLE_FEATURE_CLI": "ON",
-                "ENABLE_FEATURE_SERVICE": "ON",
+                "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_PULSE": "ON",
+                "ENABLE_FEATURE_SERVICE": "ON",
                 "ENABLE_TEST": "ON",
                 "ENABLE_SANDBOX": "ON"
             }

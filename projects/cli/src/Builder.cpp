@@ -10,9 +10,9 @@ namespace nil::cli
         class Option final: public IOption
         {
         public:
-            Option(std::string lkey, conf::Flag options)
-                : lkey(std::move(lkey))
-                , options(std::move(options))
+            Option(std::string init_lkey, conf::Flag init_options)
+                : lkey(std::move(init_lkey))
+                , options(std::move(init_options))
             {
             }
 
@@ -39,9 +39,9 @@ namespace nil::cli
         class Option final: public IOption
         {
         public:
-            Option(std::string lkey, conf::Number options)
-                : lkey(std::move(lkey))
-                , options(std::move(options))
+            Option(std::string init_lkey, conf::Number init_options)
+                : lkey(std::move(init_lkey))
+                , options(std::move(init_options))
             {
             }
 
@@ -69,9 +69,9 @@ namespace nil::cli
         class Option final: public IOption
         {
         public:
-            Option(std::string lkey, conf::Param options)
-                : lkey(std::move(lkey))
-                , options(std::move(options))
+            Option(std::string init_lkey, conf::Param init_options)
+                : lkey(std::move(init_lkey))
+                , options(std::move(init_options))
             {
             }
 
@@ -108,9 +108,9 @@ namespace nil::cli
         class Option final: public IOption
         {
         public:
-            Option(std::string lkey, conf::Params options)
-                : lkey(std::move(lkey))
-                , options(std::move(options))
+            Option(std::string init_lkey, conf::Params init_options)
+                : lkey(std::move(init_lkey))
+                , options(std::move(init_options))
             {
             }
 

@@ -11,8 +11,8 @@ namespace nil::service::ws
 {
     struct Client::Impl final: IImpl
     {
-        explicit Impl(const detail::Storage<Options>& storage)
-            : storage(storage)
+        explicit Impl(const detail::Storage<Options>& init_storage)
+            : storage(init_storage)
             , strand(boost::asio::make_strand(context))
             , reconnection(strand)
         {
@@ -46,19 +46,19 @@ namespace nil::service::ws
             );
         }
 
-        void disconnect(Connection* connection) override
+        void disconnect(Connection* target_connection) override
         {
             boost::asio::dispatch(
                 strand,
-                [this, connection]()
+                [this, target_connection]()
                 {
-                    if (this->connection.get() == connection)
+                    if (connection.get() == target_connection)
                     {
                         if (storage.disconnect)
                         {
                             storage.disconnect(connection->id());
                         }
-                        this->connection.reset();
+                        connection.reset();
                     }
                     reconnect();
                 }
@@ -79,9 +79,9 @@ namespace nil::service::ws
             auto* socket_ptr = socket.get();
             socket_ptr->async_connect(
                 {boost::asio::ip::make_address(storage.options.host.data()), storage.options.port},
-                [this, socket = std::move(socket)](const boost::system::error_code& ec)
+                [this, socket = std::move(socket)](const boost::system::error_code& connect_ec)
                 {
-                    if (ec)
+                    if (connect_ec)
                     {
                         reconnect();
                         return;
