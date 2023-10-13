@@ -35,11 +35,6 @@ int main()
 {
     nil::gate::Core core;
 
-    // TODO: add compile time validation of arguments
-    //  arguments should be:
-    //   -  copy-able
-    //   -  smart pointer pointing to a const type
-
     // using A = T<std::tuple<bool, int, double, std::string>()>;
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;
     using C = T<std::tuple<double>(int)>;

@@ -1,10 +1,10 @@
 project(service)
 
-find_package(Boost REQUIRED)
-
 if(NOT ENABLE_FEATURE_SERVICE)
     return()
 endif()
+
+find_package(Boost REQUIRED)
 
 set(
     HEADERS

@@ -47,6 +47,21 @@
                     "version>=": "1.13.0"
                 }
             ]
+        },
+        "nedit": {
+            "description": "targets with imgui",
+            "dependencies": [
+                "opengl",
+                "glfw3",
+                {
+                    "name": "imgui",
+                    "features": [
+                        "glfw-binding",
+                        "opengl3-binding"
+                    ]
+                },
+                "imgui-node-editor"
+            ]
         }
     },
     "dependencies": []
