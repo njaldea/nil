@@ -7,38 +7,11 @@
 #define GL_SILENCE_DEPRECATION
 #include <GLFW/glfw3.h>
 
+#include "app/App.hpp"
+
 static void glfw_error_callback(int error, const char* description)
 {
     fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
-
-void runNEdit(ax::NodeEditor::EditorContext* context, float framerate)
-{
-    ImGui::Text("FPS: %.2f (%.2gms)", framerate, framerate ? 1000.0f / framerate : 0.0f);
-    ImGui::Separator();
-
-    ax::NodeEditor::SetCurrentEditor(context);
-    ax::NodeEditor::Begin("My Editor", ImVec2(0.0, 0.0f));
-    std::uint64_t uniqueId = 1;
-    // Start drawing nodes.
-    ax::NodeEditor::BeginNode(uniqueId++);
-    {
-        ImGui::Text("Node A");
-        ax::NodeEditor::BeginPin(uniqueId++, ax::NodeEditor::PinKind::Input);
-        {
-            ImGui::Text("-> In");
-        }
-        ax::NodeEditor::EndPin();
-        ImGui::SameLine();
-        ax::NodeEditor::BeginPin(uniqueId++, ax::NodeEditor::PinKind::Output);
-        {
-            ImGui::Text("Out ->");
-        }
-        ax::NodeEditor::EndPin();
-    }
-    ax::NodeEditor::EndNode();
-    ax::NodeEditor::End();
-    ax::NodeEditor::SetCurrentEditor(nullptr);
 }
 
 // Main code
@@ -91,6 +64,8 @@ int main(int, char**)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     auto context = ax::NodeEditor::CreateEditor();
 
+    App app;
+
     while (!glfwWindowShouldClose(window))
     {
         glfwPollEvents();
@@ -99,7 +74,26 @@ int main(int, char**)
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        runNEdit(context, io.Framerate);
+        ImGui::SetNextWindowPos(ImVec2(0, 0));
+        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::Begin(
+            "Content",
+            nullptr,
+            ImGuiWindowFlags_NoTitleBar              //
+                | ImGuiWindowFlags_NoResize          //
+                | ImGuiWindowFlags_NoMove            //
+                | ImGuiWindowFlags_NoScrollbar       //
+                | ImGuiWindowFlags_NoScrollWithMouse //
+                | ImGuiWindowFlags_NoSavedSettings   //
+                | ImGuiWindowFlags_NoBringToFrontOnFocus
+        );
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, ImGui::GetStyle().WindowBorderSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, ImGui::GetStyle().WindowRounding);
+
+        app.render(context);
+
+        ImGui::PopStyleVar(2);
+        ImGui::End();
 
         ImGui::Render();
         int display_w, display_h;
