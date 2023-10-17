@@ -2,29 +2,24 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
-#include <stdio.h>
 
-#define GL_SILENCE_DEPRECATION
 #include <GLFW/glfw3.h>
 
 #include "app/App.hpp"
 
-static void glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "GLFW Error %d: %s\n", error, description);
-}
+#include <iostream>
 
-// Main code
-int main(int, char**)
+int main()
 {
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
+    glfwSetErrorCallback( //
+        [](int error, const char* description)
+        { std::cerr << "GLFW Error " << error << ": " << description << std::endl; }
+    );
+    if (glfwInit() == 0)
     {
         return 1;
     }
 
-    // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     // glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
@@ -48,25 +43,38 @@ int main(int, char**)
     // Setup Dear ImGui context
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    // const ImGuiIO& io = ImGui::GetIO();
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
-    // Setup Dear ImGui style
+    const ImGuiStyle& style = ImGui::GetStyle();
+
     ImGui::StyleColorsDark();
-    // ImGui::StyleColorsLight();
 
-    // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL3_Init("#version 130");
 
-    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    auto context = ax::NodeEditor::CreateEditor();
-
+    auto* context = ax::NodeEditor::CreateEditor();
     App app;
 
-    while (!glfwWindowShouldClose(window))
+    static const auto draw = +[](GLFWwindow* w)
+    {
+        // Rendering code goes here
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwSwapBuffers(w);
+    };
+
+    static const auto resize = +[](GLFWwindow* w, int width, int height)
+    {
+        glViewport(0, 0, width, height);
+        draw(w);
+    };
+
+    glfwSetFramebufferSizeCallback(window, resize);
+
+    while (glfwWindowShouldClose(window) == 0)
     {
         glfwPollEvents();
 
@@ -75,39 +83,66 @@ int main(int, char**)
         ImGui::NewFrame();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(io.DisplaySize);
+        ImGui::SetNextWindowSize(ImVec2(1280, 720));
         ImGui::Begin(
             "Content",
             nullptr,
-            ImGuiWindowFlags_NoTitleBar              //
-                | ImGuiWindowFlags_NoResize          //
-                | ImGuiWindowFlags_NoMove            //
-                | ImGuiWindowFlags_NoScrollbar       //
-                | ImGuiWindowFlags_NoScrollWithMouse //
-                | ImGuiWindowFlags_NoSavedSettings   //
-                | ImGuiWindowFlags_NoBringToFrontOnFocus
+            ImGuiWindowFlags_NoDecoration                //
+                | ImGuiWindowFlags_NoMove                //
+                | ImGuiWindowFlags_NoScrollWithMouse     //
+                | ImGuiWindowFlags_NoSavedSettings       //
+                | ImGuiWindowFlags_NoBringToFrontOnFocus //
         );
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, ImGui::GetStyle().WindowBorderSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, ImGui::GetStyle().WindowRounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, style.WindowBorderSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, style.WindowRounding);
 
         app.render(context);
 
         ImGui::PopStyleVar(2);
         ImGui::End();
 
+        ImGui::Begin("Panel");
+        ImGui::BulletText("Drag and drop");
+        static const char* names[] = {"0", "1", "2", "3", "4", "5"};
+
+        for (auto n = 0u; n < 5u; n++)
+        {
+            ImGui::Selectable(names[n]);
+
+            ImGuiDragDropFlags src_flags
+                = ImGuiDragDropFlags_SourceNoDisableHover // Keep the source displayed as hovered
+                | ImGuiDragDropFlags_SourceNoPreviewTooltip
+                | ImGuiDragDropFlags_SourceNoHoldToOpenOthers; // Because our dragging is local, we
+                                                               // disable the feature of opening
+                                                               // foreign treenodes/tabs while
+                                                               // dragging
+            // src_flags |= ImGuiDragDropFlags_SourceNoPreviewTooltip; // Hide the tooltip
+            if (ImGui::BeginDragDropSource(src_flags))
+            {
+                app.try_create(n);
+                ImGui::SetDragDropPayload("DND_DEMO_NAME", &n, sizeof(int));
+                ImGui::EndDragDropSource();
+            }
+            else
+            {
+                app.confirm_create(n);
+            }
+
+            if (ImGui::BeginDragDropTarget())
+            {
+                ImGui::EndDragDropTarget();
+            }
+        }
+        ImGui::End();
+
         ImGui::Render();
-        int display_w, display_h;
+        int display_w = 0;
+        int display_h = 0;
         glfwGetFramebufferSize(window, &display_w, &display_h);
         glViewport(0, 0, display_w, display_h);
-        glClearColor(
-            clear_color.x * clear_color.w,
-            clear_color.y * clear_color.w,
-            clear_color.z * clear_color.w,
-            clear_color.w
-        );
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwSwapBuffers(window);
     }
 

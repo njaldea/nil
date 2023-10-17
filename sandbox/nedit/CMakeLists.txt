@@ -20,6 +20,7 @@ set(
         app/Link.cpp
         app/Node.cpp
         app/Pin.cpp
+        app/ShadowNode.cpp
 )
 
 set(
@@ -28,6 +29,7 @@ set(
         app/Link.hpp
         app/Node.hpp
         app/Pin.hpp
+        app/ShadowNode.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

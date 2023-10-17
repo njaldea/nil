@@ -4,12 +4,6 @@
 
 namespace
 {
-    struct NodeInfo
-    {
-        std::vector<std::uint64_t> inputs;
-        std::vector<std::uint64_t> outputs;
-    };
-
     std::array<NodeInfo, 5> node_infos = { //
         NodeInfo{{1}, {1}},                //
         NodeInfo{{1}, {2}},                //
@@ -107,6 +101,28 @@ void App::render()
     for (auto& link : links)
     {
         link.second->render();
+    }
+    if (tmp)
+    {
+        if (tmp->is_ready)
+        {
+            auto n = tmp->consume();
+            for (const auto& pin : n->pins_i)
+            {
+                pins.emplace(pin->id.Get(), std::make_tuple(n.get(), pin.get()));
+            }
+            for (const auto& pin : n->pins_o)
+            {
+                pins.emplace(pin->id.Get(), std::make_tuple(n.get(), pin.get()));
+            }
+            const auto id = n->id.Get();
+            nodes.emplace(id, std::move(n));
+            tmp = {};
+        }
+        else
+        {
+            tmp->render();
+        }
     }
 }
 
@@ -216,5 +232,29 @@ void App::delete_node(std::uint64_t node_id)
             delete_link(link_id);
         }
         nodes.erase(node);
+    }
+}
+
+void App::try_create(std::uint64_t type)
+{
+    if (!tmp)
+    {
+        tmp = std::make_unique<ShadowNode>(type, node_infos[type], ids);
+    }
+}
+
+void App::confirm_create(std::uint64_t type)
+{
+    if (tmp && tmp->type == type)
+    {
+        tmp->ready();
+    }
+}
+
+void App::cancel_create(std::uint64_t type)
+{
+    if (tmp && tmp->type == type)
+    {
+        tmp = {};
     }
 }
