@@ -46,6 +46,7 @@ struct Service final: nil::cli::Command
     nil::cli::OptionInfo options() const override
     {
         return nil::cli::Builder()
+            .flag("help", {.skey = 'h', .msg = "this help"})
             .number(
                 "port",
                 {
@@ -102,6 +103,11 @@ struct Service final: nil::cli::Command
 
     int run(const nil::cli::Options& options) const override
     {
+        if (options.flag("help"))
+        {
+            options.help(std::cout);
+            return 0;
+        }
         T service(parse<T>(options));
         add_handlers(service);
         loop(service);

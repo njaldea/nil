@@ -2,24 +2,8 @@
 
 #include <iostream>
 
-namespace
-{
-    std::array<NodeInfo, 5> node_infos = { //
-        NodeInfo{{1}, {1}},                //
-        NodeInfo{{1}, {2}},                //
-        NodeInfo{{2}, {2}},                //
-        NodeInfo{{2}, {1}},                //
-        NodeInfo{{1, 2}, {1, 2}}
-    };
-}
-
 App::App()
 {
-    create(0);
-    create(1);
-    create(2);
-    create(3);
-    create(4);
 }
 
 App::~App() = default;
@@ -94,14 +78,6 @@ void App::render(ax::NodeEditor::EditorContext* context)
 
 void App::render()
 {
-    for (auto& node : nodes)
-    {
-        node.second->render();
-    }
-    for (auto& link : links)
-    {
-        link.second->render();
-    }
     if (tmp)
     {
         if (tmp->is_ready)
@@ -123,6 +99,14 @@ void App::render()
         {
             tmp->render();
         }
+    }
+    for (auto& node : nodes)
+    {
+        node.second->render();
+    }
+    for (auto& link : links)
+    {
+        link.second->render();
     }
 }
 
@@ -235,7 +219,7 @@ void App::delete_node(std::uint64_t node_id)
     }
 }
 
-void App::try_create(std::uint64_t type)
+void App::prepare_create(std::uint64_t type)
 {
     if (!tmp)
     {
@@ -248,13 +232,5 @@ void App::confirm_create(std::uint64_t type)
     if (tmp && tmp->type == type)
     {
         tmp->ready();
-    }
-}
-
-void App::cancel_create(std::uint64_t type)
-{
-    if (tmp && tmp->type == type)
-    {
-        tmp = {};
     }
 }

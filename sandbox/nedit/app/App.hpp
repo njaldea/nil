@@ -24,9 +24,23 @@ public:
     void create(std::uint64_t type);
     void link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o);
 
-    void try_create(std::uint64_t type);
+    void prepare_create(std::uint64_t type);
     void confirm_create(std::uint64_t type);
-    void cancel_create(std::uint64_t type);
+
+    void add_node_type(NodeInfo node_info)
+    {
+        node_infos.emplace_back(std::move(node_info));
+    }
+
+    std::size_t node_type_count() const
+    {
+        return node_infos.size();
+    }
+
+    const char* node_type_label(std::size_t index) const
+    {
+        return node_infos[index].label.c_str();
+    }
 
 private:
     void style();
@@ -47,4 +61,6 @@ private:
     std::unordered_map<std::uint64_t, std::unique_ptr<Link>> links;
 
     std::unique_ptr<ShadowNode> tmp;
+
+    std::vector<NodeInfo> node_infos;
 };

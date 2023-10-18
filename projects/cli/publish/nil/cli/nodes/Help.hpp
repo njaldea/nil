@@ -14,6 +14,13 @@ namespace nil::cli::nodes
         {
         }
 
+        OptionInfo options() const
+        {
+            return nil::cli::Builder() //
+                .flag("help", {.skey = 'h', .msg = "this help"})
+                .build();
+        }
+
         int run(const nil::cli::Options& options) const override
         {
             options.help(os);
