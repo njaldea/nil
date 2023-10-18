@@ -316,10 +316,16 @@ namespace
     }
 }
 
-Pin::Pin(ax::NodeEditor::PinId init_id, ax::NodeEditor::PinKind init_kind, std::uint32_t init_type)
+Pin::Pin(
+    ax::NodeEditor::PinId init_id,
+    ax::NodeEditor::PinKind init_kind,
+    std::uint32_t init_type,
+    ImVec4 init_color
+)
     : id(init_id)
     , kind(init_kind)
     , type(init_type)
+    , color(init_color)
 {
 }
 
@@ -333,7 +339,7 @@ void Pin::render()
     ax::NodeEditor::PinPivotAlignment(
         ImVec2{kind == ax::NodeEditor::PinKind::Input ? 0.0f : 1.0f, 0.5}
     );
-    Icon({15, 15}, true, IconType::Flow, {1, 0.5, 0.5, 1}, {});
+    Icon({15, 15}, true, IconType::Flow, color, {});
     if (ImGui::IsItemHovered())
     {
         ax::NodeEditor::Suspend();

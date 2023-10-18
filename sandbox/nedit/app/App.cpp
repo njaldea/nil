@@ -20,7 +20,8 @@ void App::create(std::uint64_t type_index)
         n->pins_i.emplace_back(std::make_unique<Pin>( //
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
-            type_i
+            type_i,
+            pin_infos[type_i].color
         ));
         pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
     }
@@ -31,7 +32,8 @@ void App::create(std::uint64_t type_index)
         n->pins_o.emplace_back(std::make_unique<Pin>( //
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
-            type_o
+            type_o,
+            pin_infos[type_o].color
         ));
         pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));
     }
@@ -223,7 +225,7 @@ void App::prepare_create(std::uint64_t type)
 {
     if (!tmp)
     {
-        tmp = std::make_unique<ShadowNode>(type, node_infos[type], ids);
+        tmp = std::make_unique<ShadowNode>(type, node_infos[type], pin_infos, ids);
     }
 }
 

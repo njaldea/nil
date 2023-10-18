@@ -29,6 +29,7 @@ public:
 
     void add_node_type(NodeInfo node_info)
     {
+        // validate if all pin types are correct first.
         node_infos.emplace_back(std::move(node_info));
     }
 
@@ -40,6 +41,21 @@ public:
     const char* node_type_label(std::size_t index) const
     {
         return node_infos[index].label.c_str();
+    }
+
+    void add_pin_type(PinInfo pin_info)
+    {
+        pin_infos.emplace_back(std::move(pin_info));
+    }
+
+    std::size_t pin_type_count() const
+    {
+        return pin_infos.size();
+    }
+
+    const char* pin_type_label(std::size_t index) const
+    {
+        return pin_infos[index].label.c_str();
     }
 
 private:
@@ -63,4 +79,5 @@ private:
     std::unique_ptr<ShadowNode> tmp;
 
     std::vector<NodeInfo> node_infos;
+    std::vector<PinInfo> pin_infos;
 };

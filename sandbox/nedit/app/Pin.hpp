@@ -10,7 +10,10 @@ struct Node;
 
 struct Pin
 {
-    Pin(ax::NodeEditor::PinId init_id, ax::NodeEditor::PinKind init_kind, std::uint32_t init_type);
+    Pin(ax::NodeEditor::PinId init_id,
+        ax::NodeEditor::PinKind init_kind,
+        std::uint32_t init_type,
+        ImVec4 init_color);
     ~Pin();
 
     void render();
@@ -19,4 +22,5 @@ struct Pin
     ax::NodeEditor::PinId id;
     ax::NodeEditor::PinKind kind;
     std::uint32_t type;
+    ImVec4 color;
 };

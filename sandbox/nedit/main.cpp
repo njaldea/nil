@@ -44,11 +44,13 @@ struct EXT: nil::cli::Command
         client.on_connect(
             [&](const std::string& id)
             {
+                client.send(id, "pin:1,0.5,0.5,1", sizeof("pin:1,0.5,0.5,1"));
+                client.send(id, "pin:0.5,1,0.5,1", sizeof("pin:0.5,1,0.5,1"));
+                client.send(id, "node:0-0", sizeof("node:0-0"));
+                client.send(id, "node:0-1", sizeof("node:0-1"));
                 client.send(id, "node:1-1", sizeof("node:1-1"));
-                client.send(id, "node:1-2", sizeof("node:1-2"));
-                client.send(id, "node:2-2", sizeof("node:2-2"));
-                client.send(id, "node:2-1", sizeof("node:2-1"));
-                client.send(id, "node:1,2-2,1", sizeof("node:1,2-2,1"));
+                client.send(id, "node:1-0", sizeof("node:1-0"));
+                client.send(id, "node:0,1-1,0", sizeof("node:0,1-1,0"));
             }
         );
 
@@ -184,7 +186,27 @@ struct GUI: nil::cli::Command
                 }
                 if (message.starts_with("pin:"))
                 {
-                    std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
+                    const auto dd = std::string(message.data() + 4, message.size() - 4);
+
+                    ImVec4 color = [&]()
+                    {
+                        std::istringstream ss(dd);
+                        std::string token;
+                        std::getline(ss, token, ',');
+                        const auto c1 = std::stof(token);
+                        std::getline(ss, token, ',');
+                        const auto c2 = std::stof(token);
+                        std::getline(ss, token, ',');
+                        const auto c3 = std::stof(token);
+                        std::getline(ss, token, ',');
+                        const auto c4 = std::stof(token);
+                        return ImVec4(c1, c2, c3, c4);
+                    }();
+                    const auto _ = std::unique_lock(mutex);
+                    actions.push_back( //
+                        [&app, info = PinInfo{std::move(dd), std::move(color)}]()
+                        { app.add_pin_type(info); }
+                    );
                 }
             }
         );
@@ -246,7 +268,13 @@ struct GUI: nil::cli::Command
             ImGui::End();
 
             ImGui::Begin("Panel");
-            ImGui::BulletText("Drag and drop");
+            ImGui::Text("Pin Types");
+
+            for (auto n = 0u; n < app.pin_type_count(); n++)
+            {
+                ImGui::LabelText(app.pin_type_label(n), "%d", n);
+            }
+            ImGui::Text("Node Type (drag)");
 
             for (auto n = 0u; n < app.node_type_count(); n++)
             {
@@ -276,6 +304,7 @@ struct GUI: nil::cli::Command
                     ImGui::EndDragDropTarget();
                 }
             }
+
             ImGui::End();
 
             ImGui::Render();

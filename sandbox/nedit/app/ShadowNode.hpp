@@ -17,17 +17,29 @@ struct NodeInfo
     std::vector<std::uint32_t> outputs;
 };
 
+struct PinInfo
+{
+    std::string label;
+    ImVec4 color;
+};
+
 // TODO: move node creation in a common place
 struct ShadowNode
 {
-    ShadowNode(std::uint64_t init_type, const NodeInfo& init_info, IDs& init_ids);
+    ShadowNode(
+        std::uint64_t init_type,
+        const NodeInfo& init_node_info,
+        const std::vector<PinInfo>& init_pin_infos,
+        IDs& init_ids
+    );
 
     void render();
     void ready();
     std::unique_ptr<Node> consume();
 
     std::uint64_t type;
-    const NodeInfo& info;
+    const NodeInfo& node_info;
+    const std::vector<PinInfo>& pin_infos;
     IDs& ids;
 
     ImVec2 pos;
