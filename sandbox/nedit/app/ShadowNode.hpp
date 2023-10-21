@@ -1,5 +1,6 @@
 #pragma once
 
+#include "FlowIcon.hpp"
 #include "IDs.hpp"
 #include "Node.hpp"
 
@@ -20,10 +21,9 @@ struct NodeInfo
 struct PinInfo
 {
     std::string label;
-    ImVec4 color;
+    std::unique_ptr<FlowIcon> icon;
 };
 
-// TODO: move node creation in a common place
 struct ShadowNode
 {
     ShadowNode(

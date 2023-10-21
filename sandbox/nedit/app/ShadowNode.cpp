@@ -31,8 +31,7 @@ void ShadowNode::render()
     ImGui::BeginGroup();
     for (const auto& i : node_info.inputs)
     {
-        std::make_unique<Pin>(--id, ax::NodeEditor::PinKind::Input, i, pin_infos[i].color)
-            ->render();
+        Pin(--id, ax::NodeEditor::PinKind::Input, i, *pin_infos[i].icon).render();
     }
     ImGui::EndGroup();
     ImGui::SameLine();
@@ -43,8 +42,7 @@ void ShadowNode::render()
     ImGui::BeginGroup();
     for (const auto& i : node_info.outputs)
     {
-        std::make_unique<Pin>(--id, ax::NodeEditor::PinKind::Input, i, pin_infos[i].color)
-            ->render();
+        Pin(--id, ax::NodeEditor::PinKind::Input, i, *pin_infos[i].icon).render();
     }
     ImGui::EndGroup();
     ax::NodeEditor::EndNode();
@@ -63,9 +61,8 @@ std::unique_ptr<Node> ShadowNode::consume()
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
             type_i,
-            pin_infos[type_i].color
+            *pin_infos[type_i].icon
         ));
-        // pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
     }
 
     for (const auto& type_o : node_info.outputs)
@@ -75,9 +72,8 @@ std::unique_ptr<Node> ShadowNode::consume()
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
             type_o,
-            pin_infos[type_o].color
+            *pin_infos[type_o].icon
         ));
-        // pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));
     }
     return node;
 }

@@ -16,9 +16,6 @@
 struct App
 {
 public:
-    App();
-    ~App();
-
     void render(ax::NodeEditor::EditorContext* context);
 
     void create(std::uint64_t type);

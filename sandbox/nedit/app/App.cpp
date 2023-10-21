@@ -2,12 +2,6 @@
 
 #include <iostream>
 
-App::App()
-{
-}
-
-App::~App() = default;
-
 void App::create(std::uint64_t type_index)
 {
     const auto node_id = ids.reserve();
@@ -21,7 +15,7 @@ void App::create(std::uint64_t type_index)
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
             type_i,
-            pin_infos[type_i].color
+            *pin_infos[type_i].icon
         ));
         pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
     }
@@ -33,7 +27,7 @@ void App::create(std::uint64_t type_index)
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
             type_o,
-            pin_infos[type_o].color
+            *pin_infos[type_o].icon
         ));
         pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));
     }

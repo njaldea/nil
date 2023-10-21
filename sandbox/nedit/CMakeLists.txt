@@ -21,6 +21,7 @@ set(
         app/Node.cpp
         app/Pin.cpp
         app/ShadowNode.cpp
+        app/FlowIcon.cpp
 )
 
 set(
@@ -30,6 +31,7 @@ set(
         app/Node.hpp
         app/Pin.hpp
         app/ShadowNode.hpp
+        app/FlowIcon.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

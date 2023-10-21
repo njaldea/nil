@@ -150,38 +150,33 @@ struct GUI: nil::cli::Command
                     const auto separator = std::find(label.begin(), label.end(), '-');
                     if (separator == label.end())
                     {
-                        std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__
-                                  << std::endl;
                         return;
                     }
 
-                    std::vector<std::uint32_t> inputs;
+                    const auto process = [&](const std::string& text)
                     {
-                        const auto i = std::string(label.begin(), separator);
-                        std::istringstream ss(i);
+                        std::vector<std::uint32_t> items;
+                        std::istringstream ss(text);
                         std::string token;
                         while (std::getline(ss, token, ','))
                         {
-                            inputs.push_back(std::uint32_t(std::stoul(token)));
+                            items.push_back(std::uint32_t(std::stoul(token)));
                         }
-                    }
+                        return items;
+                    };
 
-                    std::vector<std::uint32_t> outputs;
-                    {
-                        const auto o = std::string(separator + 1, label.end());
-                        std::istringstream ss(o);
-                        std::string token;
-                        while (std::getline(ss, token, ','))
-                        {
-                            outputs.push_back(std::uint32_t(std::stoul(token)));
-                        }
-                    }
+                    auto info = NodeInfo{
+                        std::move(label),
+                        process({label.begin(), separator}),
+                        process({separator + 1, label.end()})
+                    };
 
                     const auto _ = std::unique_lock(mutex);
-                    actions.push_back( //
-                        [&app,
-                         info = NodeInfo{std::move(label), std::move(inputs), std::move(outputs)}]()
-                        { app.add_node_type(info); }
+                    actions.push_back(
+                        [&app, info = std::move(info)]() mutable
+                        {
+                            app.add_node_type(std::move(info)); //
+                        }
                     );
                 }
                 if (message.starts_with("pin:"))
@@ -203,9 +198,14 @@ struct GUI: nil::cli::Command
                         return ImVec4(c1, c2, c3, c4);
                     }();
                     const auto _ = std::unique_lock(mutex);
-                    actions.push_back( //
-                        [&app, info = PinInfo{std::move(dd), std::move(color)}]()
-                        { app.add_pin_type(info); }
+                    actions.push_back(
+                        [&app, label = std::move(dd), color = std::move(color)]() mutable
+                        {
+                            app.add_pin_type({
+                                std::move(label),
+                                std::make_unique<FlowIcon>(std::move(color)) //
+                            });                                              //
+                        }
                     );
                 }
             }
@@ -327,6 +327,7 @@ struct GUI: nil::cli::Command
         glfwDestroyWindow(window);
         glfwTerminate();
 
+        server.stop();
         comm.join();
 
         return 0;

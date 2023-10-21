@@ -1,7 +1,6 @@
 #pragma once
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include <imgui-node-editor/imgui_node_editor.h>
+#include "FlowIcon.hpp"
 
 #include <unordered_set>
 
@@ -13,8 +12,7 @@ struct Pin
     Pin(ax::NodeEditor::PinId init_id,
         ax::NodeEditor::PinKind init_kind,
         std::uint32_t init_type,
-        ImVec4 init_color);
-    ~Pin();
+        FlowIcon& init_icon);
 
     void render();
 
@@ -22,5 +20,5 @@ struct Pin
     ax::NodeEditor::PinId id;
     ax::NodeEditor::PinKind kind;
     std::uint32_t type;
-    ImVec4 color;
+    FlowIcon& icon;
 };
