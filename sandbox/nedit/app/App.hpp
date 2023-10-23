@@ -76,5 +76,7 @@ private:
     std::unique_ptr<ShadowNode> tmp;
 
     std::vector<NodeInfo> node_infos;
+
+public:
     std::vector<PinInfo> pin_infos;
 };

@@ -7,26 +7,16 @@
 
 namespace nil::cli::nodes
 {
-    struct Help final: nil::cli::Command
+    class Help final: public nil::cli::Command
     {
-        Help(std::ostream& init_os)
-            : os(init_os)
-        {
-        }
+    public:
+        Help(std::ostream& init_os);
 
-        OptionInfo options() const
-        {
-            return nil::cli::Builder() //
-                .flag("help", {.skey = 'h', .msg = "this help"})
-                .build();
-        }
+        OptionInfo options() const;
 
-        int run(const nil::cli::Options& options) const override
-        {
-            options.help(os);
-            return 0;
-        }
+        int run(const nil::cli::Options& options) const override;
 
+    private:
         std::ostream& os;
     };
 }

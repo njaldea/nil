@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nil/service/IService.hpp>
-#include <nil/service/tcp/modes.hpp>
-#include <nil/service/udp/modes.hpp>
-#include <nil/service/ws/modes.hpp>
+#include "service/IService.hpp"
+#include "service/tcp/modes.hpp"
+#include "service/udp/modes.hpp"
+#include "service/ws/modes.hpp"

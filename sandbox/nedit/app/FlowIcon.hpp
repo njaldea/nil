@@ -7,7 +7,7 @@ struct FlowIcon
 {
     FlowIcon(ImVec4 init_color);
 
-    void render();
+    void render(float x_offset);
 
     ImVec4 color;
 };

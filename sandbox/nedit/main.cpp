@@ -272,7 +272,7 @@ struct GUI: nil::cli::Command
 
             for (auto n = 0u; n < app.pin_type_count(); n++)
             {
-                ImGui::LabelText(app.pin_type_label(n), "%d", n);
+                ImGui::TextColored(app.pin_infos[n].icon->color, "%d", n);
             }
             ImGui::Text("Node Type (drag)");
 

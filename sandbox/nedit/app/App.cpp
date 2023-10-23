@@ -78,7 +78,7 @@ void App::render()
     {
         if (tmp->is_ready)
         {
-            auto n = tmp->consume();
+            auto n = tmp->consume(ids);
             for (const auto& pin : n->pins_i)
             {
                 pins.emplace(pin->id.Get(), std::make_tuple(n.get(), pin.get()));
@@ -117,12 +117,15 @@ void App::style()
         ImColor(255, 255, 255, 64)
     );
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(0, 0, 0, 0));
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodeRounding, 5.0f);
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodeBorderWidth, 0.0f);
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodeRounding, 0.0f);
     // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
     // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
     // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_LinkStrength, 1.0f);
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinBorderWidth, 1.0f);
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinCorners, 0.0f);
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinRounding, 0.0f);
+    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinBorderWidth, 0.0f);
     ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinRadius, 0.0f);
     // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_FlowSpeed, 5.0f);
     // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_FlowMarkerDistance, 100.0f);
@@ -130,7 +133,8 @@ void App::style()
 
 void App::pop_style()
 {
-    ImGui::PopStyleVar(4);
+    ax::NodeEditor::PopStyleVar(7);
+    ImGui::PopStyleVar(1);
     ImGui::PopStyleColor(2);
 }
 
@@ -219,7 +223,7 @@ void App::prepare_create(std::uint64_t type)
 {
     if (!tmp)
     {
-        tmp = std::make_unique<ShadowNode>(type, node_infos[type], pin_infos, ids);
+        tmp = std::make_unique<ShadowNode>(type, node_infos[type], pin_infos);
     }
 }
 

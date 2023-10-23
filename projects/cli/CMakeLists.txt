@@ -23,6 +23,7 @@ set(
         src/Builder.cpp
         src/Node.cpp
         src/Options.cpp
+        src/nodes/Help.cpp
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})

@@ -29,18 +29,16 @@ struct ShadowNode
     ShadowNode(
         std::uint64_t init_type,
         const NodeInfo& init_node_info,
-        const std::vector<PinInfo>& init_pin_infos,
-        IDs& init_ids
+        const std::vector<PinInfo>& init_pin_infos
     );
 
     void render();
     void ready();
-    std::unique_ptr<Node> consume();
+    std::unique_ptr<Node> consume(IDs& ids);
 
     std::uint64_t type;
     const NodeInfo& node_info;
     const std::vector<PinInfo>& pin_infos;
-    IDs& ids;
 
     ImVec2 pos;
     bool is_ready = false;

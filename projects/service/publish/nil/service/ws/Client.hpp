@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nil/service/IService.hpp>
+#include "../IService.hpp"
 
 #include <chrono>
 #include <memory>
