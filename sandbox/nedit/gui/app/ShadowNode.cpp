@@ -29,7 +29,7 @@ void ShadowNode::render()
     }
     {
         ImGui::BeginGroup();
-        ImGui::Text("Node: type[%lu]", type);
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "Node: type[%lu]", type);
         ImGui::EndGroup();
     }
     const auto width = ImGui::GetItemRectSize().x;
@@ -44,15 +44,15 @@ void ShadowNode::render()
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        ImGui::Dummy(ImVec2{width - 15.0f, 0.0f});
+        ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
         ImGui::EndGroup();
     }
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        for (const auto& i : node_info.outputs)
+        for (const auto& o : node_info.outputs)
         {
-            Pin(--id, ax::NodeEditor::PinKind::Output, i, *pin_infos[i].icon).render();
+            Pin(--id, ax::NodeEditor::PinKind::Output, o, *pin_infos[o].icon).render();
         }
         ImGui::EndGroup();
     }
@@ -68,7 +68,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
     for (const auto& type_i : node_info.inputs)
     {
         auto pin_id_i = ids.reserve();
-        node->pins_i.emplace_back(std::make_unique<Pin>( //
+        node->pins_i.emplace_back(std::make_unique<Pin>(
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
             type_i,
@@ -79,7 +79,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
     for (const auto& type_o : node_info.outputs)
     {
         auto pin_id_o = ids.reserve();
-        node->pins_o.emplace_back(std::make_unique<Pin>( //
+        node->pins_o.emplace_back(std::make_unique<Pin>(
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
             type_o,

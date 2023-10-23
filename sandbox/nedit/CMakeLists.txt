@@ -16,22 +16,26 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 set(
     SOURCES
         main.cpp
-        app/App.cpp
-        app/Link.cpp
-        app/Node.cpp
-        app/Pin.cpp
-        app/ShadowNode.cpp
-        app/FlowIcon.cpp
+        ext/ext.cpp
+        gui/gui.cpp
+        gui/app/App.cpp
+        gui/app/Link.cpp
+        gui/app/Node.cpp
+        gui/app/Pin.cpp
+        gui/app/ShadowNode.cpp
+        gui/app/FlowIcon.cpp
 )
 
 set(
     HEADERS
-        app/App.hpp
-        app/Link.hpp
-        app/Node.hpp
-        app/Pin.hpp
-        app/ShadowNode.hpp
-        app/FlowIcon.hpp
+        ext/ext.hpp
+        gui/gui.hpp
+        gui/app/App.hpp
+        gui/app/Link.hpp
+        gui/app/Node.hpp
+        gui/app/Pin.hpp
+        gui/app/ShadowNode.hpp
+        gui/app/FlowIcon.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

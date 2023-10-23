@@ -9,7 +9,7 @@ FlowIcon::FlowIcon(ImVec4 init_color)
 
 void FlowIcon::render(float x_offset)
 {
-    const ImVec2 size = {15, 15};
+    constexpr auto size = ImVec2(15, 15);
     if (ImGui::IsRectVisible(size))
     {
         auto cursorPos = ImGui::GetCursorScreenPos();

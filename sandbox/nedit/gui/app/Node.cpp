@@ -13,7 +13,7 @@ void Node::render()
     ax::NodeEditor::BeginNode(id);
     {
         ImGui::BeginGroup();
-        ImGui::Text("Node: %ld", id.Get());
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "Node: %ld", id.Get());
         ImGui::EndGroup();
     }
     const auto width = ImGui::GetItemRectSize().x;
@@ -28,7 +28,7 @@ void Node::render()
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        ImGui::Dummy(ImVec2{width - 15.0f, 0.0f});
+        ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
         ImGui::EndGroup();
     }
     ImGui::SameLine();

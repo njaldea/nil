@@ -1,7 +1,5 @@
 #include "App.hpp"
 
-#include <iostream>
-
 void App::create(std::uint64_t type_index)
 {
     const auto node_id = ids.reserve();
@@ -41,7 +39,7 @@ void App::link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o)
     {
         if (pin_o->links.size() == 1)
         {
-            ax::NodeEditor::RejectNewItem({1, 0, 0, 1}, 1.0);
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
         }
         else if (ax::NodeEditor::AcceptNewItem())
         {
@@ -53,7 +51,7 @@ void App::link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o)
     }
     else
     {
-        ax::NodeEditor::RejectNewItem({1, 0, 0, 1}, 1.0);
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
     }
 }
 
@@ -108,34 +106,32 @@ void App::render()
 
 void App::style()
 {
-    ax::NodeEditor::PushStyleColor( //
-        ax::NodeEditor::StyleColor_NodeBg,
-        ImColor(255, 255, 255, 64)
-    );
-    ax::NodeEditor::PushStyleColor(
-        ax::NodeEditor::StyleColor_NodeBorder,
-        ImColor(255, 255, 255, 64)
-    );
+    using namespace ax::NodeEditor;
+    PushStyleColor(StyleColor_NodeBg, ImColor(255, 255, 255, 255));
+    PushStyleColor(StyleColor_NodeBorder, ImColor(255, 255, 255, 0));
+
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodeBorderWidth, 0.0f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_NodeRounding, 0.0f);
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_LinkStrength, 1.0f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinCorners, 0.0f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinRounding, 0.0f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinBorderWidth, 0.0f);
-    ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_PinRadius, 0.0f);
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_FlowSpeed, 5.0f);
-    // ax::NodeEditor::PushStyleVar(ax::NodeEditor::StyleVar_FlowMarkerDistance, 100.0f);
+
+    PushStyleVar(StyleVar_NodeBorderWidth, 0.0f);
+    PushStyleVar(StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
+    PushStyleVar(StyleVar_NodeRounding, 0.0f);
+    PushStyleVar(StyleVar_PinCorners, 0.0f);
+    PushStyleVar(StyleVar_PinRounding, 0.0f);
+    PushStyleVar(StyleVar_PinBorderWidth, 0.0f);
+    PushStyleVar(StyleVar_PinRadius, 0.0f);
+
+    // PushStyleVar(StyleVar_FlowSpeed, 5.0f);
+    // PushStyleVar(StyleVar_FlowMarkerDistance, 100.0f);
+    // PushStyleVar(StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
+    // PushStyleVar(StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
+    // PushStyleVar(StyleVar_LinkStrength, 1.0f);
 }
 
 void App::pop_style()
 {
     ax::NodeEditor::PopStyleVar(7);
     ImGui::PopStyleVar(1);
-    ImGui::PopStyleColor(2);
+    ax::NodeEditor::PopStyleColor(2);
 }
 
 void App::edit_create()

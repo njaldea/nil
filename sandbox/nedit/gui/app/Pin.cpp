@@ -25,11 +25,11 @@ void Pin::render()
     constexpr const auto offset = 7.5f;
     if (kind == ax::NodeEditor::PinKind::Input)
     {
-        ax::NodeEditor::PinPivotAlignment(ImVec2{0.0f, 0.5});
+        ax::NodeEditor::PinPivotAlignment(ImVec2(0.0f, 0.5));
         auto cursorPos = ImGui::GetCursorScreenPos();
         ax::NodeEditor::PinRect(
-            cursorPos - ImVec2{offset, 0.0f},
-            cursorPos + ImVec2{15.0f, 15.0f} - ImVec2{offset, 0.0f}
+            cursorPos - ImVec2(offset, 0.0f),
+            cursorPos + ImVec2(15.0f, 15.0f) - ImVec2(offset, 0.0f)
         );
         icon.render(-offset);
         if (ax::NodeEditor::GetHoveredPin() == id)
@@ -41,11 +41,11 @@ void Pin::render()
     }
     else
     {
-        ax::NodeEditor::PinPivotAlignment(ImVec2{1.0f, 0.5});
+        ax::NodeEditor::PinPivotAlignment(ImVec2(1.0f, 0.5));
         auto cursorPos = ImGui::GetCursorScreenPos();
         ax::NodeEditor::PinRect(
-            cursorPos + ImVec2{offset + 5.0f, 0.0f},
-            cursorPos + ImVec2{15.0f, 15.0f} + ImVec2{offset + 5.0f, 0.0f}
+            cursorPos + ImVec2(offset + 5.0f, 0.0f),
+            cursorPos + ImVec2(15.0f, 15.0f) + ImVec2(offset + 5.0f, 0.0f)
         );
         icon.render(+offset + 5.0f);
         if (ax::NodeEditor::GetHoveredPin() == id)
