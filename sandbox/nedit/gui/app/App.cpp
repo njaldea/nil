@@ -3,7 +3,10 @@
 void App::create(std::uint64_t type_index)
 {
     const auto node_id = ids.reserve();
-    nodes.emplace(node_id, std::make_unique<Node>(node_id));
+    nodes.emplace(
+        node_id,
+        std::make_unique<Node>(type_index, node_id, node_infos[type_index].label)
+    );
     auto& n = nodes[node_id];
 
     for (const auto& type_i : node_infos[type_index].inputs)
@@ -13,6 +16,7 @@ void App::create(std::uint64_t type_index)
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
             type_i,
+            pin_infos[type_i].label,
             *pin_infos[type_i].icon
         ));
         pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
@@ -25,6 +29,7 @@ void App::create(std::uint64_t type_index)
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
             type_o,
+            pin_infos[type_o].label,
             *pin_infos[type_o].icon
         ));
         pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));

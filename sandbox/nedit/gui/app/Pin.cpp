@@ -9,11 +9,13 @@ Pin::Pin(
     ax::NodeEditor::PinId init_id,
     ax::NodeEditor::PinKind init_kind,
     std::uint32_t init_type,
+    std::string_view init_label,
     FlowIcon& init_icon
 )
     : id(init_id)
     , kind(init_kind)
     , type(init_type)
+    , label(init_label)
     , icon(init_icon)
 {
 }
@@ -35,7 +37,7 @@ void Pin::render()
         if (ax::NodeEditor::GetHoveredPin() == id)
         {
             ax::NodeEditor::Suspend();
-            ImGui::SetTooltip("Input  - %d", type);
+            ImGui::SetTooltip("%s", label.data());
             ax::NodeEditor::Resume();
         }
     }
@@ -51,7 +53,7 @@ void Pin::render()
         if (ax::NodeEditor::GetHoveredPin() == id)
         {
             ax::NodeEditor::Suspend();
-            ImGui::SetTooltip("Output - %d", type);
+            ImGui::SetTooltip("%s", label.data());
             ax::NodeEditor::Resume();
         }
     }

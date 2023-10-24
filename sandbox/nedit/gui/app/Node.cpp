@@ -3,8 +3,10 @@
 
 #include <imgui.h>
 
-Node::Node(ax::NodeEditor::NodeId init_id)
-    : id(init_id)
+Node::Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_view init_label)
+    : type(init_type)
+    , id(init_id)
+    , label(init_label)
 {
 }
 
@@ -13,7 +15,8 @@ void Node::render()
     ax::NodeEditor::BeginNode(id);
     {
         ImGui::BeginGroup();
-        ImGui::TextColored(ImVec4(0, 0, 0, 1), "Node: %ld", id.Get());
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "id[%ld]", id.Get());
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", label.data());
         ImGui::EndGroup();
     }
     const auto width = ImGui::GetItemRectSize().x;

@@ -70,19 +70,19 @@ namespace nil::gate::detail
         template <std::size_t... o_indices>
         void pend(std::index_sequence<o_indices...>)
         {
-            (std::get<o_indices>(outputs)->pend(), ...);
+            (..., std::get<o_indices>(outputs)->pend());
         }
 
         template <std::size_t... o_indices>
         void cancel(std::index_sequence<o_indices...>)
         {
-            (std::get<o_indices>(outputs)->cancel(), ...);
+            (..., std::get<o_indices>(outputs)->cancel());
         }
 
         template <std::size_t... i_indices>
         bool is_runnable(std::index_sequence<i_indices...>) const
         {
-            return true && (std::get<i_indices>(inputs)->has_value() && ...);
+            return true && (... && std::get<i_indices>(inputs)->has_value());
         }
 
         template <std::size_t... i_indices, std::size_t... o_indices>
@@ -97,7 +97,7 @@ namespace nil::gate::detail
             {
                 auto result = instance(std::get<i_indices>(inputs)->value()...);
                 state = State::Done;
-                (std::get<o_indices>(outputs)->exec(std::move(std::get<o_indices>(result))), ...);
+                (..., std::get<o_indices>(outputs)->exec(std::move(std::get<o_indices>(result))));
             }
         }
 

@@ -36,6 +36,7 @@ int GUI::run(const nil::cli::Options& options) const
 
     std::mutex mutex;
     std::vector<std::function<void()>> actions;
+    bool is_frozen = false;
 
     glfwSetErrorCallback( //
         [](int error, const char* description)
@@ -84,14 +85,27 @@ int GUI::run(const nil::cli::Options& options) const
     App app;
 
     server.on_message( //
-        [&actions, &mutex, &app](const std::string&, const void* data, std::uint64_t count)
+        [&actions,
+         &mutex,
+         &app,
+         &is_frozen](const std::string&, const void* data, std::uint64_t count)
         {
+            if (is_frozen)
+            {
+                return;
+            }
             const auto message = std::string_view(static_cast<const char*>(data), count);
+            if (message.starts_with("freeze"))
+            {
+                is_frozen = true;
+                return;
+            }
             if (message.starts_with("node:"))
             {
-                const auto label = std::string(message.data() + 5, message.size() - 5);
-                const auto separator = std::find(label.begin(), label.end(), '-');
-                if (separator == label.end())
+                const auto label_idx = message.find_last_of(":");
+                const auto dd = std::string(message.data() + 5, label_idx - 5);
+                const auto separator = std::find(dd.begin(), dd.end(), '-');
+                if (separator == dd.end())
                 {
                     return;
                 }
@@ -109,9 +123,9 @@ int GUI::run(const nil::cli::Options& options) const
                 };
 
                 auto info = NodeInfo{
-                    std::move(label),
-                    process({label.begin(), separator}),
-                    process({separator + 1, label.end()})
+                    std::string(message.substr(label_idx + 1)),
+                    process({dd.begin(), separator}),
+                    process({separator + 1, dd.end()})
                 };
 
                 const auto _ = std::unique_lock(mutex);
@@ -124,7 +138,8 @@ int GUI::run(const nil::cli::Options& options) const
             }
             if (message.starts_with("pin:"))
             {
-                const auto dd = std::string(message.data() + 4, message.size() - 4);
+                const auto label_idx = message.find_last_of(":");
+                const auto dd = std::string(message.data() + 4, label_idx - 4);
 
                 ImVec4 color = [&]()
                 {
@@ -142,7 +157,9 @@ int GUI::run(const nil::cli::Options& options) const
                 }();
                 const auto _ = std::unique_lock(mutex);
                 actions.push_back(
-                    [&app, label = std::move(dd), color = std::move(color)]() mutable
+                    [&app,
+                     label = std::string(message.substr(label_idx + 1)),
+                     color = std::move(color)]() mutable
                     {
                         app.add_pin_type({
                             std::move(label),
@@ -198,8 +215,9 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(ImVec2(1280, 720));
+        const auto* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(viewport->Pos);
+        ImGui::SetNextWindowSize(viewport->Size);
         ImGui::Begin("Content", nullptr, window_flag);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, style.WindowBorderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, style.WindowRounding);
@@ -210,16 +228,60 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::End();
 
         ImGui::Begin("Panel");
+
+        if (ImGui::Button("play"))
+        {
+            [&]()
+            {
+                std::ostringstream oss;
+                oss << "graph";
+                for (const auto& n : app.nodes)
+                {
+                    oss << ":node=";
+                    oss << n.second->type;
+                    oss << '-';
+                    for (auto idx = 0u; idx < n.second->pins_i.size(); ++idx)
+                    {
+                        if (n.second->pins_i[idx]->links.empty())
+                        {
+                            std::cout << "connections not complete" << std::endl;
+                            return;
+                        }
+                        oss << app.links[*n.second->pins_i[idx]->links.begin()]->entry->id.Get();
+                        if (idx < n.second->pins_i.size() - 1)
+                        {
+                            oss << ',';
+                        }
+                    }
+                    oss << '-';
+                    for (auto idx = 0u; idx < n.second->pins_o.size(); ++idx)
+                    {
+                        oss << n.second->pins_o[idx]->id.Get();
+                        if (idx < n.second->pins_o.size() - 1)
+                        {
+                            oss << ',';
+                        }
+                    }
+                }
+                const auto graph = oss.str();
+                std::cout << graph << std::endl;
+                server.publish(graph.data(), graph.size());
+            }();
+        }
         ImGui::Text("Pin Types");
 
         for (auto n = 0u; n < app.pin_type_count(); n++)
         {
-            ImGui::TextColored(app.pin_infos[n].icon->color, "%d", n);
+            ImGui::Dummy(ImVec2(5, 0));
+            ImGui::SameLine();
+            ImGui::TextColored(app.pin_infos[n].icon->color, "%s", app.pin_infos[n].label.data());
         }
         ImGui::Text("Node Type (drag)");
 
         for (auto n = 0u; n < app.node_type_count(); n++)
         {
+            ImGui::Dummy(ImVec2(5, 0));
+            ImGui::SameLine();
             ImGui::Selectable(app.node_type_label(n));
 
             constexpr auto src_flags //
@@ -248,11 +310,7 @@ int GUI::run(const nil::cli::Options& options) const
         int display_w = 0;
         int display_h = 0;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(window);
+        resize(window, display_w, display_h);
     }
 
     ax::NodeEditor::DestroyEditor(context);

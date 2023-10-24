@@ -56,7 +56,7 @@ namespace nil::gate
         // Invalid type passed
         template <typename... T>
         std::enable_if_t<
-            !(true && (detail::edge_validate<T>::value && ...)),
+            !(true && (... && detail::edge_validate<T>::value)),
             std::tuple<MutableEdge<T>*...>>
             edges() = delete;
 
@@ -66,7 +66,7 @@ namespace nil::gate
          */
         template <typename... T>
         std::enable_if_t<
-            (true && (detail::edge_validate<T>::value && ...)),
+            (true && (... && detail::edge_validate<T>::value)),
             std::tuple<MutableEdge<T>*...>>
             edges()
         {
@@ -134,7 +134,7 @@ namespace nil::gate
             );
             auto node = static_cast<detail::Node<T>*>(owned_nodes.back().get());
             // attach node to input edges' output
-            (attach_output(down_cast(std::get<i_indices>(edges)), *node), ...);
+            (..., attach_output(down_cast(std::get<i_indices>(edges)), *node));
             // create output edges and attach it's input to node output
             return std::make_tuple(this->edge<T, Outputs, o_indices>(*node)...);
         }

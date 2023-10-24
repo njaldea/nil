@@ -47,6 +47,6 @@ namespace nil::gate::detail
     {
         using i = types<typename edge_validate<std::decay_t<I>>::type...>;
         using o = types<typename edge_validate<std::decay_t<O>>::type...>;
-        static constexpr bool is_valid = true && (node_validate<I>::value && ...);
+        static constexpr bool is_valid = true && (... && node_validate<I>::value);
     };
 }

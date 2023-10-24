@@ -65,6 +65,7 @@ private:
     void delete_link(std::uint64_t link_id);
     void delete_node(std::uint64_t node_id);
 
+public:
     IDs ids;
     // TODO: reevaluate container type
     // creation/deletion is easier with unordered_map
@@ -76,7 +77,5 @@ private:
     std::unique_ptr<ShadowNode> tmp;
 
     std::vector<NodeInfo> node_infos;
-
-public:
     std::vector<PinInfo> pin_infos;
 };

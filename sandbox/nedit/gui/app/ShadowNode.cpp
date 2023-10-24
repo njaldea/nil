@@ -3,6 +3,8 @@
 
 #include <imgui.h>
 
+#include <iostream>
+
 ShadowNode::ShadowNode(
     std::uint64_t init_type,
     const NodeInfo& init_node_info,
@@ -29,7 +31,8 @@ void ShadowNode::render()
     }
     {
         ImGui::BeginGroup();
-        ImGui::TextColored(ImVec4(0, 0, 0, 1), "Node: type[%lu]", type);
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "type[%lu]", type);
+        ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", node_info.label.data());
         ImGui::EndGroup();
     }
     const auto width = ImGui::GetItemRectSize().x;
@@ -37,7 +40,8 @@ void ShadowNode::render()
         ImGui::BeginGroup();
         for (const auto& i : node_info.inputs)
         {
-            Pin(--id, ax::NodeEditor::PinKind::Input, i, *pin_infos[i].icon).render();
+            Pin(--id, ax::NodeEditor::PinKind::Input, i, pin_infos[i].label, *pin_infos[i].icon)
+                .render();
         }
         ImGui::EndGroup();
     }
@@ -52,7 +56,8 @@ void ShadowNode::render()
         ImGui::BeginGroup();
         for (const auto& o : node_info.outputs)
         {
-            Pin(--id, ax::NodeEditor::PinKind::Output, o, *pin_infos[o].icon).render();
+            Pin(--id, ax::NodeEditor::PinKind::Output, o, pin_infos[o].label, *pin_infos[o].icon)
+                .render();
         }
         ImGui::EndGroup();
     }
@@ -62,7 +67,7 @@ void ShadowNode::render()
 std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
 {
     const auto node_id = ids.reserve();
-    auto node = std::make_unique<Node>(node_id);
+    auto node = std::make_unique<Node>(type, node_id, node_info.label);
 
     ax::NodeEditor::SetNodePosition(node_id, ImVec2(pos.x - 20, pos.y - 20));
     for (const auto& type_i : node_info.inputs)
@@ -72,6 +77,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
             pin_id_i,
             ax::NodeEditor::PinKind::Input,
             type_i,
+            pin_infos[type_i].label,
             *pin_infos[type_i].icon
         ));
     }
@@ -83,6 +89,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
             pin_id_o,
             ax::NodeEditor::PinKind::Output,
             type_o,
+            pin_infos[type_o].label,
             *pin_infos[type_o].icon
         ));
     }
