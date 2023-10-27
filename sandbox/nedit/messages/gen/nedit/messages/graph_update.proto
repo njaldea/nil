@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.nedit.proto;
+
+message Node
+{
+    uint64 type = 1;
+    repeated uint64 inputs = 2;
+    repeated uint64 outputs = 3;
+}
+
+message Graph {
+    repeated Node nodes = 1;
+}

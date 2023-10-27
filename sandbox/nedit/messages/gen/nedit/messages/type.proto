@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.nedit.proto.type;
+
+enum Type {
+    PinInfo = 0;
+    NodeInfo = 1;
+    GraphUpdate = 2;
+    Freeze = 3;
+}

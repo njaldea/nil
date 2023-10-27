@@ -4,6 +4,8 @@ if(NOT ENABLE_FEATURE_NEDIT)
     return()
 endif()
 
+add_subdirectory(messages/gen/nedit/messages)
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -39,6 +41,8 @@ set(
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/messages)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE cli)
 target_link_libraries(${PROJECT_NAME} PRIVATE service)
 target_link_libraries(${PROJECT_NAME} PRIVATE gate)

@@ -60,7 +60,11 @@
                         "opengl3-binding"
                     ]
                 },
-                "imgui-node-editor"
+                "imgui-node-editor",
+                {
+                    "name": "protobuf",
+                    "version>=": "3.21.12"
+                }
             ]
         }
     },

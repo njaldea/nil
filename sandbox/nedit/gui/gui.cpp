@@ -19,17 +19,27 @@
 #include <thread>
 #include <vector>
 
+#include <gen/nedit/messages/graph_update.pb.h>
+#include <gen/nedit/messages/message.pb.h>
+#include <gen/nedit/messages/node_info.pb.h>
+#include <gen/nedit/messages/pin_info.pb.h>
+
 nil::cli::OptionInfo GUI::options() const
 {
     return nil::cli::Builder()
         .flag("help", {.skey = 'h', .msg = "this help"})
-        .number("port", {.skey = 'p', .msg = "port"})
+        .number("port", {.skey = 'p', .msg = "port", .fallback = 1101})
         .build();
 }
 
 int GUI::run(const nil::cli::Options& options) const
 {
-    (void)options;
+    if (options.flag("help"))
+    {
+        options.help(std::cout);
+        return 0;
+    }
+
     nil::service::tcp::Server server({
         .port = std::uint16_t(options.number("port")) //
     });
@@ -42,6 +52,7 @@ int GUI::run(const nil::cli::Options& options) const
         [](int error, const char* description)
         { std::cerr << "GLFW Error " << error << ": " << description << std::endl; }
     );
+
     if (glfwInit() == 0)
     {
         return 1;
@@ -60,10 +71,12 @@ int GUI::run(const nil::cli::Options& options) const
         nullptr,
         nullptr
     );
+
     if (window == nullptr)
     {
         return 1;
     }
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
@@ -94,79 +107,64 @@ int GUI::run(const nil::cli::Options& options) const
             {
                 return;
             }
-            const auto message = std::string_view(static_cast<const char*>(data), count);
-            if (message.starts_with("freeze"))
+            nil::nedit::proto::Message m;
+            m.ParseFromArray(data, int(count));
+            switch (m.type())
             {
-                is_frozen = true;
-                return;
-            }
-            if (message.starts_with("node:"))
-            {
-                const auto label_idx = message.find_last_of(":");
-                const auto dd = std::string(message.data() + 5, label_idx - 5);
-                const auto separator = std::find(dd.begin(), dd.end(), '-');
-                if (separator == dd.end())
+                case nil::nedit::proto::type::Freeze:
+                {
+                    is_frozen = true;
+                    return;
+                }
+                case nil::nedit::proto::type::PinInfo:
+                {
+                    nil::nedit::proto::PinInfo pin_info;
+                    pin_info.ParseFromString(m.data());
+
+                    const auto _ = std::unique_lock(mutex);
+                    actions.push_back(
+                        [&app,
+                         label = pin_info.label(),
+                         color = ImVec4(
+                             pin_info.color().r(),
+                             pin_info.color().g(),
+                             pin_info.color().b(),
+                             pin_info.color().a()
+                         )]() mutable
+                        {
+                            app.add_pin_type({
+                                std::move(label),
+                                std::make_unique<FlowIcon>(std::move(color)) //
+                            });                                              //
+                        }
+                    );
+                    return;
+                }
+                case nil::nedit::proto::type::NodeInfo:
+                {
+                    nil::nedit::proto::NodeInfo node_info;
+                    node_info.ParseFromString(m.data());
+
+                    auto info = //
+                        NodeInfo{
+                            node_info.label(),
+                            {node_info.inputs().begin(), node_info.inputs().end()},
+                            {node_info.outputs().begin(), node_info.outputs().end()},
+                        };
+
+                    const auto _ = std::unique_lock(mutex);
+                    actions.push_back(
+                        [&app, info = std::move(info)]() mutable
+                        {
+                            app.add_node_type(std::move(info)); //
+                        }
+                    );
+                    return;
+                }
+                default:
                 {
                     return;
                 }
-
-                const auto process = [&](const std::string& text)
-                {
-                    std::vector<std::uint32_t> items;
-                    std::istringstream ss(text);
-                    std::string token;
-                    while (std::getline(ss, token, ','))
-                    {
-                        items.push_back(std::uint32_t(std::stoul(token)));
-                    }
-                    return items;
-                };
-
-                auto info = NodeInfo{
-                    std::string(message.substr(label_idx + 1)),
-                    process({dd.begin(), separator}),
-                    process({separator + 1, dd.end()})
-                };
-
-                const auto _ = std::unique_lock(mutex);
-                actions.push_back(
-                    [&app, info = std::move(info)]() mutable
-                    {
-                        app.add_node_type(std::move(info)); //
-                    }
-                );
-            }
-            if (message.starts_with("pin:"))
-            {
-                const auto label_idx = message.find_last_of(":");
-                const auto dd = std::string(message.data() + 4, label_idx - 4);
-
-                ImVec4 color = [&]()
-                {
-                    std::istringstream ss(dd);
-                    std::string token;
-                    std::getline(ss, token, ',');
-                    const auto c1 = std::stof(token);
-                    std::getline(ss, token, ',');
-                    const auto c2 = std::stof(token);
-                    std::getline(ss, token, ',');
-                    const auto c3 = std::stof(token);
-                    std::getline(ss, token, ',');
-                    const auto c4 = std::stof(token);
-                    return ImVec4(c1, c2, c3, c4);
-                }();
-                const auto _ = std::unique_lock(mutex);
-                actions.push_back(
-                    [&app,
-                     label = std::string(message.substr(label_idx + 1)),
-                     color = std::move(color)]() mutable
-                    {
-                        app.add_pin_type({
-                            std::move(label),
-                            std::make_unique<FlowIcon>(std::move(color)) //
-                        });                                              //
-                    }
-                );
             }
         }
     );
@@ -233,13 +231,11 @@ int GUI::run(const nil::cli::Options& options) const
         {
             [&]()
             {
-                std::ostringstream oss;
-                oss << "graph";
+                nil::nedit::proto::Graph graph;
                 for (const auto& n : app.nodes)
                 {
-                    oss << ":node=";
-                    oss << n.second->type;
-                    oss << '-';
+                    auto* node = graph.add_nodes();
+                    node->set_type(n.second->type);
                     for (auto idx = 0u; idx < n.second->pins_i.size(); ++idx)
                     {
                         if (n.second->pins_i[idx]->links.empty())
@@ -247,25 +243,19 @@ int GUI::run(const nil::cli::Options& options) const
                             std::cout << "connections not complete" << std::endl;
                             return;
                         }
-                        oss << app.links[*n.second->pins_i[idx]->links.begin()]->entry->id.Get();
-                        if (idx < n.second->pins_i.size() - 1)
-                        {
-                            oss << ',';
-                        }
+                        node->add_inputs(
+                            app.links[*n.second->pins_i[idx]->links.begin()]->entry->id.Get()
+                        );
                     }
-                    oss << '-';
                     for (auto idx = 0u; idx < n.second->pins_o.size(); ++idx)
                     {
-                        oss << n.second->pins_o[idx]->id.Get();
-                        if (idx < n.second->pins_o.size() - 1)
-                        {
-                            oss << ',';
-                        }
+                        node->add_outputs(n.second->pins_o[idx]->id.Get());
                     }
                 }
-                const auto graph = oss.str();
-                std::cout << graph << std::endl;
-                server.publish(graph.data(), graph.size());
+                nil::nedit::proto::Message m;
+                m.set_type(nil::nedit::proto::type::GraphUpdate);
+                const auto d = m.SerializeAsString();
+                server.publish(d.c_str(), d.size());
             }();
         }
         ImGui::Text("Pin Types");

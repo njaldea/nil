@@ -23,11 +23,12 @@
             "inherits": "base",
             "displayName": "dev",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit",
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit;proto",
                 "ENABLE_FEATURE_CLI": "ON",
                 "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_PULSE": "ON",
                 "ENABLE_FEATURE_SERVICE": "ON",
+                "ENABLE_FEATURE_PROTO": "ON",
                 "ENABLE_TEST": "OFF",
                 "ENABLE_SANDBOX": "ON",
                 "ENABLE_FEATURE_NEDIT": "ON"
