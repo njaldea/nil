@@ -88,10 +88,11 @@ namespace nil::gate
         template <typename T>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge()
         {
-            owned_edges.emplace_back(std::make_unique<detail::Edge<T>>(nullptr));
-            auto* e = owned_edges.back().get();
+            auto e_ptr = std::make_unique<detail::Edge<T>>(nullptr);
+            auto* e = e_ptr.get();
+            owned_edges.emplace_back(std::move(e_ptr));
             required_edges.push_back(e);
-            return static_cast<MutableEdge<T>*>(e);
+            return e;
         }
 
         /**
@@ -131,14 +132,17 @@ namespace nil::gate
             Args&&... args
         )
         {
-            owned_nodes.emplace_back(
-                std::make_unique<detail::Node<T>>(edges, indices, std::forward<Args>(args)...)
+            auto node_ptr = std::make_unique<detail::Node<T>>( //
+                edges,
+                indices,
+                std::forward<Args>(args)...
             );
-            auto node = static_cast<detail::Node<T>*>(owned_nodes.back().get());
+            auto* n = node_ptr.get();
+            owned_nodes.emplace_back(std::move(node_ptr));
             // attach node to input edges' output
-            (..., attach_output(down_cast(std::get<i_indices>(edges)), *node));
+            (..., attach_output(down_cast(std::get<i_indices>(edges)), *n));
             // create output edges and attach it's input to node output
-            return std::make_tuple(this->edge<T, Outputs, o_indices>(*node)...);
+            return std::make_tuple(this->edge<T, Outputs, o_indices>(*n)...);
         }
 
         template <typename T, typename U>
@@ -160,10 +164,11 @@ namespace nil::gate
         template <typename T, typename U, std::size_t index>
         ReadOnlyEdge<U>* edge(detail::Node<T>& node)
         {
-            owned_edges.emplace_back(std::make_unique<detail::Edge<U>>(&node));
-            auto edge = static_cast<detail::Edge<U>*>(owned_edges.back().get());
-            node.template attach_output<index>(edge);
-            return edge;
+            auto e_ptr = std::make_unique<detail::Edge<U>>(&node);
+            auto* e = e_ptr.get();
+            owned_edges.emplace_back(std::move(e_ptr));
+            node.template attach_output<index>(e);
+            return e;
         }
 
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;

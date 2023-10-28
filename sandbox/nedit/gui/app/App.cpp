@@ -17,7 +17,7 @@ void App::create(std::uint64_t type_index)
             ax::NodeEditor::PinKind::Input,
             type_i,
             pin_infos[type_i].label,
-            *pin_infos[type_i].icon
+            pin_infos[type_i].icon
         ));
         pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
     }
@@ -30,7 +30,7 @@ void App::create(std::uint64_t type_index)
             ax::NodeEditor::PinKind::Output,
             type_o,
             pin_infos[type_o].label,
-            *pin_infos[type_o].icon
+            pin_infos[type_o].icon
         ));
         pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));
     }
@@ -49,7 +49,7 @@ void App::link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o)
         else if (ax::NodeEditor::AcceptNewItem())
         {
             auto link_id = ids.reserve();
-            links.emplace(link_id, std::make_unique<Link>(link_id, pin_i, pin_o));
+            links.emplace(link_id, std::make_unique<Link>(link_id, Link::Info{pin_i, pin_o}));
             pin_i->links.emplace(link_id);
             pin_o->links.emplace(link_id);
         }
@@ -207,7 +207,7 @@ void App::delete_node(std::uint64_t node_id)
                 {
                     links_to_delete.emplace(link_id);
                 }
-                this->pins.erase(pin->id.Get());
+                pins.erase(pin->id.Get());
             }
         };
         cleanup_pins(node->second->pins_i);
@@ -228,7 +228,7 @@ void App::prepare_create(std::uint64_t type)
     }
 }
 
-void App::confirm_create(std::uint64_t type)
+void App::confirm_create(std::uint64_t type) const
 {
     if (tmp && tmp->type == type)
     {

@@ -6,8 +6,13 @@
 struct FlowIcon
 {
     FlowIcon(ImVec4 init_color);
+    ~FlowIcon() noexcept = default;
+    FlowIcon(const FlowIcon&) = default;
+    FlowIcon(FlowIcon&&) noexcept = default;
+    FlowIcon& operator=(const FlowIcon&) = default;
+    FlowIcon& operator=(FlowIcon&&) noexcept = default;
 
-    void render(float x_offset);
+    void render(float x_offset) const;
 
     ImVec4 color;
 };

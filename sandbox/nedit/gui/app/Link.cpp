@@ -1,14 +1,14 @@
 #include "Link.hpp"
 #include "Pin.hpp"
 
-Link::Link(ax::NodeEditor::LinkId init_id, Pin* init_entry, Pin* init_exit)
+Link::Link(ax::NodeEditor::LinkId init_id, Info info)
     : id(init_id)
-    , entry(init_entry)
-    , exit(init_exit)
+    , entry(info.entry)
+    , exit(info.exit)
 {
 }
 
-void Link::render()
+void Link::render() const
 {
     ax::NodeEditor::Link(id, entry->id, exit->id);
 }

@@ -1,4 +1,5 @@
 #include "gui.hpp"
+#include "../codec.hpp"
 
 #include "app/App.hpp"
 
@@ -20,9 +21,9 @@
 #include <vector>
 
 #include <gen/nedit/messages/graph_update.pb.h>
-#include <gen/nedit/messages/message.pb.h>
 #include <gen/nedit/messages/node_info.pb.h>
 #include <gen/nedit/messages/pin_info.pb.h>
+#include <gen/nedit/messages/type.pb.h>
 
 nil::cli::OptionInfo GUI::options() const
 {
@@ -40,7 +41,7 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    nil::service::tcp::Server server({
+    nil::service::TypedService server(nil::service::tcp::Server::Options{
         .port = std::uint16_t(options.number("port")) //
     });
 
@@ -97,75 +98,71 @@ int GUI::run(const nil::cli::Options& options) const
     auto* context = ax::NodeEditor::CreateEditor();
     App app;
 
-    server.on_message( //
-        [&actions,
+    server.on_message(
+        nil::nedit::proto::type::Freeze,
+        // TODO: find a way to not care about arguments if possible
+        [&is_frozen] //
+        (const std::string&, const std::string&)
+        {
+            is_frozen = true; //
+        }                     //
+    );
+
+    server.on_message(
+        nil::nedit::proto::type::PinInfo,
+        [&is_frozen,
          &mutex,
-         &app,
-         &is_frozen](const std::string&, const void* data, std::uint64_t count)
+         &actions,
+         &app] //
+        (const std::string&, const nil::nedit::proto::PinInfo& message)
         {
             if (is_frozen)
             {
                 return;
             }
-            nil::nedit::proto::Message m;
-            m.ParseFromArray(data, int(count));
-            switch (m.type())
+            auto info = PinInfo{
+                message.label(),
+                {ImVec4(
+                    message.color().r(),
+                    message.color().g(),
+                    message.color().b(),
+                    message.color().a()
+                )}
+            };
+            const auto _ = std::unique_lock(mutex);
+            actions.emplace_back(                                 //
+                [&app, info = std::move(info)]                    //
+                () mutable { app.add_pin_type(std::move(info)); } //
+            );
+        }
+    );
+
+    server.on_message(
+        nil::nedit::proto::type::NodeInfo,
+        [&is_frozen,
+         &mutex,
+         &actions,
+         &app] //
+        (const std::string&, const nil::nedit::proto::NodeInfo& message)
+        {
+            if (is_frozen)
             {
-                case nil::nedit::proto::type::Freeze:
-                {
-                    is_frozen = true;
-                    return;
-                }
-                case nil::nedit::proto::type::PinInfo:
-                {
-                    nil::nedit::proto::PinInfo pin_info;
-                    pin_info.ParseFromString(m.data());
-
-                    const auto _ = std::unique_lock(mutex);
-                    actions.push_back(
-                        [&app,
-                         label = pin_info.label(),
-                         color = ImVec4(
-                             pin_info.color().r(),
-                             pin_info.color().g(),
-                             pin_info.color().b(),
-                             pin_info.color().a()
-                         )]() mutable
-                        {
-                            app.add_pin_type({
-                                std::move(label),
-                                std::make_unique<FlowIcon>(std::move(color)) //
-                            });                                              //
-                        }
-                    );
-                    return;
-                }
-                case nil::nedit::proto::type::NodeInfo:
-                {
-                    nil::nedit::proto::NodeInfo node_info;
-                    node_info.ParseFromString(m.data());
-
-                    auto info = //
-                        NodeInfo{
-                            node_info.label(),
-                            {node_info.inputs().begin(), node_info.inputs().end()},
-                            {node_info.outputs().begin(), node_info.outputs().end()},
-                        };
-
-                    const auto _ = std::unique_lock(mutex);
-                    actions.push_back(
-                        [&app, info = std::move(info)]() mutable
-                        {
-                            app.add_node_type(std::move(info)); //
-                        }
-                    );
-                    return;
-                }
-                default:
-                {
-                    return;
-                }
+                return;
             }
+
+            auto info = NodeInfo{
+                message.label(),
+                {message.inputs().begin(), message.inputs().end()},
+                {message.outputs().begin(), message.outputs().end()},
+            };
+
+            const auto _ = std::unique_lock(mutex);
+            actions.emplace_back(
+                [&app, info = std::move(info)]() mutable
+                {
+                    app.add_node_type(std::move(info)); //
+                }
+            );
         }
     );
 
@@ -173,20 +170,20 @@ int GUI::run(const nil::cli::Options& options) const
 
     static const auto draw = +[](GLFWwindow* w)
     {
-        // Rendering code goes here
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
         glfwSwapBuffers(w);
     };
 
-    static const auto resize = +[](GLFWwindow* w, int width, int height)
-    {
-        glViewport(0, 0, width, height);
-        draw(w);
-    };
-
-    glfwSetFramebufferSizeCallback(window, resize);
+    glfwSetFramebufferSizeCallback(
+        window,
+        [](GLFWwindow* w, auto width, auto height)
+        {
+            glViewport(0, 0, width, height);
+            draw(w);
+        }
+    );
 
     constexpr auto window_flag                    //
         = ImGuiWindowFlags_NoDecoration           //
@@ -198,10 +195,14 @@ int GUI::run(const nil::cli::Options& options) const
     while (glfwWindowShouldClose(window) == 0)
     {
         for (const auto& action :
-             [&]()
+             [&actions, &mutex]()
              {
-                 const auto _ = std::unique_lock(mutex);
-                 return std::move(actions);
+                 std::vector<std::function<void()>> r;
+                 {
+                     const auto _ = std::unique_lock(mutex);
+                     std::swap(r, actions);
+                 }
+                 return r;
              }())
         {
             action();
@@ -236,26 +237,21 @@ int GUI::run(const nil::cli::Options& options) const
                 {
                     auto* node = graph.add_nodes();
                     node->set_type(n.second->type);
-                    for (auto idx = 0u; idx < n.second->pins_i.size(); ++idx)
+                    for (const auto& pin : n.second->pins_i)
                     {
-                        if (n.second->pins_i[idx]->links.empty())
+                        if (pin->links.empty())
                         {
                             std::cout << "connections not complete" << std::endl;
                             return;
                         }
-                        node->add_inputs(
-                            app.links[*n.second->pins_i[idx]->links.begin()]->entry->id.Get()
-                        );
+                        node->add_inputs(app.links[*pin->links.begin()]->entry->id.Get());
                     }
-                    for (auto idx = 0u; idx < n.second->pins_o.size(); ++idx)
+                    for (const auto& pin : n.second->pins_o)
                     {
-                        node->add_outputs(n.second->pins_o[idx]->id.Get());
+                        node->add_outputs(pin->id.Get());
                     }
                 }
-                nil::nedit::proto::Message m;
-                m.set_type(nil::nedit::proto::type::GraphUpdate);
-                const auto d = m.SerializeAsString();
-                server.publish(d.c_str(), d.size());
+                server.publish(nil::nedit::proto::type::GraphUpdate, graph);
             }();
         }
         ImGui::Text("Pin Types");
@@ -264,7 +260,7 @@ int GUI::run(const nil::cli::Options& options) const
         {
             ImGui::Dummy(ImVec2(5, 0));
             ImGui::SameLine();
-            ImGui::TextColored(app.pin_infos[n].icon->color, "%s", app.pin_infos[n].label.data());
+            ImGui::TextColored(app.pin_infos[n].icon.color, "%s", app.pin_infos[n].label.data());
         }
         ImGui::Text("Node Type (drag)");
 
@@ -300,7 +296,8 @@ int GUI::run(const nil::cli::Options& options) const
         int display_w = 0;
         int display_h = 0;
         glfwGetFramebufferSize(window, &display_w, &display_h);
-        resize(window, display_w, display_h);
+        glViewport(0, 0, display_w, display_h);
+        draw(window);
     }
 
     ax::NodeEditor::DestroyEditor(context);

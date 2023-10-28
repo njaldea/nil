@@ -16,13 +16,13 @@ struct T<void(A...)>: T<std::tuple<>(A...)>
 template <typename... R, typename... A>
 struct T<std::tuple<R...>(A...)>
 {
-    T(std::string init_tag)
+    explicit T(std::string init_tag)
         : tag(std::move(init_tag))
     {
         std::cout << "constructing : " << tag << std::endl;
     }
 
-    std::tuple<R...> operator()(A...) const
+    std::tuple<R...> operator()(A... /*unused*/) const
     {
         std::cout << "calling      : " << tag << std::endl;
         return std::make_tuple(R()...);
@@ -47,7 +47,7 @@ int main()
 
     // clang-format off
     // const auto [a1, a2, a3, a4] = core.node<A>({}, "a");
-    const auto a1 = core.edge<std::unique_ptr<const bool>>();
+    auto* a1 = core.edge<std::unique_ptr<const bool>>();
     const auto [a2, a3, a4] = core.edges<int, double, std::string>();
     const auto [b1] = core.node<B>({a1}, "b");
     const auto [c1] = core.node<C>({a2}, "c");

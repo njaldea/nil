@@ -152,8 +152,8 @@ namespace nil::service::udp
                 {
                     if (!ec)
                     {
-                        this->message(*receiver, buffer.data(), count);
-                        this->receive();
+                        message(*receiver, buffer.data(), count);
+                        receive();
                     }
                 }
             );

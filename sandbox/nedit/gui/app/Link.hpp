@@ -6,9 +6,15 @@ struct Pin;
 
 struct Link
 {
-    Link(ax::NodeEditor::LinkId init_id, Pin* init_entry, Pin* init_exit);
+    struct Info
+    {
+        Pin* entry;
+        Pin* exit;
+    };
 
-    void render();
+    Link(ax::NodeEditor::LinkId init_id, Info info);
+
+    void render() const;
 
     ax::NodeEditor::LinkId id;
     Pin* entry;

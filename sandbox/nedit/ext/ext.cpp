@@ -1,4 +1,5 @@
 #include "ext.hpp"
+#include "../codec.hpp"
 
 #include <nil/gate.hpp>
 #include <nil/service.hpp>
@@ -8,9 +9,9 @@
 #include <thread>
 
 #include <gen/nedit/messages/graph_update.pb.h>
-#include <gen/nedit/messages/message.pb.h>
 #include <gen/nedit/messages/node_info.pb.h>
 #include <gen/nedit/messages/pin_info.pb.h>
+#include <gen/nedit/messages/type.pb.h>
 
 namespace
 {
@@ -320,129 +321,91 @@ int EXT::run(const nil::cli::Options& options) const
         options.help(std::cout);
         return 0;
     }
+
     App app;
-    nil::service::tcp::Client client({
+
+    nil::service::TypedService client(nil::service::tcp::Client::Options{
         .host = "127.0.0.1",                          //
         .port = std::uint16_t(options.number("port")) //
     });
+
     client.on_connect(
         [&](const std::string& id)
         {
             for (const auto& pin : app.pins_info)
             {
-                nil::nedit::proto::Message m;
-                m.set_type(nil::nedit::proto::type::PinInfo);
-                pin.SerializeToString(m.mutable_data());
-                const auto d = m.SerializeAsString();
-                client.send(id, d.c_str(), d.size());
+                client.send(id, nil::nedit::proto::type::PinInfo, pin);
             }
             for (const auto& node : app.nodes_info)
             {
-                nil::nedit::proto::Message m;
-                m.set_type(nil::nedit::proto::type::NodeInfo);
-                node.info.SerializeToString(m.mutable_data());
-                const auto d = m.SerializeAsString();
-                client.send(id, d.c_str(), d.size());
+                client.send(id, nil::nedit::proto::type::NodeInfo, node.info);
             }
             {
-                nil::nedit::proto::Message m;
-                m.set_type(nil::nedit::proto::type::Freeze);
-                const auto d = m.SerializeAsString();
-                client.send(id, d.c_str(), d.size());
+                client.send(id, nil::nedit::proto::type::Freeze, std::string());
             }
         }
     );
 
     client.on_message(
-        [&](const std::string&, const void* data, std::uint64_t count)
+        nil::nedit::proto::type::GraphUpdate,
+        [&app](const std::string&, const nil::nedit::proto::Graph& graph)
         {
-            nil::nedit::proto::Message m;
-            m.ParseFromArray(data, int(count));
-            switch (m.type())
+            struct N
             {
-                case nil::nedit::proto::type::GraphUpdate:
+                bool done;
+                std::uint64_t t;
+                std::vector<std::uint32_t> i;
+                std::vector<std::uint32_t> o;
+            };
+            std::vector<N> items;
+
+            for (const auto& node : graph.nodes())
+            {
+                items.push_back({
+                    false,
+                    node.type(),
+                    {node.inputs().begin(), node.inputs().end()},
+                    {node.outputs().begin(), node.outputs().end()} //
+                });
+            }
+
+            app.edges.clear();
+            app.core = std::make_unique<nil::gate::Core>();
+
+            std::size_t done = 0;
+            while (done != items.size())
+            {
+                const auto current = done;
+                for (auto& n : items)
                 {
-                    nil::nedit::proto::Graph graph;
-                    graph.ParseFromString(m.data());
-
-                    struct N
+                    if (!n.done)
                     {
-                        bool done;
-                        std::uint64_t t;
-                        std::vector<std::uint32_t> i;
-                        std::vector<std::uint32_t> o;
-                    };
-                    std::vector<N> items;
-
-                    for (const auto& node : graph.nodes())
-                    {
-                        items.push_back({
-                            false,
-                            node.type(),
-                            {node.inputs().begin(), node.inputs().end()},
-                            {node.outputs().begin(), node.outputs().end()} //
-                        });
-                    }
-
-                    app.edges.clear();
-                    app.core = std::make_unique<nil::gate::Core>();
-
-                    std::size_t done = 0;
-                    while (done != items.size())
-                    {
-                        const auto current = done;
-                        for (auto& n : items)
+                        n.done = app.nodes_info[n.t].factory(n.i, n.o);
+                        if (n.done)
                         {
-                            if (!n.done)
-                            {
-                                n.done = app.nodes_info[n.t].factory(n.i, n.o);
-                                if (n.done)
-                                {
-                                    done += 1;
-                                }
-                            }
-                        }
-                        if (current == done)
-                        {
-                            std::cout << "error" << std::endl;
-                            return;
+                            done += 1;
                         }
                     }
-
-                    try
-                    {
-                        app.core->validate();
-                        app.core->run();
-                    }
-                    catch (const std::exception& ex)
-                    {
-                        std::cout << ex.what() << std::endl;
-                    }
-                    return;
                 }
-                default:
+                if (current == done)
                 {
+                    std::cout << "error" << std::endl;
                     return;
                 }
+            }
+
+            try
+            {
+                app.core->validate();
+                app.core->run();
+            }
+            catch (const std::exception& ex)
+            {
+                std::cout << ex.what() << std::endl;
             }
         }
     );
 
-    while (true)
-    {
-        std::thread t1([&]() { client.run(); });
-        std::string message;
-        while (std::getline(std::cin, message))
-        {
-            if (message == "reconnect")
-            {
-                break;
-            }
-            client.publish(message.data(), message.size());
-        }
-        client.stop();
-        t1.join();
-        client.restart();
-    }
+    client.run();
     return 0;
 }

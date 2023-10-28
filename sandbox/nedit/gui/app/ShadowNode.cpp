@@ -22,7 +22,7 @@ void ShadowNode::ready()
     is_ready = true;
 }
 
-void ShadowNode::render()
+void ShadowNode::render() const
 {
     auto id = std::numeric_limits<std::uint64_t>::max();
     ax::NodeEditor::BeginNode(id);
@@ -41,7 +41,7 @@ void ShadowNode::render()
         ImGui::BeginGroup();
         for (const auto& i : node_info.inputs)
         {
-            Pin(--id, ax::NodeEditor::PinKind::Input, i, pin_infos[i].label, *pin_infos[i].icon)
+            Pin(--id, ax::NodeEditor::PinKind::Input, i, pin_infos[i].label, pin_infos[i].icon)
                 .render();
         }
         ImGui::EndGroup();
@@ -57,7 +57,7 @@ void ShadowNode::render()
         ImGui::BeginGroup();
         for (const auto& o : node_info.outputs)
         {
-            Pin(--id, ax::NodeEditor::PinKind::Output, o, pin_infos[o].label, *pin_infos[o].icon)
+            Pin(--id, ax::NodeEditor::PinKind::Output, o, pin_infos[o].label, pin_infos[o].icon)
                 .render();
         }
         ImGui::EndGroup();
@@ -79,7 +79,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
             ax::NodeEditor::PinKind::Input,
             type_i,
             pin_infos[type_i].label,
-            *pin_infos[type_i].icon
+            pin_infos[type_i].icon
         ));
     }
 
@@ -91,7 +91,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
             ax::NodeEditor::PinKind::Output,
             type_o,
             pin_infos[type_o].label,
-            *pin_infos[type_o].icon
+            pin_infos[type_o].icon
         ));
     }
     return node;

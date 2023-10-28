@@ -12,6 +12,8 @@ namespace nil::service::ws
     public:
         struct Options final
         {
+            using Service = Server;
+
             std::uint16_t port;
             /**
              * @brief buffer size to use:

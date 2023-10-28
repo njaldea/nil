@@ -9,6 +9,7 @@ find_package(Boost REQUIRED)
 set(
     HEADERS
         publish/nil/service.hpp
+        publish/nil/service/TypedService.hpp
         publish/nil/service/IService.hpp
         publish/nil/service/udp/modes.hpp
         publish/nil/service/udp/Client.hpp
@@ -26,6 +27,7 @@ set(
 
 set(
     SOURCES
+        src/utils.cpp
         src/udp/Client.cpp
         src/udp/Server.cpp
         src/tcp/Client.cpp

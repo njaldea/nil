@@ -101,7 +101,7 @@ namespace nil::service::tcp
                         {
                             storage.connect(id);
                         }
-                        connections.emplace(std::move(id), std::move(connection));
+                        connections.emplace(id, std::move(connection));
                     }
                     accept();
                 }

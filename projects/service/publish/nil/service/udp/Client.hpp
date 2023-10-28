@@ -12,6 +12,8 @@ namespace nil::service::udp
     public:
         struct Options final
         {
+            using Service = Client;
+
             std::string host;
             std::uint16_t port;
             /**

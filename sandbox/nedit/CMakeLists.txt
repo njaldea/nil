@@ -30,6 +30,7 @@ set(
 
 set(
     HEADERS
+        codec.hpp
         ext/ext.hpp
         gui/gui.hpp
         gui/app/App.hpp

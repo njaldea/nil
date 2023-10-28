@@ -22,7 +22,7 @@ public:
     void link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o);
 
     void prepare_create(std::uint64_t type);
-    void confirm_create(std::uint64_t type);
+    void confirm_create(std::uint64_t type) const;
 
     void add_node_type(NodeInfo node_info)
     {
@@ -56,8 +56,8 @@ public:
     }
 
 private:
-    void style();
-    void pop_style();
+    static void style();
+    static void pop_style();
     void render();
     void edit_create();
     void edit_delete();

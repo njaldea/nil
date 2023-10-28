@@ -49,3 +49,4 @@ NOTE:
 
 ## NOTES: (will be fixed in the future)
 - host is not resolved. currently expects only IP.
+- requires [template class argument deduction](https://en.cppreference.com/w/cpp/language/class_template_argument_deduction)

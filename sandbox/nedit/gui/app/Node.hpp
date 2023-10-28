@@ -12,7 +12,7 @@ struct Node
 {
     Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_view init_label);
 
-    void render();
+    void render() const;
 
     std::uint64_t type;
     ax::NodeEditor::NodeId id;

@@ -10,7 +10,7 @@ Node::Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_
 {
 }
 
-void Node::render()
+void Node::render() const
 {
     ax::NodeEditor::BeginNode(id);
     {
@@ -22,7 +22,7 @@ void Node::render()
     const auto width = ImGui::GetItemRectSize().x;
     {
         ImGui::BeginGroup();
-        for (auto& pin : pins_i)
+        for (const auto& pin : pins_i)
         {
             pin->render();
         }
@@ -37,7 +37,7 @@ void Node::render()
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        for (auto& pin : pins_o)
+        for (const auto& pin : pins_o)
         {
             pin->render();
         }

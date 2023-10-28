@@ -21,7 +21,7 @@ struct NodeInfo
 struct PinInfo
 {
     std::string label;
-    std::unique_ptr<FlowIcon> icon;
+    FlowIcon icon;
 };
 
 struct ShadowNode
@@ -32,7 +32,7 @@ struct ShadowNode
         const std::vector<PinInfo>& init_pin_infos
     );
 
-    void render();
+    void render() const;
     void ready();
     std::unique_ptr<Node> consume(IDs& ids);
 
@@ -40,6 +40,6 @@ struct ShadowNode
     const NodeInfo& node_info;
     const std::vector<PinInfo>& pin_infos;
 
-    ImVec2 pos;
+    mutable ImVec2 pos;
     bool is_ready = false;
 };

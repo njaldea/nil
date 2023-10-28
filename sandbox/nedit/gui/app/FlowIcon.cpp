@@ -3,17 +3,17 @@
 #include <imgui_internal.h>
 
 FlowIcon::FlowIcon(ImVec4 init_color)
-    : color(std::move(init_color))
+    : color(init_color)
 {
 }
 
-void FlowIcon::render(float x_offset)
+void FlowIcon::render(float x_offset) const
 {
     constexpr auto size = ImVec2(15, 15);
     if (ImGui::IsRectVisible(size))
     {
         auto cursorPos = ImGui::GetCursorScreenPos();
-        auto drawList = ImGui::GetWindowDrawList();
+        auto* drawList = ImGui::GetWindowDrawList();
 
         const auto a = cursorPos + ImVec2(x_offset, 0.0f);
         const auto b = cursorPos + ImVec2(x_offset, 0.0f) + size;

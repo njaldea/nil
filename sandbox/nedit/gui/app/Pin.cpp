@@ -10,7 +10,7 @@ Pin::Pin(
     ax::NodeEditor::PinKind init_kind,
     std::uint32_t init_type,
     std::string_view init_label,
-    FlowIcon& init_icon
+    const FlowIcon& init_icon
 )
     : id(init_id)
     , kind(init_kind)
@@ -20,7 +20,7 @@ Pin::Pin(
 {
 }
 
-void Pin::render()
+void Pin::render() const
 {
     ax::NodeEditor::BeginPin(id, kind);
 
