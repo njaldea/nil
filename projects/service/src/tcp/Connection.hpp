@@ -7,10 +7,11 @@
 
 namespace nil::service::tcp
 {
-    struct Connection;
+    class Connection;
 
     struct IImpl
     {
+        virtual ~IImpl() = default;
         virtual void message( //
             const std::string& id,
             const std::uint8_t* data,

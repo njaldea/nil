@@ -374,7 +374,7 @@ int EXT::run(const nil::cli::Options& options) const
                     };
                     std::vector<N> items;
 
-                    for (const auto node : graph.nodes())
+                    for (const auto& node : graph.nodes())
                     {
                         items.push_back({
                             false,

@@ -4,6 +4,7 @@
 #include <imgui.h>
 
 #include <iostream>
+#include <limits>
 
 ShadowNode::ShadowNode(
     std::uint64_t init_type,

@@ -3,6 +3,7 @@
 #include <imgui-node-editor/imgui_node_editor.h>
 
 #include <memory>
+#include <string_view>
 #include <vector>
 
 struct Pin;

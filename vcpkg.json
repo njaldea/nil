@@ -1,6 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "description": "Collection of libraries from nil",
+    "builtin-baseline": "da21e45c9ae689f63aa27f3a4ee0e64fe6b16494",
     "features": {
         "cli": {
             "description": "Simplified argument parsing (from boost::program_options)",
@@ -26,15 +27,6 @@
         },
         "pulse": {
             "description": "straight forward implementation of reactive variables"
-        },
-        "proto": {
-            "description": "nil/proto",
-            "dependencies": [
-                {
-                    "name": "protobuf",
-                    "version>=": "3.21.12"
-                }
-            ]
         },
         "gate": {
             "description": "nil-/gate js to c++"

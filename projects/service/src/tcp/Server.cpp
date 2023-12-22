@@ -21,6 +21,13 @@ namespace nil::service::tcp
         {
         }
 
+        ~Impl() = default;
+
+        Impl(const Impl&) = delete;
+        Impl(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+
         void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(
@@ -89,7 +96,7 @@ namespace nil::service::tcp
                             std::move(socket),
                             *this
                         );
-                        auto id = connection->id();
+                        const auto& id = connection->id();
                         if (storage.connect)
                         {
                             storage.connect(id);

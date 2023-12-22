@@ -38,7 +38,10 @@ set(
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
+endif()
+
 target_include_directories(
     ${PROJECT_NAME}
     SYSTEM PRIVATE

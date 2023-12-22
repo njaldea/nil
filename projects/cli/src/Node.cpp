@@ -3,6 +3,8 @@
 #include <nil/cli/Options.hpp>
 #include <nil/cli/types.hpp>
 
+#include <stdexcept>
+
 namespace nil::cli
 {
     Node::Node(std::unique_ptr<Command> init_command)

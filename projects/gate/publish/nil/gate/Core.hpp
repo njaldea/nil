@@ -3,6 +3,8 @@
 #include "detail/Edge.hpp"
 #include "detail/Node.hpp"
 
+#include <stdexcept>
+
 namespace nil::gate
 {
     /**

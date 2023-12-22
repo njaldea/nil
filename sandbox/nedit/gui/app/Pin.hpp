@@ -2,6 +2,7 @@
 
 #include "FlowIcon.hpp"
 
+#include <string_view>
 #include <unordered_set>
 
 struct Link;

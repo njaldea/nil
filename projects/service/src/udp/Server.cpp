@@ -19,6 +19,13 @@ namespace nil::service::udp
             buffer.resize(storage.options.buffer);
         }
 
+        ~Impl() = default;
+
+        Impl(const Impl&) = delete;
+        Impl(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+
         std::string id() const
         {
             return socket.remote_endpoint().address().to_string() + ":"
@@ -29,18 +36,20 @@ namespace nil::service::udp
         {
             boost::asio::dispatch(
                 strand,
-                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this,
+                 id,
+                 i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE),
+                 msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
+                    // TODO: use id
+                    (void)id;
+                    const auto b = std::array<boost::asio::const_buffer, 3>{
+                        boost::asio::buffer(i),
+                        boost::asio::buffer(msg)
+                    };
                     for (const auto& connection : connections)
                     {
-                        namespace basio = boost::asio;
-                        socket.send_to(
-                            std::array<basio::const_buffer, 3>{
-                                basio::buffer(utils::to_array(utils::UDP_EXTERNAL_MESSAGE)),
-                                basio::buffer(msg)
-                            },
-                            connection.second->endpoint
-                        );
+                        socket.send_to(b, connection.second->endpoint);
                     }
                 }
             );
@@ -78,7 +87,7 @@ namespace nil::service::udp
             }
             connection->timer.expires_after(storage.options.timeout);
             connection->timer.async_wait(
-                [this, endpoint, id](const boost::system::error_code& ec)
+                [this, id](const boost::system::error_code& ec)
                 {
                     if (ec == boost::asio::error::operation_aborted)
                     {
@@ -156,7 +165,7 @@ namespace nil::service::udp
         boost::asio::strand<boost::asio::io_context::executor_type> strand;
         boost::asio::ip::udp::socket socket;
 
-        struct Connection
+        struct Connection final
         {
             Connection(
                 boost::asio::ip::udp::endpoint init_endpoint,
@@ -166,6 +175,13 @@ namespace nil::service::udp
                 , timer(strand)
             {
             }
+
+            ~Connection() = default;
+
+            Connection(const Connection&) = delete;
+            Connection(Connection&&) = delete;
+            Connection& operator=(const Connection&) = delete;
+            Connection& operator=(Connection&&) = delete;
 
             boost::asio::ip::udp::endpoint endpoint;
             boost::asio::steady_timer timer;

@@ -22,6 +22,13 @@ namespace nil::cli
         {
         }
 
+        ~Impl() = default;
+
+        Impl(const Impl&) = delete;
+        Impl(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+
         std::string usage;
         boost::program_options::options_description desc;
         boost::program_options::variables_map vm;
@@ -34,7 +41,7 @@ namespace nil::cli
             {
                 return vm[k].as<T>();
             }
-            catch (const std::exception& e)
+            catch (const std::exception&)
             {
                 throw std::out_of_range("[nil][cli][" + k + "] is invalid");
             }

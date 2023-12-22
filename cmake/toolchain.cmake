@@ -22,14 +22,21 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-fno-rtti)
-add_compile_options(-flto)
-add_compile_options(-Wfatal-errors)
-add_compile_options(-Wshadow)
-add_compile_options(-Werror)
-add_compile_options(-Wall)
-add_compile_options(-Wextra)
-add_compile_options(-Wpedantic)
-add_compile_options(-pedantic-errors)
-add_compile_options(-Wconversion)
-add_compile_options(-Wsign-conversion)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    add_compile_options(-fno-rtti)
+    add_compile_options(-flto)
+    add_compile_options(-Wfatal-errors)
+    add_compile_options(-Wshadow)
+    add_compile_options(-Werror)
+    add_compile_options(-Wall)
+    add_compile_options(-Wextra)
+    add_compile_options(-Wpedantic)
+    add_compile_options(-pedantic-errors)
+    add_compile_options(-Wconversion)
+    add_compile_options(-Wsign-conversion)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    add_compile_options("/GR-")    # -fno-rtti
+    add_compile_options("/GL")     # -flto
+    add_compile_options("/Wall")   # -Wall
+    add_compile_options("/WX")     # -Werror
+endif()

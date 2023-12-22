@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option optimize_for = LITE_RUNTIME;
-
-package nil.proto.type;
-
-enum Type {
-    Request = 0;
-}
