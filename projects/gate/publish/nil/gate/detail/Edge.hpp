@@ -22,6 +22,13 @@ namespace nil::gate::detail
         {
         }
 
+        ~Edge() = default;
+
+        Edge(Edge&&) = delete;
+        Edge(const Edge&) = delete;
+        Edge& operator=(Edge&&) = delete;
+        Edge& operator=(const Edge&) = delete;
+
         /**
          * @brief set value. propagate node execution
          *
@@ -30,13 +37,6 @@ namespace nil::gate::detail
         void exec(T new_data)
         {
             this->data = std::move(new_data);
-            // TODO: evaluate if depth traversal is needed.
-            //  by using variables, the graph becomes
-            //  topologically sorted by default
-            // for (auto* out : this->outs)
-            // {
-            //     out->exec();
-            // }
         }
 
         /**

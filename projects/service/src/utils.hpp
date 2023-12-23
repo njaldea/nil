@@ -34,7 +34,7 @@ namespace nil::service::utils
     {
         if constexpr (sizeof(T) == 1)
         {
-            return {value};
+            return {{value}};
         }
         else
         {

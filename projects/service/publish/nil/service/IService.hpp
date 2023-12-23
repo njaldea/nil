@@ -14,7 +14,7 @@ namespace nil::service
         template <typename Options>
         struct Storage
         {
-            const Options options;
+            Options options;
             MessageHandler msg = {};
             ConnectHandler connect = {};
             DisconnectHandler disconnect = {};
@@ -74,18 +74,18 @@ namespace nil::service
          * @brief Send a message to a specific id.
          *  Does nothing if id is unknown.
          *
-         * @param id    - identifier
-         * @param data  - payload
-         * @param size  - payload size
+         * @param id    identifier
+         * @param data  payload
+         * @param size  payload size
          */
         virtual void send(const std::string& id, const void* data, std::uint64_t size) = 0;
 
         /**
          * @brief Broadcast a message to all listeners
          *
-         * @param type  - message type
-         * @param data  - payload
-         * @param size  - payload size
+         * @param type  message type
+         * @param data  payload
+         * @param size  payload size
          */
         virtual void publish(const void* data, std::uint64_t size) = 0;
     };

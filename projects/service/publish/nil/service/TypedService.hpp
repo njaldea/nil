@@ -30,6 +30,9 @@ namespace nil::service
         {
             using type = Arg;
         };
+
+        template <typename T>
+        using traits_t = typename traits<T>::type;
     }
 
     template <typename T, typename = void>
@@ -53,12 +56,6 @@ namespace nil::service
         }
     };
 
-    namespace utils
-    {
-        std::uint32_t type(const void* data);
-        std::vector<std::uint8_t> serialize(std::uint32_t type, std::vector<std::uint8_t> payload);
-    }
-
     class TypedService final
     {
     public:
@@ -70,7 +67,7 @@ namespace nil::service
                 [this](const std::string& id, const void* data, std::uint64_t size)
                 {
                     const auto m = static_cast<const std::uint8_t*>(data);
-                    const auto it = handlers.find(utils::type(data));
+                    const auto it = handlers.find(TypedService::type(data));
                     if (it != handlers.end() && it->second)
                     {
                         it->second(id, m + sizeof(std::uint32_t), size - sizeof(std::uint32_t));
@@ -103,13 +100,12 @@ namespace nil::service
         template <typename T>
         void on_message(std::uint32_t type, T handler)
         {
-            using trait = detail::traits<T>;
             handlers.emplace(
                 type,
-                [h = std::move(handler)]                                         //
-                (const std::string& id, const void* data, std::uint64_t size)    //
-                {                                                                //
-                    h(id, codec<typename trait::type>::deserialize(data, size)); //
+                [h = std::move(handler)]                                        //
+                (const std::string& id, const void* data, std::uint64_t size)   //
+                {                                                               //
+                    h(id, codec<detail::traits_t<T>>::deserialize(data, size)); //
                 }
             );
         }
@@ -127,19 +123,25 @@ namespace nil::service
         template <typename T>
         void send(const std::string& id, std::uint32_t type, const T& message)
         {
-            auto data = utils::serialize(type, codec<T>::serialize(message));
+            auto data = TypedService::serialize(type, codec<T>::serialize(message));
             service->send(id, data.data(), data.size());
         }
 
         template <typename T>
         void publish(std::uint32_t type, const T& message)
         {
-            auto data = utils::serialize(type, codec<T>::serialize(message));
+            auto data = TypedService::serialize(type, codec<T>::serialize(message));
             service->publish(data.data(), data.size());
         }
 
     private:
         std::unique_ptr<nil::service::IService> service;
         std::unordered_map<std::uint32_t, MessageHandler> handlers;
+
+        static std::uint32_t type(const void* data);
+        static std::vector<std::uint8_t> serialize(
+            std::uint32_t type,
+            std::vector<std::uint8_t> payload
+        );
     };
 }

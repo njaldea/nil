@@ -26,6 +26,11 @@ namespace nil::service::tcp
         Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl);
         ~Connection();
 
+        Connection(Connection&&) = delete;
+        Connection(const Connection&) = delete;
+        Connection& operator=(Connection&&) = delete;
+        Connection& operator=(const Connection&) = delete;
+
         void write(const std::uint8_t* data, std::uint64_t size);
         const std::string& id() const;
 

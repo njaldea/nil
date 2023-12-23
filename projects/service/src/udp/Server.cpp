@@ -41,7 +41,7 @@ namespace nil::service::udp
                  i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE),
                  msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
-                    // TODO: use id
+                    // [TODO] use id
                     (void)id;
                     const auto b = std::array<boost::asio::const_buffer, 3>{
                         boost::asio::buffer(i),

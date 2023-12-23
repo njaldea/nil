@@ -67,7 +67,7 @@ private:
 
 public:
     IDs ids;
-    // TODO: reevaluate container type
+    // [TODO] reevaluate container type
     // creation/deletion is easier with unordered_map
     // rendering (iteration) is more expensive with unordered_map
     std::unordered_map<std::uint64_t, std::unique_ptr<Node>> nodes;

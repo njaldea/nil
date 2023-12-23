@@ -9,15 +9,18 @@
 
 namespace nil::service::ws
 {
-    struct Connection;
+    class Connection;
 
     struct IImpl
     {
+        virtual ~IImpl() = default;
+
         virtual void message( //
             const std::string& id,
             const std::uint8_t* data,
             std::uint64_t size
         ) = 0;
+
         virtual void disconnect(Connection* connection) = 0;
     };
 
@@ -30,6 +33,11 @@ namespace nil::service::ws
             IImpl& impl
         );
         ~Connection();
+
+        Connection(Connection&&) = delete;
+        Connection(const Connection&) = delete;
+        Connection& operator=(Connection&&) = delete;
+        Connection& operator=(const Connection&) = delete;
 
         void write(const std::uint8_t* data, std::uint64_t size);
         const std::string& id() const;

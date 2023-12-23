@@ -22,6 +22,11 @@ namespace nil::cli
         );
         ~Options();
 
+        Options(Options&&) = default;
+        Options(const Options&) = delete;
+        Options& operator=(Options&&) = default;
+        Options& operator=(const Options&) = delete;
+
     public:
         /**
          * @brief Print help message to ostream.
@@ -35,7 +40,7 @@ namespace nil::cli
          *  Expected to be used for options registered using Builder::flag
          *
          * @param lkey          registered long key
-         * @return bool
+         * @return `bool`
          */
         bool flag(const std::string& lkey) const;
 
@@ -44,7 +49,7 @@ namespace nil::cli
          *  Expected to be used for options registered using Builder::number
          *
          * @param lkey          registered long key
-         * @return std::int64_t
+         * @return `std::int64_t`
          */
         std::int64_t number(const std::string& lkey) const;
 
@@ -53,7 +58,7 @@ namespace nil::cli
          *  Expected to be used for options registered using Builder::param
          *
          * @param lkey          registered long key
-         * @return std::string
+         * @return `std::string`
          */
         std::string param(const std::string& lkey) const;
 
@@ -62,7 +67,7 @@ namespace nil::cli
          *  Expected to be used for options registered using Builder::params
          *
          * @param lkey                      registered long key
-         * @return std::vector<std::string>
+         * @return `std::vector<std::string>`
          */
         std::vector<std::string> params(const std::string& lkey) const;
 

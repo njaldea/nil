@@ -100,12 +100,12 @@ int GUI::run(const nil::cli::Options& options) const
 
     server.on_message(
         nil::nedit::proto::type::Freeze,
-        // TODO: find a way to not care about arguments if possible
+        // [TODO] find a way to not care about arguments if possible
         [&is_frozen] //
         (const std::string&, const std::string&)
         {
             is_frozen = true; //
-        }                     //
+        }
     );
 
     server.on_message(

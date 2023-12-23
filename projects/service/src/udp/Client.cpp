@@ -22,6 +22,13 @@ namespace nil::service::udp
             buffer.resize(storage.options.buffer);
         }
 
+        ~Impl() = default;
+
+        Impl(Impl&&) = delete;
+        Impl(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+
         void publish(const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(

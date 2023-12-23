@@ -8,7 +8,7 @@ namespace nil::gate::detail
         enum class State
         {
             Pending,
-            Cancelled, // TODO: add handling, how?
+            Cancelled, // [TODO] add handling, how?
             Done
         };
 

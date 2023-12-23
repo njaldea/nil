@@ -61,13 +61,13 @@ namespace nil::cli
         auto options = impl->desc.add_options();
         for (const auto& option : info)
         {
-            option->apply({options});
+            option->apply({&options});
         }
 
         try
         {
             boost::program_options::positional_options_description positional;
-            // TODO: allow positional arguments
+            // [TODO] allow positional arguments
             positional.add("__nil_cli_pos_args", 0);
 
             boost::program_options::command_line_parser parser(argc, argv);

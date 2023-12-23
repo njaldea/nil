@@ -22,7 +22,7 @@ namespace nil::cli
                 auto* value = boost::program_options::value<bool>();
                 value->zero_tokens();
                 value->default_value(false);
-                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
+                (*impl.ex)(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
@@ -52,7 +52,7 @@ namespace nil::cli
                 value->value_name("value");
                 value->implicit_value(options.implicit, std::to_string(options.implicit));
                 value->default_value(options.fallback, std::to_string(options.fallback));
-                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
+                (*impl.ex)(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
@@ -91,7 +91,7 @@ namespace nil::cli
                 {
                     value->required();
                 }
-                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
+                (*impl.ex)(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:
@@ -121,7 +121,7 @@ namespace nil::cli
                 value->value_name("text");
                 value->multitoken();
                 value->default_value({}, "");
-                impl.ex(opt.c_str(), value, options.msg.value_or("").c_str());
+                (*impl.ex)(opt.c_str(), value, options.msg.value_or("").c_str());
             }
 
         private:

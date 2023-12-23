@@ -32,6 +32,12 @@ struct ShadowNode
         const std::vector<PinInfo>& init_pin_infos
     );
 
+    ~ShadowNode() = default;
+    ShadowNode(ShadowNode&&) = delete;
+    ShadowNode(const Pin&) = delete;
+    ShadowNode& operator=(ShadowNode&&) = delete;
+    ShadowNode& operator=(const ShadowNode&) = delete;
+
     void render() const;
     void ready();
     std::unique_ptr<Node> consume(IDs& ids);

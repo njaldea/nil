@@ -21,7 +21,7 @@ namespace nil::service::tcp
         {
         }
 
-        ~Impl() = default;
+        ~Impl() override = default;
 
         Impl(const Impl&) = delete;
         Impl(Impl&&) = delete;

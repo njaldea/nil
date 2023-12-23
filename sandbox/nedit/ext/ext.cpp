@@ -76,7 +76,7 @@ namespace
         std::unordered_map<std::uint32_t, nil::gate::IEdge*> edges;
 
         using Factory = std::function<
-            bool(const std::vector<std::uint32_t>&, const std::vector<std::uint32_t>&)>;
+            void(const std::vector<std::uint32_t>&, const std::vector<std::uint32_t>&)>;
 
         struct Pin
         {
@@ -137,7 +137,6 @@ namespace
                     (void)input;
                     const auto [result] = core->node<Input_b<false>>({});
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -156,7 +155,6 @@ namespace
                     (void)input;
                     const auto [result] = core->node<Input_b<true>>({});
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -175,7 +173,6 @@ namespace
                     (void)input;
                     const auto [result] = core->node<Input_i<5>>({});
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -194,7 +191,6 @@ namespace
                     (void)input;
                     const auto [result] = core->node<Input_i<10>>({});
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -212,16 +208,11 @@ namespace
                     const std::vector<std::uint32_t>& output
                 )
                 {
-                    if (!edges.contains(input[0]) || !edges.contains(input[1]))
-                    {
-                        return false;
-                    }
                     const auto [result] = core->node<Inverter>({
                         static_cast<nil::gate::ReadOnlyEdge<bool>*>(edges[input[0]]),
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
                     });
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -239,16 +230,11 @@ namespace
                     const std::vector<std::uint32_t>& output
                 )
                 {
-                    if (!edges.contains(input[0]) || !edges.contains(input[1]))
-                    {
-                        return false;
-                    }
                     const auto [result] = core->node<Add>({
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]),
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
                     });
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -266,16 +252,11 @@ namespace
                     const std::vector<std::uint32_t>& output
                 )
                 {
-                    if (!edges.contains(input[0]) || !edges.contains(input[1]))
-                    {
-                        return false;
-                    }
                     const auto [result] = core->node<Mul>({
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]),
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
                     });
                     edges[output[0]] = result;
-                    return true;
                 } //
             },
             {
@@ -291,10 +272,6 @@ namespace
                     const std::vector<std::uint32_t>& output
                 )
                 {
-                    if (!edges.contains(input[0]))
-                    {
-                        return false;
-                    }
                     (void)output;
                     core->node<Consume>({
                         static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]) //
@@ -350,48 +327,74 @@ int EXT::run(const nil::cli::Options& options) const
         nil::nedit::proto::type::GraphUpdate,
         [&app](const std::string&, const nil::nedit::proto::Graph& graph)
         {
-            struct N
+            struct TN
             {
-                bool done;
+                std::uint32_t score;
                 std::uint64_t t;
                 std::vector<std::uint32_t> i;
                 std::vector<std::uint32_t> o;
             };
-            std::vector<N> items;
 
-            for (const auto& node : graph.nodes())
+            std::vector<TN> items;
             {
-                items.push_back({
-                    false,
-                    node.type(),
-                    {node.inputs().begin(), node.inputs().end()},
-                    {node.outputs().begin(), node.outputs().end()} //
-                });
+                std::unordered_map<std::uint32_t, TN*> edge_to_node;
+
+                for (const auto& node : graph.nodes())
+                {
+                    items.push_back({
+                        0u,
+                        node.type(),
+                        {node.inputs().begin(), node.inputs().end()},
+                        {node.outputs().begin(), node.outputs().end()} //
+                    });
+                    for (const auto& o : node.outputs())
+                    {
+                        edge_to_node.emplace(o, &items.back());
+                    }
+                }
+                std::unordered_map<std::uint32_t, std::uint32_t> edge_score;
+
+                for (const auto& [edge_id, node] : edge_to_node)
+                {
+                    auto final_score = 0u;
+                    for (const auto i : node->i)
+                    {
+                        auto current_score = 0u;
+                        auto current_node = node;
+                        while (current_node != nullptr)
+                        {
+                            current_score += 1;
+                            current_node = edge_to_node[i];
+                        }
+                        if (final_score < current_score)
+                        {
+                            final_score = current_score;
+                        }
+                    }
+                    edge_score[edge_id] = final_score;
+                }
+
+                for (auto& node : items)
+                {
+                    for (const auto& i : node.i)
+                    {
+                        node.score = std::max(i, node.score);
+                    }
+                }
             }
+
+            std::sort(
+                items.begin(),
+                items.end(),
+                [](const auto& l, const auto& r) { return l.score < r.score; }
+            );
 
             app.edges.clear();
             app.core = std::make_unique<nil::gate::Core>();
 
-            std::size_t done = 0;
-            while (done != items.size())
+            for (const auto& item : items)
             {
-                const auto current = done;
-                for (auto& n : items)
-                {
-                    if (!n.done)
-                    {
-                        n.done = app.nodes_info[n.t].factory(n.i, n.o);
-                        if (n.done)
-                        {
-                            done += 1;
-                        }
-                    }
-                }
-                if (current == done)
-                {
-                    std::cout << "error" << std::endl;
-                    return;
-                }
+                app.nodes_info[item.t].factory(item.i, item.o);
             }
 
             try

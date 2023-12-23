@@ -37,6 +37,10 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options("/GR-")    # -fno-rtti
     add_compile_options("/GL")     # -flto
-    add_compile_options("/Wall")   # -Wall
-    add_compile_options("/WX")     # -Werror
+    # add_compile_options("/Wall")   # -Wall
+    # add_compile_options("/WX")     # -Werror
+    # add_compile_options("/wd4820") # struct padding
+    # add_compile_options("/wd4464") # "../" warning for relative include
+    # add_compile_options("/wd4514") # unreferenced inline function has been removed
+    # TODO: figure out how to ignore 3rd party headers
 endif()

@@ -1,4 +1,4 @@
-add_test_executable(${PROJECT_NAME}-test main.cpp)
+add_test_executable(${PROJECT_NAME}-test cli.cpp)
 target_link_libraries(${PROJECT_NAME}-test PRIVATE ${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME}-test PRIVATE GTest::gmock)
 target_link_libraries(${PROJECT_NAME}-test PRIVATE GTest::gtest)

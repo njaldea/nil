@@ -18,6 +18,13 @@ namespace nil::service::ws
         {
         }
 
+        ~Impl() override = default;
+
+        Impl(Impl&&) = delete;
+        Impl(const Impl&) = delete;
+        Impl& operator=(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
+
         void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
         {
             boost::asio::dispatch(

@@ -16,6 +16,12 @@ struct Pin
         std::string_view init_label,
         const FlowIcon& init_icon);
 
+    ~Pin() = default;
+    Pin(Pin&&) = delete;
+    Pin(const Pin&) = delete;
+    Pin& operator=(Pin&&) = delete;
+    Pin& operator=(const Pin&) = delete;
+
     void render() const;
 
     std::unordered_set<std::uint64_t> links;

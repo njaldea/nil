@@ -12,14 +12,14 @@ namespace nil::gate
      *  -  Nodes represent a runnable object
      *  -  Edges owns the data
      *  -  Edge type qualifications:
-     *      - not pointer
-     *      - not reference
-     *      - if std::unique_ptr/std::shared_ptr, T should be const
+     *      -  not pointer
+     *      -  not reference
+     *      -  if std::unique_ptr/std::shared_ptr, T should be const
      *  -  Node type qualifications:
-     *      - not pointer
-     *      - if reference, should be const
-     *      - copy-able
-     *      - if std::unique_ptr/std::shared_ptr, T should be const
+     *      -  not pointer
+     *      -  if reference, should be const
+     *      -  copy-able
+     *      -  if std::unique_ptr/std::shared_ptr, T should be const
      */
     class Core final
     {
@@ -60,11 +60,14 @@ namespace nil::gate
         std::enable_if_t<
             !(true && (... && detail::edge_validate<T>::value)),
             std::tuple<MutableEdge<T>*...>>
-            edges() = delete;
+            edges()
+        {
+            static_assert((true && (... && detail::edge_validate<T>::value)));
+        }
 
         /**
-         * @tparam T                                edge type
-         * @return std::tuple<MutableEdge<T>*...>   edge instances (still owned by core)
+         * @tparam T                                - edge type
+         * @return `std::tuple<MutableEdge<T>*...>` - edge instances (still owned by core)
          */
         template <typename... T>
         std::enable_if_t<
@@ -77,13 +80,16 @@ namespace nil::gate
 
         // Invalid type passed
         template <typename T>
-        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge() = delete;
+        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge()
+        {
+            static_assert(detail::edge_validate<T>::value);
+        }
 
         /**
          * @brief create an edge
          *
-         * @tparam T                    edge type
-         * @return `MutableEdge<T>*`    edge instance (still owned by core)
+         * @tparam T                    - edge type
+         * @return `MutableEdge<T>*`    - edge instance (still owned by core)
          */
         template <typename T>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge()

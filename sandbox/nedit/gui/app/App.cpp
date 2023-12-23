@@ -152,8 +152,8 @@ void App::edit_create()
                 link(pin_id_i, pin_id_o);
             }
         }
-        ax::NodeEditor::EndCreate();
     }
+    ax::NodeEditor::EndCreate();
 }
 
 void App::edit_delete()

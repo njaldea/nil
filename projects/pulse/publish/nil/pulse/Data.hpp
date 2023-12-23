@@ -53,7 +53,7 @@ namespace nil
              * @brief Creates a new Data<T>
              *
              * @param init_value
-             * @return std::shared_ptr<Data<T>>
+             * @return `std::shared_ptr<Data<T>>`
              */
             static ptr_t create(T init_value)
             {
@@ -70,7 +70,7 @@ namespace nil
             /**
              * @brief Returns the current value held by the object.
              *
-             * @return const T&
+             * @return `const T&`
              */
             const T& get() const
             {
@@ -100,7 +100,8 @@ namespace nil
              * @brief Registers a callback to be invoked when the data chanes
              *
              * @param call                      callback to be called
-             * @return std::function<void()>    unsubscribes the callback
+             *
+             * @return `std::function<void()>`  unsubscribes the callback
              */
             Unsubscriber subscribe(Subscriber<T> call)
             {

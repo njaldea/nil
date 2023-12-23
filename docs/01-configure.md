@@ -35,7 +35,7 @@ to enable cli:
 ### use cmake presets
 
 - export `VCPKG_ROOT` pointing to where vcpkg is located
-- `cmake . --preset dev`
+- `cmake . --preset debug`
 
 ### rely on vscode
 

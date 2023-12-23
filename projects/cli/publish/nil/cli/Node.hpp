@@ -17,7 +17,7 @@ namespace nil::cli
         /**
          * @brief create a Node with base nil::cli::Command
          *
-         * @return Node
+         * @return `Node`
          */
         static Node root()
         {
@@ -27,10 +27,11 @@ namespace nil::cli
         /**
          * @brief create a Node with custom Command
          *
-         * @tparam T    - custom command inheriting from nil::cli::Command
-         * @tparam Args - constructor arguments of T
-         * @param args  - constructor arguments to be passed to T
-         * @return Node
+         * @tparam T    custom command inheriting from nil::cli::Command
+         * @tparam Args constructor arguments of T
+         * @param args  constructor arguments to be passed to T
+         *
+         * @return `Node`
          */
         template <typename T, typename... Args>
         static Node root(Args&&... args)
@@ -42,7 +43,7 @@ namespace nil::cli
         /**
          * @brief Construct a new Node object
          *
-         * @param command - Command instance
+         * @param command   Command instance
          */
         Node(std::unique_ptr<Command> command);
         ~Node();
@@ -55,9 +56,10 @@ namespace nil::cli
         /**
          * @brief add nil::cli::Command as subnode
          *
-         * @param key           - subcommand
-         * @param description   - message to be used when displaying help
-         * @return Node&        - created Node
+         * @param key           subcommand
+         * @param description   message to be used when displaying help]
+         *
+         * @return `Node&`      created Node
          */
         Node& add(std::string key, std::string description)
         {
@@ -68,12 +70,13 @@ namespace nil::cli
         /**
          * @brief add a custom Command
          *
-         * @tparam T            - custom command inheriting from nil::cli::Command
-         * @tparam Args         - constructor arguments of T
-         * @param key           - subcommand
-         * @param description   - message to be used when displaying help
-         * @param args          - constructor arguments to be passed to T
-         * @return Node&        - created Node
+         * @tparam T            custom command inheriting from nil::cli::Command
+         * @tparam Args         constructor arguments of T
+         * @param key           subcommand
+         * @param description   message to be used when displaying help
+         * @param args          constructor arguments to be passed to T
+         *
+         * @return `Node&`      created Node
          */
         template <typename T, typename... Args>
         Node& add(std::string key, std::string description, Args&&... args)
@@ -86,9 +89,10 @@ namespace nil::cli
         /**
          * @brief parse and execute the arguments
          *
-         * @param argc - 1 minus the number of items in argv.
-         * @param argv - at least 2 { PROGRAM_NAME, SENTINEL, ...REST }
-         * @return int - STATUS CODE
+         * @param argc      1 minus the number of items in argv.
+         * @param argv      at least 2 { PROGRAM_NAME, SENTINEL, ...REST }
+         *
+         * @return `int`    STATUS CODE
          */
         int run(int argc, const char** argv) const;
 

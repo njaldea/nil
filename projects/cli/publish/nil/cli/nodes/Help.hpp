@@ -11,6 +11,12 @@ namespace nil::cli::nodes
     {
     public:
         Help(std::ostream& init_os);
+        ~Help() = default;
+
+        Help(Help&&) = delete;
+        Help(const Help&) = delete;
+        Help& operator=(Help&&) = delete;
+        Help& operator=(const Help&) = delete;
 
         OptionInfo options() const;
 

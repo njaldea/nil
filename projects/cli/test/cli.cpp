@@ -5,7 +5,7 @@
 
 namespace
 {
-    // TODO: verify if bpo changes width depending on terminal width
+    // [TODO] verify if bpo changes width depending on terminal width
     const auto help
         = "usage"
           "\nOPTIONS:"

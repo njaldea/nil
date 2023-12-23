@@ -13,37 +13,58 @@
             "environment": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
                 "CMAKE_BUILD_PARALLEL_LEVEL": "8"
-            },
+            }
+        },
+        {
+            "name": "dev",
+            "hidden": true,
+            "inherits": "base",
+            "cacheVariables": {
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit;test",
+                "ENABLE_FEATURE_CLI": "ON",
+                "ENABLE_FEATURE_GATE": "ON",
+                "ENABLE_FEATURE_PULSE": "ON",
+                "ENABLE_FEATURE_SERVICE": "ON",
+                "ENABLE_TEST": "ON",
+                "ENABLE_SANDBOX": "ON",
+                "ENABLE_FEATURE_NEDIT": "ON"
+            }
+        },
+        {
+            "name": "release",
+            "inherits": "dev",
+            "displayName": "release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
-            "name": "dev",
-            "inherits": "base",
-            "displayName": "dev",
+            "name": "debug",
+            "inherits": "dev",
+            "displayName": "debug",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit",
-                "ENABLE_FEATURE_CLI": "ON",
-                "ENABLE_FEATURE_GATE": "ON",
-                "ENABLE_FEATURE_PULSE": "ON",
-                "ENABLE_FEATURE_SERVICE": "ON",
-                "ENABLE_TEST": "OFF",
-                "ENABLE_SANDBOX": "ON",
-                "ENABLE_FEATURE_NEDIT": "ON"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "dev",
-            "configurePreset": "dev"
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
         }
     ],
     "testPresets": [
         {
-            "name": "dev",
-            "configurePreset": "dev"
+            "name": "release",
+            "configurePreset": "release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "debug"
         }
     ]
 }

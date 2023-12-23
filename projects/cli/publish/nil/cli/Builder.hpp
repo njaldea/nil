@@ -10,7 +10,6 @@
 
 namespace nil::cli
 {
-
     class Builder final
     {
     public:
@@ -19,9 +18,9 @@ namespace nil::cli
          *  during runtime, if flag is not provided, the default value is false.
          *  only expects that user to provide one instance of the flag.
          *
-         * @param lkey          long key
-         * @param options       optional data
-         * @return Builder&     self
+         * @param lkey         long key
+         * @param options      optional data
+         * @return `Builder&`  self
          */
         Builder& flag(std::string lkey, conf::Flag options = {});
 
@@ -31,7 +30,7 @@ namespace nil::cli
          *
          * @param lkey          long key
          * @param options       optional data
-         * @return Builder&     self
+         * @return `Builder&`   self
          */
         Builder& number(std::string lkey, conf::Number options = {});
 
@@ -42,7 +41,7 @@ namespace nil::cli
          *
          * @param lkey          long key
          * @param options       optional data
-         * @return Builder&     self
+         * @return `Builder&`   self
          */
         Builder& param(std::string lkey, conf::Param options = {});
 
@@ -56,14 +55,14 @@ namespace nil::cli
          *
          * @param lkey          long key
          * @param options       optional data
-         * @return Builder&     self
+         * @return `Builder&`   self
          */
         Builder& params(std::string lkey, conf::Params options = {});
 
         /**
          * @brief Finalize the OptionInfo.
          *
-         * @return OptionInfo
+         * @return `OptionInfo`
          */
         OptionInfo build();
 

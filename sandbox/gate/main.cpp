@@ -39,13 +39,12 @@ int main()
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;
     using C = T<std::tuple<double>(int)>;
     using D = T<std::tuple<float>(const double)>;
-    using E = T<std::tuple<char>(std::string, float)>;
+    using E = T<std::tuple<char>(const std::string&, float)>;
     using F = T<std::tuple<bool>(std::string, double)>;
     using G = T<void(bool)>;
     using H = T<void(bool, char)>;
     using I = T<void(char, float)>;
 
-    // clang-format off
     // const auto [a1, a2, a3, a4] = core.node<A>({}, "a");
     auto* a1 = core.edge<std::unique_ptr<const bool>>();
     const auto [a2, a3, a4] = core.edges<int, double, std::string>();
@@ -57,7 +56,6 @@ int main()
     core.node<G>({f1}, "g");
     core.node<H>({f1, e1}, "h");
     core.node<I>({e1, d1}, "i");
-    // clang-format on
 
     a1->set_value({});
     a2->set_value(1);
