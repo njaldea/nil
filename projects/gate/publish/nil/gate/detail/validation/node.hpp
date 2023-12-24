@@ -59,6 +59,21 @@ namespace nil::gate::detail
     {
     };
 
+    template <typename T>
+    struct node_validate_i: node_validate<T>
+    {
+    };
+
+    template <typename T>
+    struct node_validate_o: node_validate<T>
+    {
+    };
+
+    template <typename T>
+    struct node_validate_o<T&>: std::false_type
+    {
+    };
+
     static_assert(node_validate<bool>::value);
     static_assert(node_validate<std::string>::value);
     static_assert(node_validate<const std::string>::value);

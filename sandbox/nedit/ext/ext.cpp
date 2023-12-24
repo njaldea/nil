@@ -177,25 +177,30 @@ namespace
     {
     private:
         using EdgeIDs = std::vector<std::uint64_t>;
-        using NodeFactory = std::function<void(nil::gate::Core&, const EdgeIDs&, const EdgeIDs&)>;
+        using NodeFactory
+            = std::function<void(GraphBuilder&, nil::gate::Core&, const EdgeIDs&, const EdgeIDs&)>;
 
     public:
         template <typename T>
-        GraphBuilder& add_node()
+        std::enable_if_t<nil::gate::detail::traits<T>::is_valid, GraphBuilder&> add_node()
         {
-            const auto index = node_factories.size();
             node_factories.push_back(
-                [this, index](nil::gate::Core& core, const EdgeIDs& inputs, const EdgeIDs& outputs)
+                [](                        //
+                    GraphBuilder& self,    //
+                    nil::gate::Core& core, //
+                    const EdgeIDs& inputs, //
+                    const EdgeIDs& outputs //
+                )
                 {
                     using traits = nil::gate::detail::traits<T>;
                     const auto i_seq = typename traits::i::make_sequence();
                     const auto o_seq = typename traits::o::make_sequence();
-                    const auto result = create<T>(core, inputs, i_seq);
+                    const auto result = self.create<T>(core, inputs, i_seq);
                     if constexpr (traits::o::size > 0)
                     {
-                        this->store<T>(outputs, result, o_seq);
+                        self.store<T>(outputs, result, o_seq);
                     }
-                } //
+                }
             );
             return *this;
         }
@@ -205,9 +210,9 @@ namespace
             std::uint64_t type,
             const EdgeIDs& inputs,
             const EdgeIDs& outputs
-        ) const
+        )
         {
-            node_factories[type](core, inputs, outputs);
+            node_factories[type](*this, core, inputs, outputs);
         }
 
     private:
@@ -249,20 +254,7 @@ namespace
 
     struct App
     {
-        struct Pin
-        {
-            struct Color
-            {
-                float r;
-                float g;
-                float b;
-                float a;
-            } color;
-
-            std::string label;
-        };
-
-        const std::vector<nil::nedit::proto::PinInfo> pins_info = {
+        const std::array<nil::nedit::proto::PinInfo, 2> pins_info = {
             []()
             {
                 nil::nedit::proto::PinInfo info;
@@ -285,7 +277,7 @@ namespace
             }(),
         };
 
-        std::vector<nil::nedit::proto::NodeInfo> nodes_info = { //
+        const std::array<nil::nedit::proto::NodeInfo, 8> nodes_info = { //
             []()
             {
                 nil::nedit::proto::NodeInfo info;
@@ -362,8 +354,7 @@ nil::cli::OptionInfo EXT::options() const
 
 auto make_builder()
 {
-    GraphBuilder builder;
-    builder //
+    return GraphBuilder()
         .add_node<Input_b<false>>()
         .add_node<Input_b<true>>()
         .add_node<Input_i<5>>()
@@ -372,7 +363,6 @@ auto make_builder()
         .add_node<Add>()
         .add_node<Mul>()
         .add_node<Consume>();
-    return builder;
 }
 
 int EXT::run(const nil::cli::Options& options) const
