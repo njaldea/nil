@@ -70,14 +70,185 @@ namespace
         }
     };
 
+    /**
+     * TODO:
+     *  -   move Tree to gate
+     *  -   rewrite Tree to remove score out
+     *  -   make Tree emit TN without score but already sorted
+     *  -   make Tree not depend on graph
+     *  -   move GraphBuilder to gate
+     */
+
+    class Tree
+    {
+    public:
+        struct TN
+        {
+            std::uint32_t score;
+            std::uint64_t t;
+            std::vector<std::uint64_t> i;
+            std::vector<std::uint64_t> o;
+        };
+
+    private:
+        struct TE
+        {
+            TN* input = nullptr;
+            std::vector<TN*> outputs;
+        };
+
+        struct State
+        {
+            std::vector<TN> nodes;
+            std::unordered_map<std::uint64_t, TE> edges;
+        };
+
+    public:
+        std::vector<TN> populate(const nil::nedit::proto::Graph& g)
+        {
+            State state;
+
+            for (const auto& node : g.nodes())
+            {
+                add_node(
+                    state,
+                    node.type(),
+                    {node.inputs().begin(), node.inputs().end()},
+                    {node.outputs().begin(), node.outputs().end()} //
+                );
+            }
+            calculate_score(state);
+            sort(state);
+
+            return std::move(state.nodes);
+        }
+
+    private:
+        void add_node(
+            State& state,
+            std::uint64_t type,
+            std::vector<std::uint64_t> inputs,
+            std::vector<std::uint64_t> outputs
+        )
+        {
+            state.nodes.push_back({0u, type, std::move(inputs), std::move(outputs)});
+            for (const auto& i : state.nodes.back().i)
+            {
+                state.edges[i].outputs.push_back(&state.nodes.back());
+            }
+            for (const auto& o : state.nodes.back().o)
+            {
+                state.edges[o].input = &state.nodes.back();
+            }
+        }
+
+        void calculate_score(State& state)
+        {
+            for (auto& node : state.nodes)
+            {
+                node.score = recurse_score(state, &node);
+            }
+        }
+
+        // TODO:
+        //  optimize for larger graph.
+        //  find a way to early return when a score is already calculated.
+        std::uint32_t recurse_score(const State& state, const TN* current_node)
+        {
+            auto score = 0u;
+            for (const auto& i : current_node->i)
+            {
+                score = std::max(recurse_score(state, state.edges.at(i).input) + 1, score);
+            }
+            return score;
+        }
+
+        void sort(State& state)
+        {
+            std::sort(
+                state.nodes.begin(),
+                state.nodes.end(),
+                [](const auto& l, const auto& r) { return l.score < r.score; }
+            );
+        }
+    };
+
+    class GraphBuilder
+    {
+    private:
+        using EdgeIDs = std::vector<std::uint64_t>;
+        using NodeFactory = std::function<void(nil::gate::Core&, const EdgeIDs&, const EdgeIDs&)>;
+
+    public:
+        template <typename T>
+        GraphBuilder& add_node()
+        {
+            const auto index = node_factories.size();
+            node_factories.push_back(
+                [this, index](nil::gate::Core& core, const EdgeIDs& inputs, const EdgeIDs& outputs)
+                {
+                    using traits = nil::gate::detail::traits<T>;
+                    const auto i_seq = typename traits::i::make_sequence();
+                    const auto o_seq = typename traits::o::make_sequence();
+                    const auto result = create<T>(core, inputs, i_seq);
+                    if constexpr (traits::o::size > 0)
+                    {
+                        this->store<T>(outputs, result, o_seq);
+                    }
+                } //
+            );
+            return *this;
+        }
+
+        void instantiate(
+            nil::gate::Core& core,
+            std::uint64_t type,
+            const EdgeIDs& inputs,
+            const EdgeIDs& outputs
+        ) const
+        {
+            node_factories[type](core, inputs, outputs);
+        }
+
+    private:
+        struct RelaxedEdge
+        {
+            template <typename T>
+            operator nil::gate::ReadOnlyEdge<T>*() const
+            {
+                return static_cast<nil::gate::ReadOnlyEdge<T>*>(value);
+            }
+
+            nil::gate::IEdge* value;
+        };
+
+        std::vector<NodeFactory> node_factories;
+        std::unordered_map<std::uint64_t, RelaxedEdge> edges;
+
+        template <typename T, std::size_t... indices>
+        auto create(
+            nil::gate::Core& core,
+            const EdgeIDs& inputs,
+            std::index_sequence<indices...> //
+        )
+        {
+            using edges_t = typename nil::gate::detail::traits<T>::i::readonly_edges;
+            return core.node<T>(edges_t(edges.at(inputs[indices])...));
+        }
+
+        template <typename T, std::size_t... indices>
+        void store(
+            const EdgeIDs& outputs,
+            const nil::gate::detail::traits<T>::o::readonly_edges& result,
+            std::index_sequence<indices...> //
+        )
+        {
+            (..., edges.emplace(outputs[indices], std::get<indices>(result)));
+        }
+    };
+
     struct App
     {
-        std::unique_ptr<nil::gate::Core> core;
-        std::unordered_map<std::uint32_t, nil::gate::IEdge*> edges;
-
-        using Factory = std::function<
-            void(const std::vector<std::uint32_t>&, const std::vector<std::uint32_t>&)>;
-
         struct Pin
         {
             struct Color
@@ -114,171 +285,69 @@ namespace
             }(),
         };
 
-        struct Node
-        {
-            nil::nedit::proto::NodeInfo info;
-            Factory factory;
-        };
-
-        std::vector<Node> nodes_info = { //
+        std::vector<nil::nedit::proto::NodeInfo> nodes_info = { //
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_outputs(0);
-                    info.set_label("Input_b<false>");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    (void)input;
-                    const auto [result] = core->node<Input_b<false>>({});
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_outputs(0);
+                info.set_label("Input_b<false>");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_outputs(0);
-                    info.set_label("Input_b<true>");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    (void)input;
-                    const auto [result] = core->node<Input_b<true>>({});
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_outputs(0);
+                info.set_label("Input_b<true>");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_outputs(1);
-                    info.set_label("Input_i<5>");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    (void)input;
-                    const auto [result] = core->node<Input_i<5>>({});
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_outputs(1);
+                info.set_label("Input_i<5>");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_outputs(1);
-                    info.set_label("Input_i<10>");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    (void)input;
-                    const auto [result] = core->node<Input_i<10>>({});
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_outputs(1);
+                info.set_label("Input_i<10>");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_inputs(0);
-                    info.add_inputs(1);
-                    info.add_outputs(1);
-                    info.set_label("Inverter");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    const auto [result] = core->node<Inverter>({
-                        static_cast<nil::gate::ReadOnlyEdge<bool>*>(edges[input[0]]),
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
-                    });
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_inputs(0);
+                info.add_inputs(1);
+                info.add_outputs(1);
+                info.set_label("Inverter");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_inputs(1);
-                    info.add_inputs(1);
-                    info.add_outputs(1);
-                    info.set_label("Add");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    const auto [result] = core->node<Add>({
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]),
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
-                    });
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_inputs(1);
+                info.add_inputs(1);
+                info.add_outputs(1);
+                info.set_label("Add");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_inputs(1);
-                    info.add_inputs(1);
-                    info.add_outputs(1);
-                    info.set_label("Mul");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    const auto [result] = core->node<Mul>({
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]),
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[1]]) //
-                    });
-                    edges[output[0]] = result;
-                } //
-            },
+                nil::nedit::proto::NodeInfo info;
+                info.add_inputs(1);
+                info.add_inputs(1);
+                info.add_outputs(1);
+                info.set_label("Mul");
+                return info;
+            }(),
+            []()
             {
-                []()
-                {
-                    nil::nedit::proto::NodeInfo info;
-                    info.add_inputs(1);
-                    info.set_label("Consume");
-                    return info;
-                }(),
-                [this](
-                    const std::vector<std::uint32_t>& input,
-                    const std::vector<std::uint32_t>& output
-                )
-                {
-                    (void)output;
-                    core->node<Consume>({
-                        static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[input[0]]) //
-                    });
-                    return true;
-                } //
-            }
+                nil::nedit::proto::NodeInfo info;
+                info.add_inputs(1);
+                info.set_label("Consume");
+                return info;
+            }()
         };
     };
 }
@@ -291,6 +360,21 @@ nil::cli::OptionInfo EXT::options() const
         .build();
 }
 
+auto make_builder()
+{
+    GraphBuilder builder;
+    builder //
+        .add_node<Input_b<false>>()
+        .add_node<Input_b<true>>()
+        .add_node<Input_i<5>>()
+        .add_node<Input_i<10>>()
+        .add_node<Inverter>()
+        .add_node<Add>()
+        .add_node<Mul>()
+        .add_node<Consume>();
+    return builder;
+}
+
 int EXT::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -299,12 +383,15 @@ int EXT::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    App app;
+    const auto app = App();
+    auto core = std::unique_ptr<nil::gate::Core>();
 
-    nil::service::TypedService client(nil::service::tcp::Client::Options{
-        .host = "127.0.0.1",                          //
-        .port = std::uint16_t(options.number("port")) //
-    });
+    nil::service::TypedService client( //
+        nil::service::tcp::Client::Options{
+            .host = "127.0.0.1",
+            .port = std::uint16_t(options.number("port")) //
+        }
+    );
 
     client.on_connect(
         [&](const std::string& id)
@@ -315,7 +402,7 @@ int EXT::run(const nil::cli::Options& options) const
             }
             for (const auto& node : app.nodes_info)
             {
-                client.send(id, nil::nedit::proto::type::NodeInfo, node.info);
+                client.send(id, nil::nedit::proto::type::NodeInfo, node);
             }
             {
                 client.send(id, nil::nedit::proto::type::Freeze, std::string());
@@ -325,82 +412,22 @@ int EXT::run(const nil::cli::Options& options) const
 
     client.on_message(
         nil::nedit::proto::type::GraphUpdate,
-        [&app](const std::string&, const nil::nedit::proto::Graph& graph)
+        [&core](const std::string&, const nil::nedit::proto::Graph& graph)
         {
-            struct TN
+            core = std::make_unique<nil::gate::Core>();
+            auto builder = make_builder();
+
+            const auto nodes = Tree().populate(graph);
+
+            for (const auto& node : nodes)
             {
-                std::uint32_t score;
-                std::uint64_t t;
-                std::vector<std::uint32_t> i;
-                std::vector<std::uint32_t> o;
-            };
-
-            std::vector<TN> items;
-            {
-                std::unordered_map<std::uint32_t, TN*> edge_to_node;
-
-                for (const auto& node : graph.nodes())
-                {
-                    items.push_back({
-                        0u,
-                        node.type(),
-                        {node.inputs().begin(), node.inputs().end()},
-                        {node.outputs().begin(), node.outputs().end()} //
-                    });
-                    for (const auto& o : node.outputs())
-                    {
-                        edge_to_node.emplace(o, &items.back());
-                    }
-                }
-                std::unordered_map<std::uint32_t, std::uint32_t> edge_score;
-
-                for (const auto& [edge_id, node] : edge_to_node)
-                {
-                    auto final_score = 0u;
-                    for (const auto i : node->i)
-                    {
-                        auto current_score = 0u;
-                        auto current_node = node;
-                        while (current_node != nullptr)
-                        {
-                            current_score += 1;
-                            current_node = edge_to_node[i];
-                        }
-                        if (final_score < current_score)
-                        {
-                            final_score = current_score;
-                        }
-                    }
-                    edge_score[edge_id] = final_score;
-                }
-
-                for (auto& node : items)
-                {
-                    for (const auto& i : node.i)
-                    {
-                        node.score = std::max(i, node.score);
-                    }
-                }
-            }
-
-            std::sort(
-                items.begin(),
-                items.end(),
-                [](const auto& l, const auto& r) { return l.score < r.score; }
-            );
-
-            app.edges.clear();
-            app.core = std::make_unique<nil::gate::Core>();
-
-            for (const auto& item : items)
-            {
-                app.nodes_info[item.t].factory(item.i, item.o);
+                builder.instantiate(*core, node.t, node.i, node.o);
             }
 
             try
             {
-                app.core->validate();
-                app.core->run();
+                core->validate();
+                core->run();
             }
             catch (const std::exception& ex)
             {
