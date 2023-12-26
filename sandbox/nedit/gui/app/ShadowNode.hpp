@@ -14,8 +14,8 @@ struct Pin;
 struct NodeInfo
 {
     std::string label;
-    std::vector<std::uint32_t> inputs;
-    std::vector<std::uint32_t> outputs;
+    std::vector<std::uint64_t> inputs;
+    std::vector<std::uint64_t> outputs;
 };
 
 struct PinInfo

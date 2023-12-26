@@ -24,7 +24,7 @@ namespace nil::service::tcp
     {
     public:
         Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl);
-        ~Connection();
+        ~Connection() noexcept;
 
         Connection(Connection&&) = delete;
         Connection(const Connection&) = delete;

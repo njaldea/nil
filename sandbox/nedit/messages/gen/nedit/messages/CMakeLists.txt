@@ -7,7 +7,6 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 protobuf_generate_cpp(
     PROTO_SRC
     PROTO_HEADER
-    message.proto
     type.proto
     graph_update.proto
     node_info.proto

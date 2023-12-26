@@ -27,7 +27,9 @@ set(
 )
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
+
 target_include_directories(
     ${PROJECT_NAME}
     PUBLIC

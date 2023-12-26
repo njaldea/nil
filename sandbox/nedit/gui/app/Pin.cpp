@@ -8,7 +8,7 @@
 Pin::Pin(
     ax::NodeEditor::PinId init_id,
     ax::NodeEditor::PinKind init_kind,
-    std::uint32_t init_type,
+    std::uint64_t init_type,
     std::string_view init_label,
     const FlowIcon& init_icon
 )

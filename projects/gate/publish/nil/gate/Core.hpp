@@ -56,8 +56,8 @@ namespace nil::gate
         {
             return create<T>(
                 typename detail::traits<T>::o::type(),
-                typename detail::traits<T>::o::make_sequence(),
-                typename detail::traits<T>::i::make_sequence(),
+                typename detail::traits<T>::o::make_index_sequence(),
+                typename detail::traits<T>::i::make_index_sequence(),
                 edges,
                 std::forward<Args>(args)...
             );
@@ -135,7 +135,7 @@ namespace nil::gate
             std::size_t... i_indices,
             typename... Args>
         auto create(
-            detail::types<Outputs...>,
+            nil::utils::traits::types<Outputs...>,
             std::index_sequence<o_indices...>,
             std::index_sequence<i_indices...> indices,
             typename detail::traits<T>::i::readonly_edges edges,
@@ -150,7 +150,7 @@ namespace nil::gate
             auto* n = node_ptr.get();
             owned_nodes.emplace_back(std::move(node_ptr));
             // attach node to input edges' output
-            (..., attach_output(down_cast(std::get<i_indices>(edges)), *n));
+            (attach_output(down_cast(std::get<i_indices>(edges)), *n), ...);
             // create output edges and attach it's input to node output
             return std::make_tuple(this->edge<T, Outputs, o_indices>(*n)...);
         }

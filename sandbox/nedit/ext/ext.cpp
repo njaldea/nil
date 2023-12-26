@@ -3,6 +3,7 @@
 
 #include <nil/gate.hpp>
 #include <nil/service.hpp>
+#include <nil/utils/traits/type.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -74,26 +75,18 @@ namespace
     //  handling is abstracted out.
     struct App
     {
-        // [TODO] move to a common utility library
         template <typename T>
-        struct tag
+        App& add_pin(std::string label, std::array<float, 4> color)
         {
-            static constexpr const int identifier = 0;
-            static constexpr const void* value = static_cast<const void*>(&identifier);
-        };
-
-        template <typename T>
-        App& add_pin(std::string label, float r, float g, float b, float a)
-        {
-            type_to_pin_index.emplace(tag<T>::value, std::uint32_t(pins.size()));
+            type_to_pin_index.emplace(nil::utils::traits::type<T>::value, pins.size());
             pins.push_back(
                 [&]()
                 {
                     nil::nedit::proto::PinInfo info;
-                    info.mutable_color()->set_r(r);
-                    info.mutable_color()->set_g(g);
-                    info.mutable_color()->set_b(b);
-                    info.mutable_color()->set_a(a);
+                    info.mutable_color()->set_r(color[0]);
+                    info.mutable_color()->set_g(color[1]);
+                    info.mutable_color()->set_b(color[2]);
+                    info.mutable_color()->set_a(color[3]);
                     info.set_label(std::move(label));
                     return info;
                 }()
@@ -125,18 +118,24 @@ namespace
         }
 
         template <typename T, typename... Inputs>
-        void add_inputs(nil::nedit::proto::NodeInfo& info, nil::gate::detail::types<Inputs...>)
+        void add_inputs(
+            nil::nedit::proto::NodeInfo& info,
+            nil::utils::traits::types<Inputs...> /* unused */
+        )
         {
-            (info.add_inputs(type_to_pin_index.at(tag<Inputs>::value)), ...);
+            (info.add_inputs(type_to_pin_index.at(nil::utils::traits::type<Inputs>::value)), ...);
         }
 
         template <typename T, typename... Outputs>
-        void add_outputs(nil::nedit::proto::NodeInfo& info, nil::gate::detail::types<Outputs...>)
+        void add_outputs(
+            nil::nedit::proto::NodeInfo& info,
+            nil::utils::traits::types<Outputs...> /* unused */
+        )
         {
-            (info.add_outputs(type_to_pin_index.at(tag<Outputs>::value)), ...);
+            (info.add_outputs(type_to_pin_index.at(nil::utils::traits::type<Outputs>::value)), ...);
         }
 
-        std::unordered_map<const void*, std::uint32_t> type_to_pin_index;
+        std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
         std::vector<nil::nedit::proto::PinInfo> pins;
         std::vector<nil::nedit::proto::NodeInfo> nodes;
         nil::gate::CoreBuilder builder;
@@ -161,15 +160,15 @@ int EXT::run(const nil::cli::Options& options) const
 
     auto app = //
         App()  //
-            .add_pin<bool>("bool", 0.0f, 1.0f, 0.0f, 1.0f)
-            .add_pin<int>("int", 1.0f, 0.0f, 0.0f, 1.0f)
+            .add_pin<bool>("bool", {0.0f, 1.0f, 0.0f, 1.0f})
+            .add_pin<int>("int", {1.0f, 0.0f, 0.0f, 1.0f})
             .add_node<Input<bool>>("Input_b<false>", "b", false)
             .add_node<Input<bool>>("Input_b<true>", "b", true)
             .add_node<Input<int>>("Input_i<5>", "i", 5)
             .add_node<Input<int>>("Input_i<10>", "i", 10)
             .add_node<Inverter>("Inverter")
             .add_node<Add>("Add")
-            .add_node<Mul>("Sum")
+            .add_node<Mul>("Mul")
             .add_node<Consume>("Consume");
 
     nil::gate::Core core;

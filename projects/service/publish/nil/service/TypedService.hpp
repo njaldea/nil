@@ -2,6 +2,8 @@
 
 #include "IService.hpp"
 
+#include <nil/utils/traits/callable.hpp>
+
 #include <memory>
 
 namespace nil::service
@@ -9,26 +11,14 @@ namespace nil::service
     namespace detail
     {
         template <typename T>
-        struct traits: traits<decltype(&T::operator())>
+        struct traits: traits<typename nil::utils::traits::callable<T>::type>
         {
         };
 
-        template <typename T, typename Arg>
-        struct traits<void (T::*)(const std::string&, const Arg&) const>
-            : traits<void(const std::string&, const Arg&)>
+        template <typename T>
+        struct traits<nil::utils::traits::types<>(const std::string&, T)>
         {
-        };
-
-        template <typename T, typename Arg>
-        struct traits<void (T::*)(const std::string&, const Arg&)>
-            : traits<void(const std::string&, const Arg&)>
-        {
-        };
-
-        template <typename Arg>
-        struct traits<void(const std::string&, const Arg&)>
-        {
-            using type = Arg;
+            using type = std::decay_t<T>;
         };
 
         template <typename T>

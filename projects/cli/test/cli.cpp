@@ -23,14 +23,14 @@ namespace
 
 struct Command final: nil::cli::Command
 {
-    explicit Command(std::function<int(const nil::cli::Options&)> impl)
-        : runImpl(std::move(impl))
+    explicit Command(std::function<int(const nil::cli::Options&)> init_impl)
+        : impl(std::move(init_impl))
     {
     }
 
     std::string usage() const override
     {
-        return "usage";
+        return "usage ";
     }
 
     nil::cli::OptionInfo options() const override
@@ -45,10 +45,10 @@ struct Command final: nil::cli::Command
 
     int run(const nil::cli::Options& options) const override
     {
-        return runImpl(options);
+        return impl(options);
     }
 
-    std::function<int(const nil::cli::Options&)> runImpl;
+    std::function<int(const nil::cli::Options&)> impl;
 };
 
 TEST(cli, base)

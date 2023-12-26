@@ -32,7 +32,7 @@ namespace nil::service::ws
             boost::beast::websocket::stream<boost::beast::tcp_stream> ws,
             IImpl& impl
         );
-        ~Connection();
+        ~Connection() noexcept;
 
         Connection(Connection&&) = delete;
         Connection(const Connection&) = delete;

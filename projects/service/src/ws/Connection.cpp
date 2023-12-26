@@ -27,7 +27,7 @@ namespace nil::service::ws
         read();
     }
 
-    Connection::~Connection() = default;
+    Connection::~Connection() noexcept = default;
 
     void Connection::read()
     {

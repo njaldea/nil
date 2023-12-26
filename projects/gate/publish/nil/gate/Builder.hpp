@@ -2,6 +2,8 @@
 
 #include "Core.hpp"
 
+#include <nil/utils/traits/type.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -37,7 +39,7 @@ namespace nil::gate
             std::index_sequence<indices...> //
         )
         {
-            (..., edges.emplace(outputs[indices], std::get<indices>(result)));
+            (edges.emplace(outputs[indices], std::get<indices>(result)), ...);
         }
 
         struct Node
@@ -124,8 +126,8 @@ namespace nil::gate
                 )
                 {
                     using traits = nil::gate::detail::traits<T>;
-                    const auto i_seq = typename traits::i::make_sequence();
-                    const auto o_seq = typename traits::o::make_sequence();
+                    const auto i_seq = typename traits::i::make_index_sequence();
+                    const auto o_seq = typename traits::o::make_index_sequence();
                     const auto result = self.create<T>(core, inputs, i_seq, args...);
                     if constexpr (traits::o::size > 0)
                     {
@@ -160,26 +162,18 @@ namespace nil::gate
     private:
         class RelaxedEdge
         {
-        private:
-            template <typename T>
-            struct tag
-            {
-                static constexpr const int identifier = 0;
-                static constexpr const void* value = static_cast<const void*>(&identifier);
-            };
-
         public:
             template <typename T>
             RelaxedEdge(nil::gate::ReadOnlyEdge<T>* init_edge)
                 : edge(init_edge)
-                , type_id(&tag<T>::value)
+                , type_id(&utils::traits::type<T>::value)
             {
             }
 
             template <typename T>
             operator nil::gate::ReadOnlyEdge<T>*() const
             {
-                if (&tag<T>::value != type_id)
+                if (&utils::traits::type<T>::value != type_id)
                 {
                     // this is needed in case user side has misalignment with the node type index
                     // message registration (sent to gui) and graph registration (gate)

@@ -27,11 +27,11 @@ namespace nil::gate::detail
         void exec() override
         {
             if (state == State::Pending
-                && is_runnable(typename detail::traits<T>::i::make_sequence()))
+                && is_runnable(typename detail::traits<T>::i::make_index_sequence()))
             {
                 exec(
-                    typename detail::traits<T>::i::make_sequence(),
-                    typename detail::traits<T>::o::make_sequence()
+                    typename detail::traits<T>::i::make_index_sequence(),
+                    typename detail::traits<T>::o::make_index_sequence()
                 );
             }
         }
@@ -41,7 +41,7 @@ namespace nil::gate::detail
             if (state != State::Pending)
             {
                 state = State::Pending;
-                pend(typename detail::traits<T>::o::make_sequence());
+                pend(typename detail::traits<T>::o::make_index_sequence());
             }
         }
 
@@ -50,7 +50,7 @@ namespace nil::gate::detail
             if (state == State::Pending)
             {
                 state = State::Cancelled;
-                cancel(typename detail::traits<T>::o::make_sequence());
+                cancel(typename detail::traits<T>::o::make_index_sequence());
             }
         }
 
@@ -70,13 +70,13 @@ namespace nil::gate::detail
         template <std::size_t... o_indices>
         void pend(std::index_sequence<o_indices...>)
         {
-            (..., std::get<o_indices>(outputs)->pend());
+            (std::get<o_indices>(outputs)->pend(), ...);
         }
 
         template <std::size_t... o_indices>
         void cancel(std::index_sequence<o_indices...>)
         {
-            (..., std::get<o_indices>(outputs)->cancel());
+            (std::get<o_indices>(outputs)->cancel(), ...);
         }
 
         template <std::size_t... i_indices>
@@ -97,7 +97,7 @@ namespace nil::gate::detail
             {
                 auto result = instance(std::get<i_indices>(inputs)->value()...);
                 state = State::Done;
-                (..., std::get<o_indices>(outputs)->exec(std::move(std::get<o_indices>(result))));
+                (std::get<o_indices>(outputs)->exec(std::move(std::get<o_indices>(result))), ...);
             }
         }
 

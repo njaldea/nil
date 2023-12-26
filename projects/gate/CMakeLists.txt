@@ -4,6 +4,10 @@ if(NOT ENABLE_FEATURE_GATE)
     return()
 endif()
 
+if(NOT ENABLE_FEATURE_UTILS)
+    message(FATAL_ERROR "gate library requires ENABLE_FEATURE_UTILS")
+endif()
+
 set(
     HEADERS
         publish/nil/gate.hpp
@@ -21,6 +25,9 @@ set(
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${HEADERS})
+
+target_link_libraries(${PROJECT_NAME} INTERFACE utils)
+
 target_include_directories(
     ${PROJECT_NAME}
     INTERFACE

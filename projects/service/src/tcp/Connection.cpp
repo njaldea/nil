@@ -17,7 +17,7 @@ namespace nil::service::tcp
         readHeader(0u, utils::TCP_HEADER_SIZE);
     }
 
-    Connection::~Connection() = default;
+    Connection::~Connection() noexcept = default;
 
     void Connection::readHeader(std::uint64_t pos, std::uint64_t size)
     {

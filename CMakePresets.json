@@ -16,22 +16,22 @@
             }
         },
         {
-            "name": "dev",
+            "name": "sandbox",
             "hidden": true,
             "inherits": "base",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit",
+                "VCPKG_MANIFEST_FEATURES": "sandbox",
                 "ENABLE_FEATURE_CLI": "ON",
-                "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_PULSE": "ON",
+                "ENABLE_FEATURE_UTILS": "ON",
+                "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_SERVICE": "ON",
-                "ENABLE_SANDBOX": "ON",
-                "ENABLE_FEATURE_NEDIT": "ON"
+                "ENABLE_SANDBOX": "ON"
             }
         },
         {
             "name": "release",
-            "inherits": "dev",
+            "inherits": "sandbox",
             "displayName": "release",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
@@ -39,7 +39,7 @@
         },
         {
             "name": "debug",
-            "inherits": "dev",
+            "inherits": "sandbox",
             "displayName": "debug",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
@@ -50,7 +50,7 @@
             "inherits": "debug",
             "displayName": "test",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit;test",
+                "VCPKG_MANIFEST_FEATURES": "$env{VCPKG_MANIFEST_FEATURES};test",
                 "ENABLE_TEST": "ON"
             }
         }

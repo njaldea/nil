@@ -1,6 +1,6 @@
 project(sandbox_service)
 
-if(NOT ENABLE_FEATURE_SERVICE)
+if(NOT ENABLE_FEATURE_SERVICE OR NOT ENABLE_FEATURE_CLI)
     return()
 endif()
 

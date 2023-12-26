@@ -9,7 +9,6 @@ endif()
 function(add_test_executable TARGET)
     add_executable(${TARGET} ${ARGN})
     add_test(NAME ${TARGET} COMMAND ${TARGET})
-    add_dependencies(${TARGET} ${TARGET})
 endfunction()
 
 function(add_test_subdirectory)

@@ -1,7 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "description": "Collection of libraries from nil",
-    "builtin-baseline": "da21e45c9ae689f63aa27f3a4ee0e64fe6b16494",
+    "name": "nil",
     "features": {
         "cli": {
             "description": "Simplified argument parsing (from boost::program_options)",
@@ -12,9 +12,21 @@
                 }
             ]
         },
+        "pulse": {
+            "description": "straight forward implementation of reactive variables"
+        },
+        "utils": {
+            "description": "collection of common utility libraries"
+        },
         "service": {
             "description": "Simplified event handling (from boost::asio)",
             "dependencies": [
+                {
+                    "name": "nil",
+                    "features": [
+                        "utils"
+                    ]
+                },
                 {
                     "name": "boost-asio",
                     "version>=": "1.82.0"
@@ -25,11 +37,16 @@
                 }
             ]
         },
-        "pulse": {
-            "description": "straight forward implementation of reactive variables"
-        },
         "gate": {
-            "description": "nil-/gate js to c++"
+            "description": "nil-/gate js to c++",
+            "dependencies": [
+                {
+                    "name": "nil",
+                    "features": [
+                        "utils"
+                    ]
+                }
+            ]
         },
         "test": {
             "description": "Enable tests",
@@ -40,9 +57,18 @@
                 }
             ]
         },
-        "nedit": {
-            "description": "targets with imgui",
+        "sandbox": {
+            "description": "sandbox additional requirements",
             "dependencies": [
+                {
+                    "name": "nil",
+                    "features": [
+                        "cli",
+                        "gate",
+                        "service",
+                        "pulse"
+                    ]
+                },
                 "opengl",
                 "glfw3",
                 {
@@ -59,6 +85,5 @@
                 }
             ]
         }
-    },
-    "dependencies": []
+    }
 }

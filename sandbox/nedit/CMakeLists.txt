@@ -1,6 +1,6 @@
 project(sandbox_nedit)
 
-if(NOT ENABLE_FEATURE_NEDIT)
+if(NOT ENABLE_FEATURE_CLI OR NOT ENABLE_FEATURE_SERVICE OR NOT ENABLE_FEATURE_GATE)
     return()
 endif()
 

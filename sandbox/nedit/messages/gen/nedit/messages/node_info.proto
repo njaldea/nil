@@ -5,7 +5,7 @@ option optimize_for = LITE_RUNTIME;
 package nil.nedit.proto;
 
 message NodeInfo {
-    repeated uint32 inputs = 1;
-    repeated uint32 outputs = 2;
+    repeated uint64 inputs = 1;
+    repeated uint64 outputs = 2;
     string label = 3;
 }

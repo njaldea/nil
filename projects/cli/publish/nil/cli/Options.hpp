@@ -20,7 +20,7 @@ namespace nil::cli
             int argc,
             const char** argv
         );
-        ~Options();
+        ~Options() noexcept;
 
         Options(Options&&) = default;
         Options(const Options&) = delete;

@@ -1,6 +1,6 @@
 project(sandbox_gate)
 
-if(NOT ENABLE_FEATURE_GATE)
+if(NOT ENABLE_FEATURE_GATE OR NOT ENABLE_FEATURE_CLI)
     return()
 endif()
 
