@@ -20,12 +20,11 @@
             "hidden": true,
             "inherits": "base",
             "cacheVariables": {
-                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit;test",
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit",
                 "ENABLE_FEATURE_CLI": "ON",
                 "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_PULSE": "ON",
                 "ENABLE_FEATURE_SERVICE": "ON",
-                "ENABLE_TEST": "ON",
                 "ENABLE_SANDBOX": "ON",
                 "ENABLE_FEATURE_NEDIT": "ON"
             }
@@ -45,26 +44,39 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
+        },
+        {
+            "name": "test",
+            "inherits": "debug",
+            "displayName": "test",
+            "cacheVariables": {
+                "VCPKG_MANIFEST_FEATURES": "cli;service;pulse;gate;nedit;test",
+                "ENABLE_TEST": "ON"
+            }
         }
     ],
     "buildPresets": [
         {
             "name": "release",
+            "displayName": "release",
             "configurePreset": "release"
         },
         {
             "name": "debug",
+            "displayName": "debug",
             "configurePreset": "debug"
+        },
+        {
+            "name": "test",
+            "displayName": "test",
+            "configurePreset": "test"
         }
     ],
     "testPresets": [
         {
-            "name": "release",
-            "configurePreset": "release"
-        },
-        {
-            "name": "debug",
-            "configurePreset": "debug"
+            "name": "test",
+            "displayName": "test",
+            "configurePreset": "test"
         }
     ]
 }

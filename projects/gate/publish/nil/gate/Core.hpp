@@ -24,6 +24,14 @@ namespace nil::gate
     class Core final
     {
     public:
+        Core() = default;
+        ~Core() = default;
+
+        Core(const Core&) = delete;
+        Core(Core&&) = default;
+        Core& operator=(const Core&) = delete;
+        Core& operator=(Core&&) = default;
+
         // Invalid types for input/output detected
         template <typename T, typename... Args>
         std::enable_if_t<
@@ -106,20 +114,16 @@ namespace nil::gate
          */
         void run()
         {
-            for (const auto& node : this->owned_nodes)
-            {
-                node->exec();
-            }
-        }
-
-        void validate()
-        {
             for (const auto& edge : required_edges)
             {
                 if (!edge->has_value())
                 {
                     throw std::runtime_error("value for a required edge is missing");
                 }
+            }
+            for (const auto& node : owned_nodes)
+            {
+                node->exec();
             }
         }
 

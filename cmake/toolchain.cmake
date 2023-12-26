@@ -26,7 +26,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-fno-rtti)
     add_compile_options(-flto)
-    # TODO: decide which standard to use for external API
+    # [TODO] decide which standard to use for external API
     # add_compile_options(-fconcepts)
     add_compile_options(-Wfatal-errors)
     add_compile_options(-Wshadow)
@@ -45,5 +45,5 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # add_compile_options("/wd4820") # struct padding
     # add_compile_options("/wd4464") # "../" warning for relative include
     # add_compile_options("/wd4514") # unreferenced inline function has been removed
-    # TODO: figure out how to ignore 3rd party headers
+    # [TODO] figure out how to ignore 3rd party headers
 endif()

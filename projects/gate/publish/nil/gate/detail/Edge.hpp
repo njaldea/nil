@@ -2,9 +2,6 @@
 
 #include "../MEdge.hpp"
 
-#include <memory>
-#include <vector>
-
 namespace nil::gate::detail
 {
     /**

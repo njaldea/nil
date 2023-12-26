@@ -7,6 +7,7 @@ endif()
 set(
     HEADERS
         publish/nil/gate.hpp
+        publish/nil/gate/Builder.hpp
         publish/nil/gate/Core.hpp
         publish/nil/gate/REdge.hpp
         publish/nil/gate/MEdge.hpp

@@ -62,7 +62,6 @@ int main()
     a3->set_value(1.0);
     a4->set_value("text");
 
-    core.validate();
     std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
     core.run();
 
