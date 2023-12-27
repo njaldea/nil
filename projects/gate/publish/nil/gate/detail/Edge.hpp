@@ -19,7 +19,7 @@ namespace nil::gate::detail
         {
         }
 
-        ~Edge() = default;
+        ~Edge() noexcept = default;
 
         Edge(Edge&&) = delete;
         Edge(const Edge&) = delete;

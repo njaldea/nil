@@ -5,35 +5,38 @@
 #include <iostream>
 #include <thread>
 
-template <typename T>
-typename T::Options parse(const nil::cli::Options& options)
+template <typename Service>
+std::unique_ptr<nil::service::IService> make_service(const nil::cli::Options& options)
 {
     const auto port = std::uint16_t(options.number("port"));
     if constexpr (
-        std::is_same_v<nil::service::tcp::Server, T>    //
-        || std::is_same_v<nil::service::udp::Server, T> //
-        || std::is_same_v<nil::service::ws::Server, T>
+        std::is_same_v<nil::service::tcp::Server, Service> || //
+        std::is_same_v<nil::service::udp::Server, Service> || //
+        std::is_same_v<nil::service::ws::Server, Service>
     )
     {
-        return {.port = port};
+        return nil::service::make_service<Service>({.port = port});
     }
     else if constexpr (
-        std::is_same_v<nil::service::tcp::Client, T>    //
-        || std::is_same_v<nil::service::udp::Client, T> //
-        || std::is_same_v<nil::service::ws::Client, T>
+        std::is_same_v<nil::service::tcp::Client, Service> || //
+        std::is_same_v<nil::service::udp::Client, Service> || //
+        std::is_same_v<nil::service::ws::Client, Service>
     )
     {
-        return {.host = "127.0.0.1", .port = port};
+        return nil::service::make_service<Service>({
+            .host = "127.0.0.1",
+            .port = port //
+        });
     }
     else
     {
         static_assert(
-            std::is_same_v<nil::service::tcp::Server, T>    //
-            || std::is_same_v<nil::service::tcp::Client, T> //
-            || std::is_same_v<nil::service::udp::Server, T> //
-            || std::is_same_v<nil::service::udp::Client, T> //
-            || std::is_same_v<nil::service::ws::Server, T>  //
-            || std::is_same_v<nil::service::ws::Client, T>  //
+            std::is_same_v<nil::service::tcp::Server, Service> || //
+            std::is_same_v<nil::service::tcp::Client, Service> || //
+            std::is_same_v<nil::service::udp::Server, Service> || //
+            std::is_same_v<nil::service::udp::Client, Service> || //
+            std::is_same_v<nil::service::ws::Server, Service> ||  //
+            std::is_same_v<nil::service::ws::Client, Service>     //
         );
     }
 }
@@ -120,31 +123,34 @@ struct Service final: nil::cli::Command
             options.help(std::cout);
             return 0;
         }
-        nil::service::TypedService service(parse<T>(options));
+        nil::service::TypedService service(make_service<T>(options));
         add_handlers(service);
         loop(service);
         return 0;
     }
 };
 
-template <typename T>
+template <typename Server, typename Client>
 void add_sub_nodes(nil::cli::Node& node)
 {
-    node.add<Service<typename T::Server>>("server", "server");
-    node.add<Service<typename T::Client>>("client", "client");
+    node.add<Service<Server>>("server", "server");
+    node.add<Service<Client>>("client", "client");
 }
 
 int main(int argc, const char** argv)
 {
     using nil::cli::Node;
     using nil::cli::nodes::Help;
-    using udp_modes = nil::service::udp::modes;
-    using tcp_modes = nil::service::tcp::modes;
-    using web_modes = nil::service::ws::modes;
 
     auto root = Node::root<Help>(std::cout);
-    add_sub_nodes<udp_modes>(root.add<Help>("udp", "use udp protocol", std::cout));
-    add_sub_nodes<tcp_modes>(root.add<Help>("tcp", "use tcp protocol", std::cout));
-    add_sub_nodes<web_modes>(root.add<Help>("ws", "use ws protocol", std::cout));
+    add_sub_nodes<nil::service::udp::Server, nil::service::udp::Client>(
+        root.add<Help>("udp", "use udp protocol", std::cout)
+    );
+    add_sub_nodes<nil::service::tcp::Server, nil::service::tcp::Client>(
+        root.add<Help>("tcp", "use tcp protocol", std::cout)
+    );
+    add_sub_nodes<nil::service::ws::Server, nil::service::ws::Client>(
+        root.add<Help>("ws", "use ws protocol", std::cout)
+    );
     return root.run(argc, argv);
 }

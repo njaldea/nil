@@ -12,7 +12,7 @@ namespace nil::cli
     {
     }
 
-    Node::~Node() = default;
+    Node::~Node() noexcept = default;
 
     int Node::run(int argc, const char** argv) const
     {

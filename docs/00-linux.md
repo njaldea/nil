@@ -7,9 +7,10 @@
 - install latest cmake via snap (3.28.1)
     - if cmake configure step is slow, build it from source
     - `wget https://github.com/Kitware/CMake/releases/download/v3.28.1/cmake-3.28.1.tar.gz`
-- install clang-format 18
+- install clang-format/clang-tidy 18
     - `sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main'`
     - `sudo apt install clang-format-18`
+    - `sudo apt install clang-tidy-18`
     
 ## Coverage
 

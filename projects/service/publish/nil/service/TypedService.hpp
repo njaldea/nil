@@ -49,9 +49,8 @@ namespace nil::service
     class TypedService final
     {
     public:
-        template <typename Options>
-        TypedService(Options options)
-            : service(std::make_unique<typename Options::Service>(std::move(options)))
+        TypedService(std::unique_ptr<IService> init_service)
+            : service(std::move(init_service))
         {
             service->on_message(
                 [this](const std::string& id, const void* data, std::uint64_t size)
@@ -67,6 +66,7 @@ namespace nil::service
         }
 
         ~TypedService() noexcept = default;
+
         TypedService(TypedService&&) = delete;
         TypedService(const TypedService&) = delete;
         TypedService& operator=(TypedService&&) = delete;
@@ -125,7 +125,7 @@ namespace nil::service
         }
 
     private:
-        std::unique_ptr<nil::service::IService> service;
+        std::unique_ptr<IService> service;
         std::unordered_map<std::uint32_t, MessageHandler> handlers;
 
         static std::uint32_t type(const void* data);

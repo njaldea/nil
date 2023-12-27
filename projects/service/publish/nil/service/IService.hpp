@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <string>
 
 namespace nil::service
@@ -38,13 +39,13 @@ namespace nil::service
         virtual void run() = 0;
 
         /**
-         * @brief stop the service.
+         * @brief stop the service. non-blocking.
          */
         virtual void stop() = 0;
 
         /**
          * @brief Prepare the service.
-         *  Should be called once before running.
+         *  Should be called once after stopping and before running.
          *  Call before calling other methods.
          */
         virtual void restart() = 0;
@@ -89,4 +90,10 @@ namespace nil::service
          */
         virtual void publish(const void* data, std::uint64_t size) = 0;
     };
+
+    template <typename T>
+    std::unique_ptr<IService> make_service(typename T::Options options)
+    {
+        return std::make_unique<T>(std::move(options));
+    }
 }

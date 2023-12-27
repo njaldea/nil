@@ -16,7 +16,7 @@ namespace nil::gate::detail
         using type = nil::utils::traits::types<T...>;
         using edges = std::tuple<Edge<T>*...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
-        using mutable_medges = std::tuple<MutableEdge<T>*...>;
+        using mutable_edges = std::tuple<MutableEdge<T>*...>;
         using make_index_sequence = std::make_index_sequence<size>;
     };
 

@@ -11,7 +11,7 @@ namespace nil::cli::nodes
     {
     public:
         Help(std::ostream& init_os);
-        ~Help() = default;
+        ~Help() noexcept override = default;
 
         Help(Help&&) = delete;
         Help(const Help&) = delete;

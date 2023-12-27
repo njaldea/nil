@@ -37,3 +37,12 @@ target_include_directories(
 
 # add_test_subdirectory()
 install_for_package(${PROJECT_NAME})
+
+# intellisense in vscode does not work out of the box for interface targets since there is no file to compile
+# the target below is created to help intellisense.
+# to load, either do one of the following:
+#  -  open the cpp file
+#  -  from header file, trigger switch to header/source
+# ref: https://developercommunity.visualstudio.com/t/intellisense-not-working-properly-for-interface-he/1191108
+add_library(${PROJECT_NAME}-intellisense STATIC src/detail/types.cpp)
+target_link_libraries(${PROJECT_NAME}-intellisense PRIVATE ${PROJECT_NAME})

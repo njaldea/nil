@@ -173,11 +173,10 @@ int EXT::run(const nil::cli::Options& options) const
 
     nil::gate::Core core;
 
-    nil::service::TypedService client( //
-        nil::service::tcp::Client::Options{
-            .host = "127.0.0.1",
-            .port = std::uint16_t(options.number("port"))
-        }
+    nil::service::TypedService client(                         //
+        nil::service::make_service<nil::service::tcp::Client>( //
+            {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
+        )
     );
 
     client.on_connect(

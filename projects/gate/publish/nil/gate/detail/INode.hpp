@@ -12,7 +12,8 @@ namespace nil::gate::detail
             Done
         };
 
-        virtual ~INode() = default;
+        virtual ~INode() noexcept = default;
+
         virtual void exec() = 0;
         virtual void pend() = 0;
         virtual void cancel() = 0;

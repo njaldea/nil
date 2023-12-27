@@ -15,8 +15,8 @@ struct Pin
         std::uint64_t init_type,
         std::string_view init_label,
         const FlowIcon& init_icon);
+    ~Pin() noexcept = default;
 
-    ~Pin() = default;
     Pin(Pin&&) = delete;
     Pin(const Pin&) = delete;
     Pin& operator=(Pin&&) = delete;

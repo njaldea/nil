@@ -25,12 +25,12 @@ namespace nil::gate
     {
     public:
         Core() = default;
-        ~Core() = default;
+        ~Core() noexcept = default;
 
-        Core(const Core&) = delete;
         Core(Core&&) = default;
-        Core& operator=(const Core&) = delete;
+        Core(const Core&) = delete;
         Core& operator=(Core&&) = default;
+        Core& operator=(const Core&) = delete;
 
         // Invalid types for input/output detected
         template <typename T, typename... Args>
@@ -68,10 +68,7 @@ namespace nil::gate
         std::enable_if_t<
             !(true && (... && detail::edge_validate<T>::value)),
             std::tuple<MutableEdge<T>*...>>
-            edges()
-        {
-            static_assert((true && (... && detail::edge_validate<T>::value)));
-        }
+            edges() = delete;
 
         /**
          * @tparam T                                - edge type
@@ -88,10 +85,7 @@ namespace nil::gate
 
         // Invalid type passed
         template <typename T>
-        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge()
-        {
-            static_assert(detail::edge_validate<T>::value);
-        }
+        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge() = delete;
 
         /**
          * @brief create an edge

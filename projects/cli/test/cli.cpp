@@ -1,7 +1,7 @@
+#include <nil/cli.hpp>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-
-#include <nil/cli.hpp>
 
 namespace
 {
@@ -30,7 +30,7 @@ struct Command final: nil::cli::Command
 
     std::string usage() const override
     {
-        return "usage ";
+        return "usage";
     }
 
     nil::cli::OptionInfo options() const override

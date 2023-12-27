@@ -13,7 +13,7 @@ namespace nil::service::ws
 
     struct IImpl
     {
-        virtual ~IImpl() = default;
+        virtual ~IImpl() noexcept = default;
 
         virtual void message( //
             const std::string& id,

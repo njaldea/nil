@@ -52,6 +52,12 @@
             "description": "Enable tests",
             "dependencies": [
                 {
+                    "name": "nil",
+                    "features": [
+                        "sandbox"
+                    ]
+                },
+                {
                     "name": "gtest",
                     "version>=": "1.13.0"
                 }

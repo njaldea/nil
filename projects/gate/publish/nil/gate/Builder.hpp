@@ -105,7 +105,7 @@ namespace nil::gate
 
     public:
         CoreBuilder() = default;
-        ~CoreBuilder() = default;
+        ~CoreBuilder() noexcept = default;
 
         CoreBuilder(CoreBuilder&&) = default;
         CoreBuilder(const CoreBuilder&) = default;

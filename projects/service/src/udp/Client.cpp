@@ -22,7 +22,7 @@ namespace nil::service::udp
             buffer.resize(storage.options.buffer);
         }
 
-        ~Impl() = default;
+        ~Impl() noexcept = default;
 
         Impl(Impl&&) = delete;
         Impl(const Impl&) = delete;

@@ -19,12 +19,12 @@ namespace nil::service::udp
             buffer.resize(storage.options.buffer);
         }
 
-        ~Impl() = default;
+        ~Impl() noexcept = default;
 
-        Impl(const Impl&) = delete;
         Impl(Impl&&) = delete;
-        Impl& operator=(const Impl&) = delete;
+        Impl(const Impl&) = delete;
         Impl& operator=(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
 
         std::string id() const
         {
@@ -176,7 +176,7 @@ namespace nil::service::udp
             {
             }
 
-            ~Connection() = default;
+            ~Connection() noexcept = default;
 
             Connection(const Connection&) = delete;
             Connection(Connection&&) = delete;

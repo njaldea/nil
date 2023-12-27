@@ -41,9 +41,13 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    nil::service::TypedService server(nil::service::tcp::Server::Options{
-        .port = std::uint16_t(options.number("port")) //
-    });
+    nil::service::TypedService server(               //
+        std::make_unique<nil::service::tcp::Server>( //
+            nil::service::tcp::Server::Options{
+                .port = std::uint16_t(options.number("port")) //
+            }
+        )
+    );
 
     std::mutex mutex;
     std::vector<std::function<void()>> actions;

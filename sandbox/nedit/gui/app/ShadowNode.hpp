@@ -32,9 +32,9 @@ struct ShadowNode
         const std::vector<PinInfo>& init_pin_infos
     );
 
-    ~ShadowNode() = default;
-    ShadowNode(ShadowNode&&) = delete;
+    ~ShadowNode() noexcept = default;
     ShadowNode(const Pin&) = delete;
+    ShadowNode(ShadowNode&&) = delete;
     ShadowNode& operator=(ShadowNode&&) = delete;
     ShadowNode& operator=(const ShadowNode&) = delete;
 

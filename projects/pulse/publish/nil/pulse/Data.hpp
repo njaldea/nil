@@ -60,7 +60,7 @@ namespace nil
                 return ptr_t(new Data<T>(std::move(init_value)));
             }
 
-            ~Data() = default;
+            ~Data() noexcept = default;
 
             Data(Data&&) = default;
             Data(const Data&) = default;

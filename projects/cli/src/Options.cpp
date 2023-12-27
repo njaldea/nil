@@ -22,12 +22,12 @@ namespace nil::cli
         {
         }
 
-        ~Impl() = default;
+        ~Impl() noexcept = default;
 
-        Impl(const Impl&) = delete;
         Impl(Impl&&) = delete;
-        Impl& operator=(const Impl&) = delete;
+        Impl(const Impl&) = delete;
         Impl& operator=(Impl&&) = delete;
+        Impl& operator=(const Impl&) = delete;
 
         std::string usage;
         boost::program_options::options_description desc;
@@ -88,7 +88,7 @@ namespace nil::cli
         }
     }
 
-    Options::~Options() = default;
+    Options::~Options() noexcept = default;
 
     void Options::help(std::ostream& os) const
     {

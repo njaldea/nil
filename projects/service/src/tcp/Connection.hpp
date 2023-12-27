@@ -11,7 +11,7 @@ namespace nil::service::tcp
 
     struct IImpl
     {
-        virtual ~IImpl() = default;
+        virtual ~IImpl() noexcept = default;
         virtual void message( //
             const std::string& id,
             const std::uint8_t* data,

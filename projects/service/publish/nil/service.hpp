@@ -1,8 +1,10 @@
 #pragma once
 
-#include "service/tcp/modes.hpp"
-#include "service/udp/modes.hpp"
-#include "service/ws/modes.hpp"
+#include "service/tcp/Client.hpp"
+#include "service/tcp/Server.hpp"
+#include "service/udp/Client.hpp"
+#include "service/udp/Server.hpp"
+#include "service/ws/Client.hpp"
+#include "service/ws/Server.hpp"
 
-#include "service/IService.hpp"
 #include "service/TypedService.hpp"

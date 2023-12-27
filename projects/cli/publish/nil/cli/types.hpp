@@ -10,7 +10,7 @@ namespace nil::cli
     struct IOption
     {
         struct Impl;
-        virtual ~IOption() = default;
+        virtual ~IOption() noexcept = default;
         virtual void apply(const Impl& impl) const = 0;
     };
 
@@ -27,7 +27,7 @@ namespace nil::cli
      */
     struct Command
     {
-        virtual ~Command() = default;
+        virtual ~Command() noexcept = default;
 
         /**
          * @brief message to use used when printing help for this command.
