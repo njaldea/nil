@@ -126,5 +126,5 @@ OPTIONS:
   -m [ --mparam ] text              multiple params
 
 SUBCOMMANDS:
- >  world              some description for sub commands: 2
+  world                             command for 2:world
 ```

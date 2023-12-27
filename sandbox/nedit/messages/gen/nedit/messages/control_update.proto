@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.nedit.proto;
+
+message ControlUpdate {
+    uint64 id = 1;
+    oneof value {
+        bool b = 2;
+        int32 i = 3;
+        float f = 4;
+        string s = 5;
+    }
+}

@@ -92,10 +92,26 @@ namespace nil::service
         {
             handlers.emplace(
                 type,
-                [h = std::move(handler)]                                        //
-                (const std::string& id, const void* data, std::uint64_t size)   //
-                {                                                               //
-                    h(id, codec<detail::traits_t<T>>::deserialize(data, size)); //
+                [h = std::move(handler)] //
+                (const std::string& id, const void* data, std::uint64_t size)
+                {
+                    if constexpr (nil::utils::traits::callable<T>::inputs::size == 2)
+                    {
+                        h(id, codec<detail::traits_t<T>>::deserialize(data, size));
+                    }
+                    else if constexpr (nil::utils::traits::callable<T>::inputs::size == 1)
+                    {
+                        (void)data;
+                        (void)size;
+                        h(id);
+                    }
+                    else
+                    {
+                        (void)id;
+                        (void)data;
+                        (void)size;
+                        h();
+                    }
                 }
             );
         }
@@ -117,10 +133,22 @@ namespace nil::service
             service->send(id, data.data(), data.size());
         }
 
+        void send(const std::string& id, std::uint32_t type)
+        {
+            auto data = TypedService::serialize(type, {});
+            service->send(id, data.data(), data.size());
+        }
+
         template <typename T>
         void publish(std::uint32_t type, const T& message)
         {
             auto data = TypedService::serialize(type, codec<T>::serialize(message));
+            service->publish(data.data(), data.size());
+        }
+
+        void publish(std::uint32_t type)
+        {
+            auto data = TypedService::serialize(type, {});
             service->publish(data.data(), data.size());
         }
 

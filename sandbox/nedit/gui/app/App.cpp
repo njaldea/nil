@@ -1,237 +1,325 @@
 #include "App.hpp"
+#include "Control.hpp"
 
-void App::create(std::uint64_t type_index)
+#include <set>
+
+namespace
 {
-    const auto node_id = ids.reserve();
-    nodes.emplace(
-        node_id,
-        std::make_unique<Node>(type_index, node_id, node_infos[type_index].label)
-    );
-    auto& n = nodes[node_id];
-
-    for (const auto& type_i : node_infos[type_index].inputs)
+    bool is_reachable(
+        const gui::Node* current_node,
+        const gui::Node* target_node,
+        const std::unordered_map<std::uint64_t, gui::PinMapping>& pin_mapping,
+        const std::unordered_map<std::uint64_t, std::unique_ptr<gui::Link>>& links,
+        std::vector<gui::Pin>(gui::Node::*pins_getter),
+        gui::Pin*(gui::Link::*next_pin)
+    )
     {
-        auto pin_id_i = ids.reserve();
-        n->pins_i.emplace_back(std::make_unique<Pin>( //
-            pin_id_i,
-            ax::NodeEditor::PinKind::Input,
-            type_i,
-            pin_infos[type_i].label,
-            pin_infos[type_i].icon
-        ));
-        pins.emplace(pin_id_i, std::make_tuple(n.get(), n->pins_i.back().get()));
-    }
+        for (const auto& pin : current_node->*pins_getter)
+        {
+            for (const auto& pin_links : pin_mapping.at(pin.id.value).links)
+            {
+                const auto* npin = pin_links->*next_pin;
+                if (npin == nullptr)
+                {
+                    continue;
+                }
 
-    for (const auto& type_o : node_infos[type_index].outputs)
-    {
-        auto pin_id_o = ids.reserve();
-        n->pins_o.emplace_back(std::make_unique<Pin>( //
-            pin_id_o,
-            ax::NodeEditor::PinKind::Output,
-            type_o,
-            pin_infos[type_o].label,
-            pin_infos[type_o].icon
-        ));
-        pins.emplace(pin_id_o, std::make_tuple(n.get(), n->pins_o.back().get()));
+                const auto* next_node = pin_mapping.at(npin->id.value).node;
+                if (next_node == target_node)
+                {
+                    return true;
+                }
+
+                if (is_reachable(next_node, target_node, pin_mapping, links, pins_getter, next_pin))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }
 
-void App::link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o)
+namespace gui
 {
-    auto& [node_i, pin_i] = pins[i.Get()];
-    auto& [node_o, pin_o] = pins[o.Get()];
-    if (node_i != node_o && pin_i->kind != pin_o->kind && pin_i->type == pin_o->type)
+    void App::create_link(const ax::NodeEditor::PinId& a, const ax::NodeEditor::PinId& b)
     {
-        if (pin_o->links.size() == 1)
+        if (a == b)
         {
             ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
         }
-        else if (ax::NodeEditor::AcceptNewItem())
+
+        auto& detail_a = pins.at(a.Get());
+        auto& detail_b = pins.at(b.Get());
+
+        if (detail_a.pin->kind == detail_b.pin->kind    //
+            || detail_a.pin->type != detail_b.pin->type //
+            || detail_a.node == detail_b.node)
         {
-            auto link_id = ids.reserve();
-            links.emplace(link_id, std::make_unique<Link>(link_id, Link::Info{pin_i, pin_o}));
-            pin_i->links.emplace(link_id);
-            pin_o->links.emplace(link_id);
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
+        }
+
+        const auto is_a_start = detail_a.pin->kind == ax::NodeEditor::PinKind::Output;
+        auto& start = is_a_start ? detail_a : detail_b;
+        auto& end = is_a_start ? detail_b : detail_a;
+
+        // end pin (output) should only have 1 link connected to it
+        if (end.links.size() == 1)
+        {
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
+        }
+
+        // [TODO] do i need to do it in both directions? one pass might be enough
+        if (is_reachable(start.node, end.node, pins, links, &Node::pins_i, &Link::entry)
+            || is_reachable(end.node, start.node, pins, links, &Node::pins_o, &Link::exit))
+        {
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
+        }
+
+        if (ax::NodeEditor::AcceptNewItem())
+        {
+            auto link = std::make_unique<Link>(ids, Link::Info{start.pin, end.pin});
+            auto* ptr = link.get();
+            const auto id = link->id.value;
+            links.emplace(id, std::move(link));
+            start.links.emplace(ptr);
+            end.links.emplace(ptr);
         }
     }
-    else
+
+    void App::render(ax::NodeEditor::EditorContext& context)
     {
-        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        ax::NodeEditor::SetCurrentEditor(&context);
+        ax::NodeEditor::Begin("My Editor", ImVec2(0.0, 0.0f));
+
+        push_style();
+        render();
+        edit_create();
+        edit_delete();
+        pop_style();
+
+        ax::NodeEditor::End();
+        ax::NodeEditor::SetCurrentEditor(nullptr);
     }
-}
 
-void App::render(ax::NodeEditor::EditorContext* context)
-{
-    ax::NodeEditor::SetCurrentEditor(context);
-    ax::NodeEditor::Begin("My Editor", ImVec2(0.0, 0.0f));
-
-    style();
-    render();
-    edit_create();
-    edit_delete();
-    pop_style();
-
-    ax::NodeEditor::End();
-    ax::NodeEditor::SetCurrentEditor(nullptr);
-}
-
-void App::render()
-{
-    if (tmp)
+    void App::render_panel()
     {
-        if (tmp->is_ready)
+        ImGui::Text("Pin Types");
+        for (auto& pin_info : pin_infos)
         {
-            auto n = tmp->consume(ids);
-            for (const auto& pin : n->pins_i)
+            pin_info.render();
+        }
+
+        ImGui::Text("Node Type (drag)");
+        for (auto n = 0u; n < node_infos.size(); n++)
+        {
+            auto& info = node_infos[n];
+            info.render();
+            if (info.is_dragged())
             {
-                pins.emplace(pin->id.Get(), std::make_tuple(n.get(), pin.get()));
+                prepare_create(n);
             }
-            for (const auto& pin : n->pins_o)
+            else
             {
-                pins.emplace(pin->id.Get(), std::make_tuple(n.get(), pin.get()));
-            }
-            const auto id = n->id.Get();
-            nodes.emplace(id, std::move(n));
-            tmp = {};
-        }
-        else
-        {
-            tmp->render();
-        }
-    }
-    for (auto& node : nodes)
-    {
-        node.second->render();
-    }
-    for (auto& link : links)
-    {
-        link.second->render();
-    }
-}
-
-void App::style()
-{
-    using namespace ax::NodeEditor;
-    PushStyleColor(StyleColor_NodeBg, ImColor(255, 255, 255, 255));
-    PushStyleColor(StyleColor_NodeBorder, ImColor(255, 255, 255, 0));
-
-    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
-
-    PushStyleVar(StyleVar_NodeBorderWidth, 0.0f);
-    PushStyleVar(StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
-    PushStyleVar(StyleVar_NodeRounding, 0.0f);
-    PushStyleVar(StyleVar_PinCorners, 0.0f);
-    PushStyleVar(StyleVar_PinRounding, 0.0f);
-    PushStyleVar(StyleVar_PinBorderWidth, 0.0f);
-    PushStyleVar(StyleVar_PinRadius, 0.0f);
-
-    // PushStyleVar(StyleVar_FlowSpeed, 5.0f);
-    // PushStyleVar(StyleVar_FlowMarkerDistance, 100.0f);
-    // PushStyleVar(StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
-    // PushStyleVar(StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
-    // PushStyleVar(StyleVar_LinkStrength, 1.0f);
-}
-
-void App::pop_style()
-{
-    ax::NodeEditor::PopStyleVar(7);
-    ImGui::PopStyleVar(1);
-    ax::NodeEditor::PopStyleColor(2);
-}
-
-void App::edit_create()
-{
-    if (ax::NodeEditor::BeginCreate())
-    {
-        ax::NodeEditor::PinId pin_id_i;
-        ax::NodeEditor::PinId pin_id_o;
-        if (ax::NodeEditor::QueryNewLink(&pin_id_i, &pin_id_o))
-        {
-            if (pin_id_i && pin_id_o)
-            {
-                link(pin_id_i, pin_id_o);
+                confirm_create(n);
             }
         }
     }
-    ax::NodeEditor::EndCreate();
-}
 
-void App::edit_delete()
-{
-    if (ax::NodeEditor::BeginDelete())
+    void App::render()
     {
-        ax::NodeEditor::LinkId link_id;
-        while (ax::NodeEditor::QueryDeletedLink(&link_id))
+        if (tmp)
         {
-            if (ax::NodeEditor::AcceptDeletedItem())
+            if (finalize_node)
             {
-                delete_link(link_id.Get());
+                const auto id = tmp->id.value;
+                nodes.emplace(id, std::move(tmp));
+                finalize_node = false;
+            }
+            else
+            {
+                tmp->render();
+                const auto pos = ImGui::GetIO().MousePos;
+                ax::NodeEditor::SetNodePosition(tmp->id.value, ImVec2(pos.x - 20, pos.y - 20));
             }
         }
-
-        ax::NodeEditor::NodeId node_id;
-        while (ax::NodeEditor::QueryDeletedNode(&node_id))
+        for (auto& node : nodes)
         {
-            if (ax::NodeEditor::AcceptDeletedItem())
-            {
-                delete_node(node_id.Get());
-            }
+            node.second->render();
+        }
+        for (auto& link : links)
+        {
+            link.second->render();
         }
     }
-    ax::NodeEditor::EndDelete();
-}
 
-void App::delete_link(std::uint64_t link_id)
-{
-    auto link = links.find(link_id);
-    if (link != links.end())
+    void App::push_style()
     {
-        link->second->entry->links.erase(link_id);
-        link->second->exit->links.erase(link_id);
-        links.erase(link_id);
+        namespace ax_ne = ax::NodeEditor;
+        ax_ne::PushStyleColor(ax_ne::StyleColor_NodeBg, ImColor(255, 255, 255, 255));
+        ax_ne::PushStyleColor(ax_ne::StyleColor_NodeBorder, ImColor(255, 255, 255, 0));
+
+        ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
+
+        ax_ne::PushStyleVar(ax_ne::StyleVar_NodeBorderWidth, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
+        ax_ne::PushStyleVar(ax_ne::StyleVar_NodeRounding, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_PinCorners, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_PinRounding, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_PinBorderWidth, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_PinRadius, 0.0f);
+
+        // PushStyleVar(StyleVar_FlowSpeed, 5.0f);
+        // PushStyleVar(StyleVar_FlowMarkerDistance, 100.0f);
+        // PushStyleVar(StyleVar_SourceDirection, ImVec2(0.0f, 1.0f));
+        // PushStyleVar(StyleVar_TargetDirection, ImVec2(0.0f, -1.0f));
+        // PushStyleVar(StyleVar_LinkStrength, 1.0f);
     }
-}
 
-void App::delete_node(std::uint64_t node_id)
-{
-    auto node = nodes.find(node_id);
-    if (node != nodes.end())
+    void App::pop_style()
     {
-        std::unordered_set<std::uint64_t> links_to_delete;
-        const auto cleanup_pins = //
-            [&links_to_delete, this](const auto& current_pins)
+        namespace ax_ne = ax::NodeEditor;
+        ax_ne::PopStyleVar(7);
+        ImGui::PopStyleVar(1);
+        ax_ne::PopStyleColor(2);
+    }
+
+    void App::edit_create()
+    {
+        if (ax::NodeEditor::BeginCreate())
         {
-            for (const auto& pin : current_pins)
+            ax::NodeEditor::PinId pin_id_i;
+            ax::NodeEditor::PinId pin_id_o;
+            if (ax::NodeEditor::QueryNewLink(&pin_id_i, &pin_id_o))
             {
-                for (const auto& link_id : pin->links)
+                if (pin_id_i && pin_id_o)
                 {
-                    links_to_delete.emplace(link_id);
+                    create_link(pin_id_i, pin_id_o);
                 }
-                pins.erase(pin->id.Get());
             }
-        };
-        cleanup_pins(node->second->pins_i);
-        cleanup_pins(node->second->pins_o);
-        for (const auto& link_id : links_to_delete)
-        {
-            delete_link(link_id);
         }
-        nodes.erase(node);
+        ax::NodeEditor::EndCreate();
     }
-}
 
-void App::prepare_create(std::uint64_t type)
-{
-    if (!tmp)
+    void App::edit_delete()
     {
-        tmp = std::make_unique<ShadowNode>(type, node_infos[type], pin_infos);
+        if (ax::NodeEditor::BeginDelete())
+        {
+            ax::NodeEditor::LinkId link_id;
+            while (ax::NodeEditor::QueryDeletedLink(&link_id))
+            {
+                if (ax::NodeEditor::AcceptDeletedItem())
+                {
+                    auto link = links.find(link_id.Get());
+                    if (link != links.end())
+                    {
+                        Link* current_link = link->second.get();
+                        pins.at(current_link->entry->id.value).links.erase(current_link);
+                        pins.at(current_link->exit->id.value).links.erase(current_link);
+                        links.erase(link);
+                    }
+                }
+            }
+
+            ax::NodeEditor::NodeId node_id;
+            while (ax::NodeEditor::QueryDeletedNode(&node_id))
+            {
+                if (ax::NodeEditor::AcceptDeletedItem())
+                {
+                    delete_node(node_id.Get());
+                }
+            }
+        }
+        ax::NodeEditor::EndDelete();
     }
-}
 
-void App::confirm_create(std::uint64_t type) const
-{
-    if (tmp && tmp->type == type)
+    void App::delete_node(std::uint64_t node_id)
     {
-        tmp->ready();
+        auto node_it = nodes.find(node_id);
+        if (node_it != nodes.end())
+        {
+            auto& node = node_it->second;
+            std::set<Link*> links_to_delete;
+            const auto cleanup_pins = [&links_to_delete, this](const auto& current_pins)
+            {
+                for (const auto& pin : current_pins)
+                {
+                    for (Link* link : pins.at(pin.id.value).links)
+                    {
+                        links_to_delete.emplace(link);
+                    }
+                }
+            };
+            cleanup_pins(node->pins_i);
+            cleanup_pins(node->pins_o);
+            for (auto it = links_to_delete.rbegin(); it != links_to_delete.rend(); ++it)
+            {
+                Link* link = *it;
+                pins.at(link->entry->id.value).links.erase(link);
+                pins.at(link->exit->id.value).links.erase(link);
+                links.erase(link->id.value);
+            }
+            for (const auto& pin : node->pins_o)
+            {
+                pins.erase(pin.id.value);
+            }
+            for (const auto& pin : node->pins_i)
+            {
+                pins.erase(pin.id.value);
+            }
+            nodes.erase(node_it);
+        }
+    }
+
+    void App::prepare_create(std::uint64_t type_index)
+    {
+        if (!tmp)
+        {
+            tmp = std::make_unique<Node>(ids, type_index, node_infos[type_index].label);
+
+            tmp->pins_i.reserve(node_infos[type_index].inputs.size());
+            for (const auto& type_i : node_infos[type_index].inputs)
+            {
+                auto& pin_info = pin_infos[type_i];
+                auto& pin = tmp->pins_i.emplace_back(
+                    ids,
+                    ax::NodeEditor::PinKind::Input,
+                    &pin_info,
+                    pin_info.label,
+                    pin_info.icon
+                );
+                pins.emplace(pin.id.value, PinMapping{tmp.get(), &pin, {}});
+            }
+
+            tmp->pins_o.reserve(node_infos[type_index].outputs.size());
+            for (const auto& type_o : node_infos[type_index].outputs)
+            {
+                auto& pin_info = pin_infos[type_o];
+                auto& pin = tmp->pins_o.emplace_back(
+                    ids,
+                    ax::NodeEditor::PinKind::Output,
+                    &pin_info,
+                    pin_info.label,
+                    pin_info.icon
+                );
+                pins.emplace(pin.id.value, PinMapping{tmp.get(), &pin, {}});
+            }
+            for (const auto& control : node_infos[type_index].controls)
+            {
+                tmp->controls.push_back(control(ids));
+            }
+        }
+    }
+
+    void App::confirm_create(std::uint64_t type)
+    {
+        if (tmp && tmp->type == type)
+        {
+            finalize_node = true;
+        }
     }
 }

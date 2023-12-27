@@ -1,47 +1,75 @@
 #include "Node.hpp"
+#include "Control.hpp"
+#include "IDs.hpp"
 #include "Pin.hpp"
 
 #include <imgui.h>
 
-Node::Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_view init_label)
-    : type(init_type)
-    , id(init_id)
-    , label(init_label)
+namespace gui
 {
-}
+    Node::Node(IDs& init_ids, std::uint64_t init_type, std::string_view init_label)
+        : id(init_ids)
+        , type(init_type)
+        , label(init_label)
+    {
+    }
 
-void Node::render() const
-{
-    ax::NodeEditor::BeginNode(id);
+    void Node::render() const
     {
-        ImGui::BeginGroup();
-        ImGui::TextColored(ImVec4(0, 0, 0, 1), "id[%ld]", id.Get());
-        ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", label.data());
-        ImGui::EndGroup();
-    }
-    const auto width = ImGui::GetItemRectSize().x;
-    {
-        ImGui::BeginGroup();
-        for (const auto& pin : pins_i)
+        ax::NodeEditor::BeginNode(id.value);
         {
-            pin->render();
+            ImGui::BeginGroup();
+            ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", label.data());
+            ImGui::EndGroup();
         }
-        ImGui::EndGroup();
-    }
-    ImGui::SameLine();
-    {
-        ImGui::BeginGroup();
-        ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
-        ImGui::EndGroup();
-    }
-    ImGui::SameLine();
-    {
-        ImGui::BeginGroup();
-        for (const auto& pin : pins_o)
+        const auto width = ImGui::GetItemRectSize().x;
         {
-            pin->render();
+            ImGui::BeginGroup();
+            if (pins_i.empty())
+            {
+                ImGui::Dummy(ImVec2(15.0f, 0.0f));
+            }
+            else
+            {
+                for (const auto& pin : pins_i)
+                {
+                    pin.render();
+                }
+            }
+            ImGui::EndGroup();
         }
-        ImGui::EndGroup();
+        ImGui::SameLine();
+        {
+            ImGui::BeginGroup();
+            if (controls.empty())
+            {
+                ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
+            }
+            else
+            {
+                for (const auto& control : controls)
+                {
+                    control->render();
+                }
+            }
+            ImGui::EndGroup();
+        }
+        ImGui::SameLine();
+        {
+            ImGui::BeginGroup();
+            if (pins_o.empty())
+            {
+                ImGui::Dummy(ImVec2(15.0f, 0.0f));
+            }
+            else
+            {
+                for (const auto& pin : pins_o)
+                {
+                    pin.render();
+                }
+            }
+            ImGui::EndGroup();
+        }
+        ax::NodeEditor::EndNode();
     }
-    ax::NodeEditor::EndNode();
 }

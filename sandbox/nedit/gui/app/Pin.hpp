@@ -1,33 +1,36 @@
 #pragma once
 
 #include "FlowIcon.hpp"
+#include "IDs.hpp"
 
 #include <string_view>
 #include <unordered_set>
 
-struct Link;
-struct Node;
-
-struct Pin
+namespace gui
 {
-    Pin(ax::NodeEditor::PinId init_id,
-        ax::NodeEditor::PinKind init_kind,
-        std::uint64_t init_type,
-        std::string_view init_label,
-        const FlowIcon& init_icon);
-    ~Pin() noexcept = default;
+    struct Link;
+    struct Node;
 
-    Pin(Pin&&) = delete;
-    Pin(const Pin&) = delete;
-    Pin& operator=(Pin&&) = delete;
-    Pin& operator=(const Pin&) = delete;
+    struct Pin final
+    {
+        Pin(IDs& init_ids,
+            ax::NodeEditor::PinKind init_kind,
+            const void* init_type,
+            std::string_view init_label,
+            const FlowIcon& init_icon);
+        ~Pin() noexcept = default;
 
-    void render() const;
+        Pin(Pin&&) = default;
+        Pin(const Pin&) = delete;
+        Pin& operator=(Pin&&) = delete;
+        Pin& operator=(const Pin&) = delete;
 
-    std::unordered_set<std::uint64_t> links;
-    ax::NodeEditor::PinId id;
-    ax::NodeEditor::PinKind kind;
-    std::uint64_t type;
-    std::string_view label;
-    const FlowIcon& icon;
-};
+        void render() const;
+
+        ID id;
+        ax::NodeEditor::PinKind kind;
+        const void* type;
+        std::string_view label;
+        const FlowIcon& icon;
+    };
+}

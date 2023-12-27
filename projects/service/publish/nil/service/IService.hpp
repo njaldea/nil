@@ -13,7 +13,7 @@ namespace nil::service
     namespace detail
     {
         template <typename Options>
-        struct Storage
+        struct Storage final
         {
             Options options;
             MessageHandler msg = {};

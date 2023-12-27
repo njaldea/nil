@@ -12,10 +12,10 @@ namespace nil::service::tcp
     struct IImpl
     {
         virtual ~IImpl() noexcept = default;
-        virtual void message( //
+        virtual void message(
             const std::string& id,
             const std::uint8_t* data,
-            std::uint64_t size
+            std::uint64_t size //
         ) = 0;
         virtual void disconnect(Connection* connection) = 0;
     };

@@ -52,15 +52,11 @@ namespace nil::gate
         std::enable_if_t<
             detail::traits<T>::is_valid,
             typename detail::traits<T>::o::readonly_edges> //
-            node(typename detail::traits<T>::i::readonly_edges edges, Args&&... args)
+            node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
         {
-            return create<T>(
-                typename detail::traits<T>::o::type(),
-                typename detail::traits<T>::o::make_index_sequence(),
-                typename detail::traits<T>::i::make_index_sequence(),
-                edges,
-                std::forward<Args>(args)...
-            );
+            auto node = std::make_unique<detail::Node<T>>(input_edges, std::forward<Args>(args)...);
+            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
+                ->output_edges();
         }
 
         // Invalid type passed
@@ -96,11 +92,9 @@ namespace nil::gate
         template <typename T>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge()
         {
-            auto e_ptr = std::make_unique<detail::Edge<T>>(nullptr);
-            auto* e = e_ptr.get();
-            owned_edges.emplace_back(std::move(e_ptr));
-            required_edges.push_back(e);
-            return e;
+            return static_cast<MutableEdge<T>*>(
+                required_edges.emplace_back(std::make_unique<MutableEdge<T>>()).get()
+            );
         }
 
         /**
@@ -122,63 +116,7 @@ namespace nil::gate
         }
 
     private:
-        template <
-            typename T,
-            typename... Outputs,
-            std::size_t... o_indices,
-            std::size_t... i_indices,
-            typename... Args>
-        auto create(
-            nil::utils::traits::types<Outputs...>,
-            std::index_sequence<o_indices...>,
-            std::index_sequence<i_indices...> indices,
-            typename detail::traits<T>::i::readonly_edges edges,
-            Args&&... args
-        )
-        {
-            auto node_ptr = std::make_unique<detail::Node<T>>( //
-                edges,
-                indices,
-                std::forward<Args>(args)...
-            );
-            auto* n = node_ptr.get();
-            owned_nodes.emplace_back(std::move(node_ptr));
-            // attach node to input edges' output
-            (attach_output(down_cast(std::get<i_indices>(edges)), *n), ...);
-            // create output edges and attach it's input to node output
-            return typename detail::traits<T>::o::readonly_edges(
-                this->create_edge<T, Outputs, o_indices>(*n)...
-            );
-        }
-
-        template <typename T, typename U>
-        void attach_output(detail::Edge<U>* target, detail::Node<T>& node)
-        {
-            if (target == nullptr)
-            {
-                throw std::runtime_error("null edge detected!");
-            }
-            target->attach_output(&node);
-        }
-
-        template <typename U>
-        static detail::Edge<U>* down_cast(ReadOnlyEdge<U>* edge)
-        {
-            return static_cast<detail::Edge<U>*>(edge);
-        }
-
-        template <typename T, typename U, std::size_t index>
-        ReadOnlyEdge<U>* create_edge(detail::Node<T>& node)
-        {
-            auto e_ptr = std::make_unique<detail::Edge<U>>(&node);
-            auto* e = e_ptr.get();
-            owned_edges.emplace_back(std::move(e_ptr));
-            node.template attach_output<index>(e);
-            return e;
-        }
-
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;
-        std::vector<std::unique_ptr<IEdge>> owned_edges;
-        std::vector<IEdge*> required_edges;
+        std::vector<std::unique_ptr<IEdge>> required_edges;
     };
 }

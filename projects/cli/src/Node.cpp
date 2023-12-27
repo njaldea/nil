@@ -35,12 +35,11 @@ namespace nil::cli
             throw std::invalid_argument("[nil][cli][" + key + "] already exists");
         }
 
-        sub.emplace_back(std::make_tuple(
+        return *std::get<2>(sub.emplace_back(
             std::move(key),
             std::move(description),
             std::make_unique<Node>(std::move(sub_command))
         ));
-        return *std::get<2>(sub.back());
     }
 
     const Node* Node::find(std::string_view name) const

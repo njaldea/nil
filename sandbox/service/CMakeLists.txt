@@ -1,7 +1,11 @@
 project(sandbox_service)
 
-if(NOT ENABLE_FEATURE_SERVICE OR NOT ENABLE_FEATURE_CLI)
+if(NOT ENABLE_FEATURE_SERVICE)
     return()
+endif()
+
+if (NOT ENABLE_FEATURE_CLI)
+    status(FATAL "ENABLE_FEATURE_CLI is required")
 endif()
 
 add_executable(${PROJECT_NAME} main.cpp)

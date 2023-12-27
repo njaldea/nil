@@ -56,7 +56,6 @@ namespace nil::cli
         const char** argv
     )
         : impl(std::make_unique<Impl>(std::move(usage)))
-
     {
         auto options = impl->desc.add_options();
         for (const auto& option : info)

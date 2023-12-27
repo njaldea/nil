@@ -14,6 +14,7 @@ namespace nil::utils::traits
     template <typename... T>
     struct types
     {
+        static constexpr auto size = sizeof...(T);
     };
 
     /**

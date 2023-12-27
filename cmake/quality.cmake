@@ -20,11 +20,5 @@ add_custom_target(
 set(ENABLE_CLANG_TIDY OFF CACHE BOOL "[0 | OFF - 1 | ON]: build with clang-tidy?")
 if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXECUTABLE NAMES clang-tidy-18 REQUIRED)
-    if(CLANG_TIDY_EXECUTABLE)
-        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE})
-        file(WRITE ${CMAKE_BINARY_DIR}/.clang-tidy "---
-Checks: '-*,misc-definitions-in-headers'
-CheckOptions:
-    - { key: HeaderFileExtensions, value: \"x\" }")
-    endif()
+    set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXECUTABLE})
 endif()

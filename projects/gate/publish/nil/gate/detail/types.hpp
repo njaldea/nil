@@ -14,7 +14,7 @@ namespace nil::gate::detail
     {
         static constexpr auto size = sizeof...(T);
         using type = nil::utils::traits::types<T...>;
-        using edges = std::tuple<Edge<T>*...>;
+        using edges = std::tuple<Edge<T>...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
         using mutable_edges = std::tuple<MutableEdge<T>*...>;
         using make_index_sequence = std::make_index_sequence<size>;
@@ -30,8 +30,8 @@ namespace nil::gate::detail
     {
         using i = types<typename edge_validate<std::decay_t<I>>::type...>;
         using o = types<typename edge_validate<std::decay_t<O>>::type...>;
-        static constexpr bool is_valid =                    //
-            (true && (... && node_validate_i<I>::value)) && //
-            (true && (... && node_validate_o<O>::value));
+        static constexpr bool is_valid                     //
+            = (true && (... && node_validate_i<I>::value)) //
+            && (true && (... && node_validate_o<O>::value));
     };
 }

@@ -4,78 +4,106 @@
 #include "Link.hpp"
 #include "Node.hpp"
 #include "Pin.hpp"
-#include "ShadowNode.hpp"
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
+#include <functional>
 #include <memory>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
 
-struct App
+namespace gui
 {
-public:
-    void render(ax::NodeEditor::EditorContext* context);
-
-    void create(std::uint64_t type);
-    void link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o);
-
-    void prepare_create(std::uint64_t type);
-    void confirm_create(std::uint64_t type) const;
-
-    void add_node_type(NodeInfo node_info)
+    struct NodeInfo final
     {
-        // validate if all pin types are correct first.
-        node_infos.emplace_back(std::move(node_info));
-    }
+        void render()
+        {
+            ImGui::Selectable(label.c_str());
+        }
 
-    std::size_t node_type_count() const
+        bool is_dragged()
+        {
+            constexpr auto src_flags                      //
+                = ImGuiDragDropFlags_SourceNoDisableHover //
+                | ImGuiDragDropFlags_SourceNoPreviewTooltip
+                | ImGuiDragDropFlags_SourceNoHoldToOpenOthers;
+            if (ImGui::BeginDragDropSource(src_flags))
+            {
+                ImGui::EndDragDropSource();
+                return true;
+            }
+            return false;
+        }
+
+        bool is_dropped()
+        {
+            if (ImGui::BeginDragDropTarget())
+            {
+                ImGui::EndDragDropTarget();
+                return true;
+            }
+            return false;
+        }
+
+        std::string label;
+        std::vector<std::uint64_t> inputs;
+        std::vector<std::uint64_t> outputs;
+        std::vector<std::function<std::unique_ptr<Control>(IDs&)>> controls;
+    };
+
+    struct PinInfo final
     {
-        return node_infos.size();
-    }
+        void render()
+        {
+            ImGui::TextColored(icon.color, "%s", label.data());
+        }
 
-    const char* node_type_label(std::size_t index) const
+        std::string label;
+        FlowIcon icon;
+    };
+
+    struct PinMapping final
     {
-        return node_infos[index].label.c_str();
-    }
+        Node* node;
+        Pin* pin;
+        std::unordered_set<Link*> links;
+    };
 
-    void add_pin_type(PinInfo pin_info)
+    struct App final
     {
-        pin_infos.emplace_back(std::move(pin_info));
-    }
+    public:
+        void render(ax::NodeEditor::EditorContext& context);
+        void render_panel();
 
-    std::size_t pin_type_count() const
-    {
-        return pin_infos.size();
-    }
+        void create_link(const ax::NodeEditor::PinId& a, const ax::NodeEditor::PinId& b);
 
-    const char* pin_type_label(std::size_t index) const
-    {
-        return pin_infos[index].label.c_str();
-    }
+        void prepare_create(std::uint64_t type);
+        void confirm_create(std::uint64_t type);
 
-private:
-    static void style();
-    static void pop_style();
-    void render();
-    void edit_create();
-    void edit_delete();
+    private:
+        static void push_style();
+        static void pop_style();
+        void render();
+        void edit_create();
+        void edit_delete();
 
-    void delete_link(std::uint64_t link_id);
-    void delete_node(std::uint64_t node_id);
+        void delete_node(std::uint64_t node_id);
 
-public:
-    IDs ids;
-    // [TODO] reevaluate container type
-    // creation/deletion is easier with unordered_map
-    // rendering (iteration) is more expensive with unordered_map
-    std::unordered_map<std::uint64_t, std::unique_ptr<Node>> nodes;
-    std::unordered_map<std::uint64_t, std::tuple<Node*, Pin*>> pins;
-    std::unordered_map<std::uint64_t, std::unique_ptr<Link>> links;
+    public:
+        // Node/Pin/Link/Controls share the same ID
+        IDs ids;
 
-    std::unique_ptr<ShadowNode> tmp;
+        // Used unordered_map for easier search for deletion
+        // Used unique_ptr for easier memory stability (for PinMapping)
+        std::unordered_map<std::uint64_t, std::unique_ptr<Node>> nodes;
+        std::unordered_map<std::uint64_t, std::unique_ptr<Link>> links;
+        std::unordered_map<std::uint64_t, PinMapping> pins;
 
-    std::vector<NodeInfo> node_infos;
-    std::vector<PinInfo> pin_infos;
-};
+        std::unique_ptr<Node> tmp;
+        bool finalize_node = false;
+
+        std::vector<NodeInfo> node_infos;
+        std::vector<PinInfo> pin_infos;
+    };
+}

@@ -50,10 +50,7 @@ namespace nil::service::tcp
     {
         socket.async_read_some(
             boost::asio::buffer(r_buffer.data() + pos, size - pos),
-            [pos, size, this](
-                const boost::system::error_code& ec,
-                std::size_t count //
-            )
+            [pos, size, this](const boost::system::error_code& ec, std::size_t count)
             {
                 if (ec)
                 {

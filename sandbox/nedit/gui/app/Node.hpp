@@ -1,22 +1,35 @@
 #pragma once
 
+#include "IDs.hpp"
+
 #include <imgui-node-editor/imgui_node_editor.h>
 
 #include <memory>
 #include <string_view>
 #include <vector>
 
-struct Pin;
-
-struct Node
+namespace gui
 {
-    Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_view init_label);
+    struct Pin;
+    struct Control;
 
-    void render() const;
+    struct Node final
+    {
+        Node(IDs& init_ids, std::uint64_t init_type, std::string_view init_label);
+        ~Node() noexcept = default;
 
-    std::uint64_t type;
-    ax::NodeEditor::NodeId id;
-    std::string_view label;
-    std::vector<std::unique_ptr<Pin>> pins_i;
-    std::vector<std::unique_ptr<Pin>> pins_o;
-};
+        Node(Node&&) = default;
+        Node(const Node&) = delete;
+        Node& operator=(Node&&) = default;
+        Node& operator=(const Node&) = delete;
+
+        void render() const;
+
+        ID id;
+        std::uint64_t type;
+        std::string_view label;
+        std::vector<Pin> pins_i;
+        std::vector<Pin> pins_o;
+        std::vector<std::unique_ptr<Control>> controls;
+    };
+}

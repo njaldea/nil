@@ -11,6 +11,7 @@ message PinInfo {
         float b = 3;
         float a = 4;
     }
+
     Color color = 1;
     string label = 2;
 }

@@ -8,5 +8,7 @@ enum MessageType {
     PinInfo = 0;
     NodeInfo = 1;
     GraphUpdate = 2;
-    Freeze = 3;
+    ControlUpdate = 3;
+    SetupBegin = 4;
+    SetupEnd = 5;
 }

@@ -1,22 +1,28 @@
 #pragma once
 
+#include "IDs.hpp"
+
 #include <imgui-node-editor/imgui_node_editor.h>
 
-struct Pin;
-
-struct Link
+namespace gui
 {
-    struct Info
+    struct Pin;
+
+    struct Link final
     {
+        struct Info
+        {
+            Pin* entry;
+            Pin* exit;
+        };
+
+        Link(IDs& init_ids, Info info);
+        ~Link() noexcept = default;
+
+        void render() const;
+
+        ID id;
         Pin* entry;
         Pin* exit;
     };
-
-    Link(ax::NodeEditor::LinkId init_id, Info info);
-
-    void render() const;
-
-    ax::NodeEditor::LinkId id;
-    Pin* entry;
-    Pin* exit;
-};
+}

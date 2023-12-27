@@ -41,15 +41,16 @@ namespace nil::service::udp
                  i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE),
                  msg = std::vector<std::uint8_t>(data, data + size)]()
                 {
-                    // [TODO] use id
-                    (void)id;
-                    const auto b = std::array<boost::asio::const_buffer, 3>{
+                    const auto b = std::array<boost::asio::const_buffer, 2>{
                         boost::asio::buffer(i),
                         boost::asio::buffer(msg)
                     };
-                    for (const auto& connection : connections)
+                    for (const auto& [cid, connection] : connections)
                     {
-                        socket.send_to(b, connection.second->endpoint);
+                        if (cid == id)
+                        {
+                            socket.send_to(b, connection->endpoint);
+                        }
                     }
                 }
             );
