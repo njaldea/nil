@@ -158,6 +158,7 @@ int GUI::run(const nil::cli::Options& options) const
                 message.label(),
                 {message.inputs().begin(), message.inputs().end()},
                 {message.outputs().begin(), message.outputs().end()},
+                {}
             };
 
             const auto _ = std::unique_lock(mutex);
@@ -198,16 +199,12 @@ int GUI::run(const nil::cli::Options& options) const
 
     while (glfwWindowShouldClose(window) == 0)
     {
-        for (const auto& action :
-             [&actions, &mutex]()
-             {
-                 std::vector<std::function<void()>> r;
-                 {
-                     const auto _ = std::unique_lock(mutex);
-                     std::swap(r, actions);
-                 }
-                 return r;
-             }())
+        const auto swap = [&actions, &mutex]()
+        {
+            const auto _ = std::unique_lock(mutex);
+            return std::exchange(actions, {});
+        };
+        for (const auto& action : swap())
         {
             action();
         }
@@ -240,6 +237,7 @@ int GUI::run(const nil::cli::Options& options) const
                 for (const auto& n : app.nodes)
                 {
                     auto* node = graph.add_nodes();
+                    node->set_id(n.second->id.Get());
                     node->set_type(n.second->type);
                     for (const auto& pin : n.second->pins_i)
                     {
@@ -253,6 +251,14 @@ int GUI::run(const nil::cli::Options& options) const
                     for (const auto& pin : n.second->pins_o)
                     {
                         node->add_outputs(pin->id.Get());
+                    }
+                    for (const auto& control : n.second->controls)
+                    {
+                        auto* c = node->add_controls();
+                        c->set_id(0);
+                        c->set_type(nil::nedit::proto::Graph::Node::Control::Slider);
+                        (void)control;
+                        (void)c;
                     }
                 }
                 server.publish(nil::nedit::proto::message_type::GraphUpdate, graph);

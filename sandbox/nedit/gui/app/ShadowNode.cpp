@@ -1,6 +1,8 @@
 #include "ShadowNode.hpp"
 #include "Pin.hpp"
 
+#include "Control.hpp"
+
 #include <imgui.h>
 
 #include <iostream>
@@ -69,6 +71,7 @@ std::unique_ptr<Node> ShadowNode::consume(IDs& ids)
 {
     const auto node_id = ids.reserve();
     auto node = std::make_unique<Node>(type, node_id, node_info.label);
+    node->controls.push_back(std::make_unique<SliderControl>(ids.reserve()));
 
     ax::NodeEditor::SetNodePosition(node_id, ImVec2(pos.x - 20, pos.y - 20));
     for (const auto& type_i : node_info.inputs)

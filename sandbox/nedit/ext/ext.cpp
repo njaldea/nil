@@ -16,6 +16,15 @@
 namespace
 {
     template <typename T>
+    struct Control
+    {
+        std::tuple<T> operator()(T value)
+        {
+            return {value};
+        }
+    };
+
+    template <typename T>
     struct Input
     {
         Input(std::string init_name, T init_value)

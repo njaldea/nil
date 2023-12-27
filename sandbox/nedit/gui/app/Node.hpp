@@ -7,10 +7,12 @@
 #include <vector>
 
 struct Pin;
+struct Control;
 
 struct Node
 {
     Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_view init_label);
+    ~Node() noexcept;
 
     void render() const;
 
@@ -19,4 +21,5 @@ struct Node
     std::string_view label;
     std::vector<std::unique_ptr<Pin>> pins_i;
     std::vector<std::unique_ptr<Pin>> pins_o;
+    std::vector<std::unique_ptr<Control>> controls;
 };

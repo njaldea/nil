@@ -1,4 +1,5 @@
 #include "Node.hpp"
+#include "Control.hpp"
 #include "Pin.hpp"
 
 #include <imgui.h>
@@ -9,6 +10,8 @@ Node::Node(std::uint64_t init_type, ax::NodeEditor::NodeId init_id, std::string_
     , label(init_label)
 {
 }
+
+Node::~Node() noexcept = default;
 
 void Node::render() const
 {
@@ -31,7 +34,17 @@ void Node::render() const
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
+        if (controls.empty())
+        {
+            ImGui::Dummy(ImVec2(width - 15.0f, 0.0f));
+        }
+        else
+        {
+            for (const auto& control : controls)
+            {
+                control->render();
+            }
+        }
         ImGui::EndGroup();
     }
     ImGui::SameLine();
