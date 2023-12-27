@@ -4,7 +4,6 @@ option optimize_for = LITE_RUNTIME;
 
 package nil.nedit.proto;
 
-
 message PinInfo {
     message Color {
         float r = 1;

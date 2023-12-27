@@ -146,7 +146,9 @@ namespace nil::gate
             // attach node to input edges' output
             (attach_output(down_cast(std::get<i_indices>(edges)), *n), ...);
             // create output edges and attach it's input to node output
-            return std::make_tuple(this->edge<T, Outputs, o_indices>(*n)...);
+            return typename detail::traits<T>::o::readonly_edges(
+                this->create_edge<T, Outputs, o_indices>(*n)...
+            );
         }
 
         template <typename T, typename U>
@@ -166,7 +168,7 @@ namespace nil::gate
         }
 
         template <typename T, typename U, std::size_t index>
-        ReadOnlyEdge<U>* edge(detail::Node<T>& node)
+        ReadOnlyEdge<U>* create_edge(detail::Node<T>& node)
         {
             auto e_ptr = std::make_unique<detail::Edge<U>>(&node);
             auto* e = e_ptr.get();

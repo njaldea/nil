@@ -17,8 +17,8 @@ namespace nil::gate
     {
     private:
         using EdgeIDs = std::vector<std::uint64_t>;
-        using NodeFactory
-            = std::function<void(CoreBuilder&, nil::gate::Core&, const EdgeIDs&, const EdgeIDs&)>;
+        using NodeFactory = //
+            std::function<void(CoreBuilder&, nil::gate::Core&, const EdgeIDs&, const EdgeIDs&)>;
 
         template <typename T, typename... Args, std::size_t... indices>
         auto create(
@@ -70,37 +70,43 @@ namespace nil::gate
 
         static std::vector<Node> sort_by_score(const std::vector<Node>& nodes)
         {
-            std::vector<Node> retval;
-
-            std::unordered_map<std::uint64_t, Edge> edges;
-            for (const auto& node : nodes)
+            const auto edges = [&nodes]()
             {
-                for (const auto& i : node.inputs)
+                std::unordered_map<std::uint64_t, Edge> retval;
+                for (const auto& node : nodes)
                 {
-                    edges[i].outputs.push_back(&node);
+                    for (const auto& i : node.inputs)
+                    {
+                        retval[i].outputs.push_back(&node);
+                    }
+                    for (const auto& o : node.outputs)
+                    {
+                        retval[o].input = &node;
+                    }
                 }
-                for (const auto& o : node.outputs)
+                return retval;
+            }();
+
+            const auto scores = [&nodes, &edges]()
+            {
+                std::multimap<std::uint32_t, const Node*> retval;
+                for (const auto& node : nodes)
                 {
-                    edges[o].input = &node;
+                    retval.emplace(recurse_score(edges, &node), &node);
                 }
-            }
+                return retval;
+            }();
 
-            struct Edge
+            return [&scores]()
             {
-                const Node* input;
-                std::vector<const Node*> outputs;
-            };
-
-            std::multimap<std::uint32_t, const Node*> scores;
-            for (const auto& node : nodes)
-            {
-                scores.emplace(recurse_score(edges, &node), &node);
-            }
-            for (const auto& [score, node] : scores)
-            {
-                retval.push_back(*node);
-            }
-            return retval;
+                std::vector<Node> retval;
+                retval.reserve(scores.size());
+                for (const auto& [score, node] : scores)
+                {
+                    retval.push_back(*node);
+                }
+                return retval;
+            }();
         }
 
     public:
@@ -108,13 +114,24 @@ namespace nil::gate
         ~CoreBuilder() noexcept = default;
 
         CoreBuilder(CoreBuilder&&) = default;
-        CoreBuilder(const CoreBuilder&) = default;
         CoreBuilder& operator=(CoreBuilder&&) = default;
-        CoreBuilder& operator=(const CoreBuilder&) = default;
+
+        CoreBuilder(const CoreBuilder& o)
+            : graph_nodes(o.graph_nodes)
+            , node_factories(o.node_factories)
+        {
+        }
+
+        CoreBuilder& operator=(const CoreBuilder& o)
+        {
+            graph_nodes = o.graph_nodes;
+            node_factories = o.node_factories;
+            return *this;
+        }
 
         template <typename T, typename... Args>
         std::enable_if_t<nil::gate::detail::traits<T>::is_valid, CoreBuilder&> add_node_type(
-            Args&&... args
+            const Args&... args
         )
         {
             node_factories.push_back(
@@ -148,14 +165,21 @@ namespace nil::gate
             return *this;
         }
 
+        void clear()
+        {
+            graph_nodes.clear();
+            edges.clear();
+        }
+
         Core build()
         {
             Core core;
+
+            edges.clear();
             for (const auto& node : sort_by_score(graph_nodes))
             {
                 node_factories[node.type](*this, core, node.inputs, node.outputs);
             }
-            edges.clear();
             return core;
         }
 

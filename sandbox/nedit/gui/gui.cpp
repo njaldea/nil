@@ -103,7 +103,7 @@ int GUI::run(const nil::cli::Options& options) const
     App app;
 
     server.on_message(
-        nil::nedit::proto::type::Freeze,
+        nil::nedit::proto::message_type::Freeze,
         // [TODO] find a way to not care about arguments if possible
         [&is_frozen] //
         (const std::string&, const std::string&)
@@ -113,7 +113,7 @@ int GUI::run(const nil::cli::Options& options) const
     );
 
     server.on_message(
-        nil::nedit::proto::type::PinInfo,
+        nil::nedit::proto::message_type::PinInfo,
         [&is_frozen,
          &mutex,
          &actions,
@@ -142,7 +142,7 @@ int GUI::run(const nil::cli::Options& options) const
     );
 
     server.on_message(
-        nil::nedit::proto::type::NodeInfo,
+        nil::nedit::proto::message_type::NodeInfo,
         [&is_frozen,
          &mutex,
          &actions,
@@ -255,7 +255,7 @@ int GUI::run(const nil::cli::Options& options) const
                         node->add_outputs(pin->id.Get());
                     }
                 }
-                server.publish(nil::nedit::proto::type::GraphUpdate, graph);
+                server.publish(nil::nedit::proto::message_type::GraphUpdate, graph);
             }();
         }
         ImGui::Text("Pin Types");

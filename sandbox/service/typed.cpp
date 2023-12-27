@@ -23,10 +23,7 @@ std::unique_ptr<nil::service::IService> make_service(const nil::cli::Options& op
         std::is_same_v<nil::service::ws::Client, Service>
     )
     {
-        return nil::service::make_service<Service>({
-            .host = "127.0.0.1",
-            .port = port //
-        });
+        return nil::service::make_service<Service>({.host = "127.0.0.1", .port = port});
     }
     else
     {
@@ -141,16 +138,11 @@ int main(int argc, const char** argv)
 {
     using nil::cli::Node;
     using nil::cli::nodes::Help;
+    using namespace nil::service;
 
     auto root = Node::root<Help>(std::cout);
-    add_sub_nodes<nil::service::udp::Server, nil::service::udp::Client>(
-        root.add<Help>("udp", "use udp protocol", std::cout)
-    );
-    add_sub_nodes<nil::service::tcp::Server, nil::service::tcp::Client>(
-        root.add<Help>("tcp", "use tcp protocol", std::cout)
-    );
-    add_sub_nodes<nil::service::ws::Server, nil::service::ws::Client>(
-        root.add<Help>("ws", "use ws protocol", std::cout)
-    );
+    add_sub_nodes<udp::Server, udp::Client>(root.add<Help>("udp", "use udp protocol", std::cout));
+    add_sub_nodes<tcp::Server, tcp::Client>(root.add<Help>("tcp", "use tcp protocol", std::cout));
+    add_sub_nodes<ws::Server, ws::Client>(root.add<Help>("ws", "use ws protocol", std::cout));
     return root.run(argc, argv);
 }

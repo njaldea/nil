@@ -4,8 +4,28 @@ option optimize_for = LITE_RUNTIME;
 
 package nil.nedit.proto;
 
+import "type.proto";
+
+message SliderControl
+{
+    float min = 1;
+    float max = 2;
+    float step = 3;
+    float value = 4;
+}
+
+message ControlInfo
+{
+    enum ControlType {
+        Slider = 0;
+    }
+    ControlType type = 1;
+    SliderControl control = 2;
+}
+
 message NodeInfo {
     repeated uint64 inputs = 1;
     repeated uint64 outputs = 2;
-    string label = 3;
+    repeated ControlInfo controls = 3;
+    string label = 4;
 }

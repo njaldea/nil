@@ -2,9 +2,9 @@ syntax = "proto3";
 
 option optimize_for = LITE_RUNTIME;
 
-package nil.nedit.proto.type;
+package nil.nedit.proto.message_type;
 
-enum Type {
+enum MessageType {
     PinInfo = 0;
     NodeInfo = 1;
     GraphUpdate = 2;

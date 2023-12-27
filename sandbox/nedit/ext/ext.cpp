@@ -20,7 +20,7 @@ namespace
     {
         Input(std::string init_name, T init_value)
             : name(std::move(init_name))
-            , value(init_value)
+            , value(std::move(init_value))
         {
         }
 
@@ -73,8 +73,9 @@ namespace
     //  -  find a way to abstract out the message type
     //  -  create a library. if possible, gate can take ownership of this, only if the message
     //  handling is abstracted out.
-    struct App
+    class App
     {
+    public:
         template <typename T>
         App& add_pin(std::string label, std::array<float, 4> color)
         {
@@ -117,6 +118,13 @@ namespace
             return *this;
         }
 
+        std::vector<nil::nedit::proto::PinInfo> pins;
+        std::vector<nil::nedit::proto::NodeInfo> nodes;
+        nil::gate::CoreBuilder builder;
+
+    private:
+        std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
+
         template <typename T, typename... Inputs>
         void add_inputs(
             nil::nedit::proto::NodeInfo& info,
@@ -134,11 +142,6 @@ namespace
         {
             (info.add_outputs(type_to_pin_index.at(nil::utils::traits::type<Outputs>::value)), ...);
         }
-
-        std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
-        std::vector<nil::nedit::proto::PinInfo> pins;
-        std::vector<nil::nedit::proto::NodeInfo> nodes;
-        nil::gate::CoreBuilder builder;
     };
 }
 
@@ -184,18 +187,18 @@ int EXT::run(const nil::cli::Options& options) const
         {
             for (const auto& pin : app.pins)
             {
-                client.send(id, nil::nedit::proto::type::PinInfo, pin);
+                client.send(id, nil::nedit::proto::message_type::PinInfo, pin);
             }
             for (const auto& node : app.nodes)
             {
-                client.send(id, nil::nedit::proto::type::NodeInfo, node);
+                client.send(id, nil::nedit::proto::message_type::NodeInfo, node);
             }
-            client.send(id, nil::nedit::proto::type::Freeze, std::string());
+            client.send(id, nil::nedit::proto::message_type::Freeze, std::string());
         }
     );
 
     client.on_message(
-        nil::nedit::proto::type::GraphUpdate,
+        nil::nedit::proto::message_type::GraphUpdate,
         [&core, &app](const std::string&, const nil::nedit::proto::Graph& graph)
         {
             auto builder = app.builder;
