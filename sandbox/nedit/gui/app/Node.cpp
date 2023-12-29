@@ -25,9 +25,16 @@ void Node::render() const
     const auto width = ImGui::GetItemRectSize().x;
     {
         ImGui::BeginGroup();
-        for (const auto& pin : pins_i)
+        if (pins_i.empty())
         {
-            pin->render();
+            ImGui::Dummy(ImVec2(15.0f, 0.0f));
+        }
+        else
+        {
+            for (const auto& pin : pins_i)
+            {
+                pin->render();
+            }
         }
         ImGui::EndGroup();
     }
@@ -50,9 +57,16 @@ void Node::render() const
     ImGui::SameLine();
     {
         ImGui::BeginGroup();
-        for (const auto& pin : pins_o)
+        if (pins_o.empty())
         {
-            pin->render();
+            ImGui::Dummy(ImVec2(15.0f, 0.0f));
+        }
+        else
+        {
+            for (const auto& pin : pins_o)
+            {
+                pin->render();
+            }
         }
         ImGui::EndGroup();
     }

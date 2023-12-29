@@ -24,7 +24,6 @@ set(
         gui/app/Link.cpp
         gui/app/Node.cpp
         gui/app/Pin.cpp
-        gui/app/ShadowNode.cpp
         gui/app/FlowIcon.cpp
         gui/app/Control.cpp
 )
@@ -38,7 +37,6 @@ set(
         gui/app/Link.hpp
         gui/app/Node.hpp
         gui/app/Pin.hpp
-        gui/app/ShadowNode.hpp
         gui/app/FlowIcon.hpp
         gui/app/Control.hpp
 )

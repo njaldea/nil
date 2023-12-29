@@ -4,7 +4,6 @@
 #include "Link.hpp"
 #include "Node.hpp"
 #include "Pin.hpp"
-#include "ShadowNode.hpp"
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
@@ -13,16 +12,29 @@
 #include <unordered_map>
 #include <vector>
 
+struct NodeInfo
+{
+    std::string label;
+    std::vector<std::uint64_t> inputs;
+    std::vector<std::uint64_t> outputs;
+    std::vector<std::uint64_t> controls;
+};
+
+struct PinInfo
+{
+    std::string label;
+    FlowIcon icon;
+};
+
 struct App
 {
 public:
     void render(ax::NodeEditor::EditorContext* context);
 
-    void create(std::uint64_t type);
-    void link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o);
+    void create_link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o);
 
     void prepare_create(std::uint64_t type);
-    void confirm_create(std::uint64_t type) const;
+    void confirm_create(std::uint64_t type);
 
     void add_node_type(NodeInfo node_info)
     {
@@ -56,7 +68,7 @@ public:
     }
 
 private:
-    static void style();
+    static void push_style();
     static void pop_style();
     void render();
     void edit_create();
@@ -74,7 +86,8 @@ public:
     std::unordered_map<std::uint64_t, std::tuple<Node*, Pin*>> pins;
     std::unordered_map<std::uint64_t, std::unique_ptr<Link>> links;
 
-    std::unique_ptr<ShadowNode> tmp;
+    std::unique_ptr<Node> tmp;
+    bool finalize_node = false;
 
     std::vector<NodeInfo> node_infos;
     std::vector<PinInfo> pin_infos;
