@@ -13,6 +13,20 @@
 
 namespace nil::gate
 {
+    // TODO:
+    //  -  move sorting outside of builder
+    //  -  assume builder's responsibility is to receive a scored node
+    //  -  remove build()
+    // TODOs will make it possible to emit edges for control types.
+    //
+    // control types, even if not really pertaining to GUI controls, are types/inputs
+    // after at the end of Node call operator.
+    //
+    // This builder will be responsible in combining Node and control types
+    // <N, X...> where:
+    //  -  N == Node
+    //  -  X... == Control Nodes
+    //  -  N::operator() == ReturnType operator()(..., X::return_type...)
     class CoreBuilder
     {
     private:
@@ -44,9 +58,10 @@ namespace nil::gate
 
         struct Node
         {
-            std::uint64_t type;
+            std::uint64_t type; // node's index when registered to builder
             std::vector<std::uint64_t> inputs;
             std::vector<std::uint64_t> outputs;
+            std::vector<std::uint64_t> controls;
         };
 
         struct Edge
@@ -161,7 +176,7 @@ namespace nil::gate
             std::vector<std::uint64_t> outputs
         )
         {
-            graph_nodes.push_back({type, std::move(inputs), std::move(outputs)});
+            graph_nodes.push_back({type, std::move(inputs), std::move(outputs), {}});
             return *this;
         }
 

@@ -7,6 +7,7 @@
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
+#include <functional>
 #include <memory>
 #include <tuple>
 #include <unordered_map>
@@ -17,7 +18,7 @@ struct NodeInfo
     std::string label;
     std::vector<std::uint64_t> inputs;
     std::vector<std::uint64_t> outputs;
-    std::vector<std::uint64_t> controls;
+    std::vector<std::function<std::unique_ptr<Control>(std::uint64_t)>> controls;
 };
 
 struct PinInfo
@@ -35,37 +36,6 @@ public:
 
     void prepare_create(std::uint64_t type);
     void confirm_create(std::uint64_t type);
-
-    void add_node_type(NodeInfo node_info)
-    {
-        // validate if all pin types are correct first.
-        node_infos.emplace_back(std::move(node_info));
-    }
-
-    std::size_t node_type_count() const
-    {
-        return node_infos.size();
-    }
-
-    const char* node_type_label(std::size_t index) const
-    {
-        return node_infos[index].label.c_str();
-    }
-
-    void add_pin_type(PinInfo pin_info)
-    {
-        pin_infos.emplace_back(std::move(pin_info));
-    }
-
-    std::size_t pin_type_count() const
-    {
-        return pin_infos.size();
-    }
-
-    const char* pin_type_label(std::size_t index) const
-    {
-        return pin_infos[index].label.c_str();
-    }
 
 private:
     static void push_style();

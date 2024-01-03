@@ -2,26 +2,26 @@
 
 #include <cstdint>
 
-#include <queue>
+#include <stack>
 
 struct IDs
 {
     std::uint64_t reserve()
     {
-        if (!reuse_queue.empty())
+        if (reuse_ids.empty())
         {
-            const auto v = reuse_queue.front();
-            reuse_queue.pop();
-            return v;
+            return ++current;
         }
-        return ++current;
+        const auto v = reuse_ids.top();
+        reuse_ids.pop();
+        return v;
     }
 
     void release(std::uint64_t id)
     {
-        reuse_queue.push(id);
+        reuse_ids.push(id);
     }
 
     std::uint64_t current = 0;
-    std::queue<std::uint64_t> reuse_queue;
+    std::stack<std::uint64_t> reuse_ids;
 };

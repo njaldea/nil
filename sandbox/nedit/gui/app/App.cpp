@@ -148,7 +148,6 @@ void App::delete_link(std::uint64_t link_id)
         link->second->entry->links.erase(link_id);
         link->second->exit->links.erase(link_id);
         links.erase(link_id);
-        ids.release(link_id);
     }
 }
 
@@ -161,13 +160,16 @@ void App::delete_node(std::uint64_t node_id)
         const auto cleanup_pins = //
             [&links_to_delete, this](const auto& current_pins)
         {
-            for (const auto& pin : current_pins)
+            for (auto it = current_pins.rbegin(); it != current_pins.rend(); ++it)
             {
+                const auto* pin = it->get();
+                const auto pin_id = pin->id.Get();
                 for (const auto& link_id : pin->links)
                 {
                     links_to_delete.emplace(link_id);
                 }
-                pins.erase(pin->id.Get());
+                pins.erase(pin_id);
+                ids.release(pin_id);
             }
         };
         cleanup_pins(node->second->pins_i);
@@ -175,6 +177,7 @@ void App::delete_node(std::uint64_t node_id)
         for (const auto& link_id : links_to_delete)
         {
             delete_link(link_id);
+            ids.release(link_id);
         }
         for (const auto& control : node->second->controls)
         {
@@ -217,9 +220,10 @@ void App::prepare_create(std::uint64_t type_index)
             ));
             pins.emplace(pin_id_o, std::make_tuple(tmp.get(), tmp->pins_o.back().get()));
         }
-
-        tmp->controls.emplace_back(std::make_unique<SliderControl>(ids.reserve()));
-        tmp->controls.emplace_back(std::make_unique<TextControl>(ids.reserve()));
+        for (const auto& control : node_infos[type_index].controls)
+        {
+            tmp->controls.push_back(control(ids.reserve()));
+        }
     }
 }
 

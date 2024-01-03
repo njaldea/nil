@@ -13,16 +13,18 @@ message NodeInfo {
         {
             float min = 1;
             float max = 2;
-            float step = 3;
-            float value = 4;
+            float value = 3;
         }
 
-        enum ControlType {
-            Slider = 0;
+        message TextControlInfo
+        {
+            string value = 1;
         }
 
-        ControlType type = 1;
-        SliderControlInfo control = 2;
+        oneof control {
+            SliderControlInfo slider = 2;
+            TextControlInfo text = 3;
+        }
     }
 
     repeated uint64 inputs = 1;

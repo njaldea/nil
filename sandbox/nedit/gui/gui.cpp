@@ -2,6 +2,7 @@
 #include "../codec.hpp"
 
 #include "app/App.hpp"
+#include "app/Control.hpp"
 
 #include <nil/service.hpp>
 
@@ -134,9 +135,9 @@ int GUI::run(const nil::cli::Options& options) const
                 )}
             };
             const auto _ = std::unique_lock(mutex);
-            actions.emplace_back(                                 //
-                [&app, info = std::move(info)]                    //
-                () mutable { app.add_pin_type(std::move(info)); } //
+            actions.emplace_back( //
+                [&app, info = std::move(info)]() mutable
+                { app.pin_infos.emplace_back(std::move(info)); }
             );
         }
     );
@@ -161,12 +162,38 @@ int GUI::run(const nil::cli::Options& options) const
                 {}
             };
 
-            const auto _ = std::unique_lock(mutex);
-            actions.emplace_back(
-                [&app, info = std::move(info)]() mutable
+            for (const auto& control : message.controls())
+            {
+                if (control.has_slider())
                 {
-                    app.add_node_type(std::move(info)); //
+                    const auto& slider = control.slider();
+                    const auto value = slider.value();
+                    const auto min = slider.min();
+                    const auto max = slider.max();
+                    info.controls.emplace_back(
+                        [=](std::uint64_t id)
+                        {
+                            return std::make_unique<SliderControl>(id, value, min, max); //
+                        }
+                    );
                 }
+                else if (control.has_text())
+                {
+                    const auto& text = control.text();
+                    const auto value = text.value();
+                    info.controls.emplace_back(
+                        [=](std::uint64_t id)
+                        {
+                            return std::make_unique<TextControl>(id, value); //
+                        }
+                    );
+                }
+            }
+
+            const auto _ = std::unique_lock(mutex);
+            actions.emplace_back( //
+                [&app, info = std::move(info)]() mutable
+                { app.node_infos.emplace_back(std::move(info)); }
             );
         }
     );
@@ -255,30 +282,28 @@ int GUI::run(const nil::cli::Options& options) const
                     for (const auto& control : n.second->controls)
                     {
                         auto* c = node->add_controls();
-                        c->set_id(0);
+                        c->set_id(control->id.Get());
                         c->set_type(nil::nedit::proto::Graph::Node::Control::Slider);
-                        (void)control;
-                        (void)c;
                     }
                 }
                 server.publish(nil::nedit::proto::message_type::GraphUpdate, graph);
             }();
         }
+
         ImGui::Text("Pin Types");
-
-        for (auto n = 0u; n < app.pin_type_count(); n++)
+        for (const auto& pin_info : app.pin_infos)
         {
             ImGui::Dummy(ImVec2(5, 0));
             ImGui::SameLine();
-            ImGui::TextColored(app.pin_infos[n].icon.color, "%s", app.pin_infos[n].label.data());
+            ImGui::TextColored(pin_info.icon.color, "%s", pin_info.label.data());
         }
-        ImGui::Text("Node Type (drag)");
 
-        for (auto n = 0u; n < app.node_type_count(); n++)
+        ImGui::Text("Node Type (drag)");
+        for (auto n = 0u; n < app.node_infos.size(); n++)
         {
             ImGui::Dummy(ImVec2(5, 0));
             ImGui::SameLine();
-            ImGui::Selectable(app.node_type_label(n));
+            ImGui::Selectable(app.node_infos[n].label.c_str());
 
             constexpr auto src_flags //
                 = ImGuiDragDropFlags_SourceNoDisableHover

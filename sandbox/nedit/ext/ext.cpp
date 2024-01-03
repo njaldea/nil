@@ -5,6 +5,7 @@
 #include <nil/service.hpp>
 #include <nil/utils/traits/type.hpp>
 
+#include <array>
 #include <iostream>
 #include <sstream>
 
@@ -104,21 +105,18 @@ namespace
             return *this;
         }
 
-        template <typename T, typename... Args>
+        template <typename T, typename... Controls, typename... Args>
         App& add_node(std::string label, Args&&... args)
         {
             nodes.push_back(
                 [&]()
                 {
                     nil::nedit::proto::NodeInfo info;
-                    add_inputs<T>(
-                        info,
-                        typename nil::gate::detail::traits<std::decay_t<T>>::i::type()
-                    );
-                    add_outputs<T>(
-                        info,
-                        typename nil::gate::detail::traits<std::decay_t<T>>::o::type()
-                    );
+                    using input_t = typename nil::gate::detail::traits<std::decay_t<T>>::i::type;
+                    add_inputs<T>(info, input_t());
+                    using output_t = typename nil::gate::detail::traits<std::decay_t<T>>::o::type;
+                    add_outputs<T>(info, output_t());
+                    add_controls<T, Controls...>(info);
                     info.set_label(std::move(label));
                     return info;
                 }()
@@ -151,6 +149,34 @@ namespace
         {
             (info.add_outputs(type_to_pin_index.at(nil::utils::traits::type<Outputs>::value)), ...);
         }
+
+        template <typename T, typename... Controls>
+        void add_controls(nil::nedit::proto::NodeInfo& info)
+        {
+            (add_control<T>(info, nil::utils::traits::types<Controls>()), ...);
+        }
+
+        template <typename T>
+        void add_control(
+            nil::nedit::proto::NodeInfo& info,
+            nil::utils::traits::types<Control<float>> /* unused */
+        )
+        {
+            auto* c = info.add_controls();
+            c->mutable_slider()->set_value(1.0f);
+            c->mutable_slider()->set_min(0.0f);
+            c->mutable_slider()->set_max(2.0f);
+        }
+
+        template <typename T>
+        void add_control(
+            nil::nedit::proto::NodeInfo& info,
+            nil::utils::traits::types<Control<std::string>> /* unused */
+        )
+        {
+            auto* c = info.add_controls();
+            c->mutable_text()->set_value("<sample text>");
+        }
     };
 }
 
@@ -174,6 +200,14 @@ int EXT::run(const nil::cli::Options& options) const
         App()  //
             .add_pin<bool>("bool", {0.0f, 1.0f, 0.0f, 1.0f})
             .add_pin<int>("int", {1.0f, 0.0f, 0.0f, 1.0f})
+            .add_pin<float>("float", {0.0f, 0.0f, 1.0f, 1.0f})
+            .add_pin<std::string>("string", {0.0f, 1.0f, 1.0f, 1.0f})
+            .add_node<Input<float>, Control<float>>("Input_f<1.0f>", "f", 1.0f)
+            .add_node<Input<std::string>, Control<std::string>>(
+                "Input_s<sample_text>",
+                "s",
+                "sample_text"
+            )
             .add_node<Input<bool>>("Input_b<false>", "b", false)
             .add_node<Input<bool>>("Input_b<true>", "b", true)
             .add_node<Input<int>>("Input_i<5>", "i", 5)
