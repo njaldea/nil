@@ -198,7 +198,7 @@ void App::prepare_create(std::uint64_t type_index)
         for (const auto& type_i : node_infos[type_index].inputs)
         {
             auto pin_id_i = ids.reserve();
-            tmp->pins_i.emplace_back(std::make_unique<Pin>( //
+            tmp->pins_i.emplace_back(std::make_unique<Pin>(
                 pin_id_i,
                 ax::NodeEditor::PinKind::Input,
                 type_i,
@@ -211,7 +211,7 @@ void App::prepare_create(std::uint64_t type_index)
         for (const auto& type_o : node_infos[type_index].outputs)
         {
             auto pin_id_o = ids.reserve();
-            tmp->pins_o.emplace_back(std::make_unique<Pin>( //
+            tmp->pins_o.emplace_back(std::make_unique<Pin>(
                 pin_id_o,
                 ax::NodeEditor::PinKind::Output,
                 type_o,

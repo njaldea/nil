@@ -21,6 +21,7 @@
 #include <thread>
 #include <vector>
 
+#include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/graph_update.pb.h>
 #include <gen/nedit/messages/node_info.pb.h>
 #include <gen/nedit/messages/pin_info.pb.h>
@@ -42,12 +43,10 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    nil::service::TypedService server(               //
-        std::make_unique<nil::service::tcp::Server>( //
-            nil::service::tcp::Server::Options{
-                .port = std::uint16_t(options.number("port")) //
-            }
-        )
+    nil::service::TypedService server( //
+        nil::service::make_service<nil::service::tcp::Server>({
+            .port = std::uint16_t(options.number("port")) //
+        })
     );
 
     std::mutex mutex;
@@ -106,11 +105,7 @@ int GUI::run(const nil::cli::Options& options) const
     server.on_message(
         nil::nedit::proto::message_type::Freeze,
         // [TODO] find a way to not care about arguments if possible
-        [&is_frozen] //
-        (const std::string&, const std::string&)
-        {
-            is_frozen = true; //
-        }
+        [&is_frozen](const std::string&, const std::string&) { is_frozen = true; }
     );
 
     server.on_message(
@@ -118,8 +113,9 @@ int GUI::run(const nil::cli::Options& options) const
         [&is_frozen,
          &mutex,
          &actions,
-         &app] //
-        (const std::string&, const nil::nedit::proto::PinInfo& message)
+         &app]                                                          //
+        (const std::string&, const nil::nedit::proto::PinInfo& message) //
+
         {
             if (is_frozen)
             {
@@ -144,7 +140,8 @@ int GUI::run(const nil::cli::Options& options) const
 
     server.on_message(
         nil::nedit::proto::message_type::NodeInfo,
-        [&is_frozen,
+        [&server,
+         &is_frozen,
          &mutex,
          &actions,
          &app] //
@@ -171,9 +168,26 @@ int GUI::run(const nil::cli::Options& options) const
                     const auto min = slider.min();
                     const auto max = slider.max();
                     info.controls.emplace_back(
-                        [=](std::uint64_t id)
+                        [=, &server](std::uint64_t id)
                         {
-                            return std::make_unique<SliderControl>(id, value, min, max); //
+                            return std::make_unique<SliderControl>(
+                                id,
+                                value,
+                                min,
+                                max,
+                                [&server, id](float v)
+                                {
+                                    std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__
+                                              << std::endl;
+                                    nil::nedit::proto::ControlUpdate m;
+                                    m.set_id(id);
+                                    m.set_f(v);
+                                    server.publish(
+                                        nil::nedit::proto::message_type::ControlUpdate,
+                                        m
+                                    );
+                                }
+                            ); //
                         }
                     );
                 }
@@ -281,9 +295,7 @@ int GUI::run(const nil::cli::Options& options) const
                     }
                     for (const auto& control : n.second->controls)
                     {
-                        auto* c = node->add_controls();
-                        c->set_id(control->id.Get());
-                        c->set_type(nil::nedit::proto::Graph::Node::Control::Slider);
+                        node->add_controls(control->id.Get());
                     }
                 }
                 server.publish(nil::nedit::proto::message_type::GraphUpdate, graph);

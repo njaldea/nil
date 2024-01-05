@@ -6,28 +6,11 @@ package nil.nedit.proto;
 
 message Graph {
     message Node {
-        message Control
-        {
-            message SliderControl
-            {
-                uint64 id = 1;
-                double value = 2;
-            }
-
-            enum ControlType {
-                Slider = 0;
-            }
-
-            uint64 id = 1;
-            ControlType type = 2;
-            SliderControl control = 3;
-        }
-
         uint64 id = 1;
         uint64 type = 2;
         repeated uint64 inputs = 3;
         repeated uint64 outputs = 4;
-        repeated Control controls = 5;
+        repeated uint64 controls = 5;
     }
 
     repeated Node nodes = 1;

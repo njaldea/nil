@@ -11,6 +11,7 @@ protobuf_generate_cpp(
     graph_update.proto
     node_info.proto
     pin_info.proto
+    control_update.proto
 )
 
 add_library(${PROJECT_NAME} ${PROTO_HEADER} ${PROTO_SRC})

@@ -2,6 +2,7 @@
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
+#include <functional>
 #include <string>
 
 struct Control
@@ -15,13 +16,20 @@ struct Control
 
 struct SliderControl: Control
 {
-    SliderControl(ax::NodeEditor::PinId init_id, float init_value, float init_min, float init_max);
+    SliderControl(
+        ax::NodeEditor::PinId init_id,
+        float init_value,
+        float init_min,
+        float init_max,
+        std::function<void(float)> init_notify
+    );
 
     void render() override;
 
     float value;
     float min;
     float max;
+    std::function<void(float)> notify;
 };
 
 struct TextControl: Control
