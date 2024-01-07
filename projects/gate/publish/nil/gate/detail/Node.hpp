@@ -8,30 +8,28 @@ namespace nil::gate::detail
     template <typename T>
     class Node final: public INode
     {
+        using input_t = typename detail::traits<T>::i;
+        using output_t = typename detail::traits<T>::o;
+
     public:
         template <typename... Args, std::size_t... i_indices>
         Node(
-            typename detail::traits<T>::i::readonly_edges init_inputs,
+            typename input_t::readonly_edges init_inputs,
             std::index_sequence<i_indices...>,
             Args&&... args
         )
             : instance(std::forward<Args>(args)...)
             , inputs(down_cast(std::get<i_indices>(init_inputs))...)
         {
-            if constexpr (sizeof...(i_indices) == 0)
-            {
-                (void)init_inputs;
-            }
         }
 
         void exec() override
         {
-            if (state == State::Pending
-                && is_runnable(typename detail::traits<T>::i::make_index_sequence()))
+            if (state == State::Pending && is_runnable(typename input_t::make_index_sequence()))
             {
                 exec(
-                    typename detail::traits<T>::i::make_index_sequence(),
-                    typename detail::traits<T>::o::make_index_sequence()
+                    typename input_t::make_index_sequence(),
+                    typename output_t::make_index_sequence()
                 );
             }
         }
@@ -41,7 +39,7 @@ namespace nil::gate::detail
             if (state != State::Pending)
             {
                 state = State::Pending;
-                pend(typename detail::traits<T>::o::make_index_sequence());
+                pend(typename output_t::make_index_sequence());
             }
         }
 
@@ -50,7 +48,7 @@ namespace nil::gate::detail
             if (state == State::Pending)
             {
                 state = State::Cancelled;
-                cancel(typename detail::traits<T>::o::make_index_sequence());
+                cancel(typename output_t::make_index_sequence());
             }
         }
 
@@ -104,7 +102,7 @@ namespace nil::gate::detail
         State state = State::Pending;
 
         T instance;
-        typename detail::traits<T>::i::edges inputs;
-        typename detail::traits<T>::o::edges outputs;
+        typename input_t::edges inputs;
+        typename output_t::edges outputs;
     };
 }

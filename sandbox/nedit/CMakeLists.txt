@@ -42,7 +42,7 @@ set(
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/messages)
+target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/messages)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE cli)
 target_link_libraries(${PROJECT_NAME} PRIVATE service)

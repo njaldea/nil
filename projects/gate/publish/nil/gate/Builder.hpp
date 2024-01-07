@@ -2,8 +2,6 @@
 
 #include "Core.hpp"
 
-#include <nil/utils/traits/type.hpp>
-
 #include <algorithm>
 #include <cstdint>
 #include <functional>
@@ -28,7 +26,7 @@ namespace nil::gate
         {
             struct Edge
             {
-                const Node* input;
+                const Node* input = nullptr;
                 std::vector<const Node*> outputs;
             };
 
@@ -36,14 +34,25 @@ namespace nil::gate
             {
                 static std::uint32_t recurse(
                     const std::unordered_map<std::uint64_t, Edge>& edges,
-                    const Node* current_node
+                    const Node* current_node,
+                    std::unordered_map<const Node*, std::uint32_t>& cache
                 )
                 {
+                    if (current_node == nullptr)
+                    {
+                        return 0;
+                    }
+                    const auto it = cache.find(current_node);
+                    if (it != cache.end())
+                    {
+                        return it->second;
+                    }
                     auto score = 0u;
                     for (const auto& i : current_node->inputs)
                     {
-                        score = std::max(recurse(edges, edges.at(i).input) + 1u, score);
+                        score = std::max(recurse(edges, edges.at(i).input, cache) + 1u, score);
                     }
+                    cache.emplace(current_node, score);
                     return score;
                 }
             };
@@ -68,9 +77,10 @@ namespace nil::gate
             const auto scores = [&nodes, &edges]()
             {
                 std::multimap<std::uint32_t, const Node*> retval;
+                std::unordered_map<const Node*, std::uint32_t> cache;
                 for (const auto& node : nodes)
                 {
-                    retval.emplace(Scorer::recurse(edges, &node), &node);
+                    retval.emplace(Scorer::recurse(edges, &node, cache), &node);
                 }
                 return retval;
             }();

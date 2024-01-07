@@ -152,7 +152,7 @@ namespace
         template <typename T>
         App& add_pin(std::string label, std::array<float, 4> color)
         {
-            type_to_pin_index.emplace(nil::utils::traits::type<T>::value, pins.size());
+            type_to_pin_index.emplace(nil::utils::traits::identity_v<T>, pins.size());
             pins.push_back(
                 [&]()
                 {
@@ -315,14 +315,12 @@ namespace
             std::index_sequence<indices...> /* unused */
         )
         {
-            (                                         //
-                info.add_inputs(type_to_pin_index.at( //
-                    nil::utils::traits::type<         //
-                        std::tuple_element_t<         //
-                            indices,                  //
-                            std::tuple<Inputs...>>>::value
+            ( //
+                info.add_inputs(type_to_pin_index.at(
+                    nil::utils::traits::identity_v<
+                        std::tuple_element_t<indices, std::tuple<Inputs...>>> //
                 )),
-                ...
+                ... //
             );
         }
 
@@ -332,7 +330,7 @@ namespace
             nil::utils::traits::types<Outputs...> /* unused */
         )
         {
-            (info.add_outputs(type_to_pin_index.at(nil::utils::traits::type<Outputs>::value)), ...);
+            (info.add_outputs(type_to_pin_index.at(nil::utils::traits::identity_v<Outputs>)), ...);
         }
 
         template <typename T, typename... Controls>
