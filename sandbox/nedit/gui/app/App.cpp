@@ -2,33 +2,100 @@
 
 #include "Control.hpp"
 
-void App::create_link(const ax::NodeEditor::PinId& i, const ax::NodeEditor::PinId& o)
+#include <iostream>
+
+namespace
 {
-    auto& [node_i, pin_i] = pins[i.Get()];
-    auto& [node_o, pin_o] = pins[o.Get()];
-    if (node_i != node_o && pin_i->kind != pin_o->kind && pin_i->type == pin_o->type)
+    bool is_reachable(
+        const Node* current_node,
+        const Node* target_node,
+        const std::unordered_map<std::uint64_t, std::tuple<Node*, Pin*>>& pin_to_node,
+        const std::unordered_map<std::uint64_t, std::unique_ptr<Link>>& links,
+        std::vector<std::unique_ptr<Pin>>(Node::*pins_getter),
+        Pin*(Link::*next_pin)
+    )
     {
-        if (pin_o->links.size() == 1)
+        for (const auto& pins : current_node->*pins_getter)
         {
-            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            for (const auto& link : pins->links)
+            {
+                const auto& l_ptr = links.at(link);
+                const auto* pin = l_ptr.get()->*next_pin;
+                if (pin == nullptr)
+                {
+                    continue;
+                }
+
+                const auto* next_node = std::get<0>(pin_to_node.at(pin->id.Get()));
+                if (next_node == target_node)
+                {
+                    return true;
+                }
+
+                if (is_reachable(next_node, target_node, pin_to_node, links, pins_getter, next_pin))
+                {
+                    return true;
+                }
+            }
         }
-        else if (ax::NodeEditor::AcceptNewItem())
-        {
-            auto link_id = ids.reserve();
-            links.emplace(link_id, std::make_unique<Link>(link_id, Link::Info{pin_i, pin_o}));
-            pin_i->links.emplace(link_id);
-            pin_o->links.emplace(link_id);
-        }
-    }
-    else
-    {
-        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        return false;
     }
 }
 
-void App::render(ax::NodeEditor::EditorContext* context)
+void App::create_link(const ax::NodeEditor::PinId& a, const ax::NodeEditor::PinId& b)
 {
-    ax::NodeEditor::SetCurrentEditor(context);
+    if (a == b)
+    {
+        return;
+    }
+
+    auto [node_a, pin_a] = pins[a.Get()];
+    auto [node_b, pin_b] = pins[b.Get()];
+
+    if (pin_a->kind == pin_b->kind)
+    {
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        return;
+    }
+
+    if (pin_a->type != pin_b->type)
+    {
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        return;
+    }
+
+    const auto [node_start, pin_start, node_end, pin_end] //
+        = pin_a->kind == ax::NodeEditor::PinKind::Output
+        ? std::make_tuple(node_a, pin_a, node_b, pin_b)
+        : std::make_tuple(node_b, pin_b, node_a, pin_a);
+
+    // end pin (output) should only have 1 link connected to it
+    if (pin_end->links.size() == 1)
+    {
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        return;
+    }
+
+    // TODO: do i need to do it in both directions? one pass might be enough
+    if (is_reachable(node_start, node_end, pins, links, &Node::pins_i, &Link::entry)
+        || is_reachable(node_end, node_start, pins, links, &Node::pins_o, &Link::exit))
+    {
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+        return;
+    }
+
+    if (ax::NodeEditor::AcceptNewItem())
+    {
+        auto link_id = ids.reserve();
+        links.emplace(link_id, std::make_unique<Link>(link_id, Link::Info{pin_start, pin_end}));
+        pin_start->links.emplace(link_id);
+        pin_end->links.emplace(link_id);
+    }
+}
+
+void App::render(ax::NodeEditor::EditorContext& context)
+{
+    ax::NodeEditor::SetCurrentEditor(&context);
     ax::NodeEditor::Begin("My Editor", ImVec2(0.0, 0.0f));
 
     push_style();
@@ -39,6 +106,30 @@ void App::render(ax::NodeEditor::EditorContext* context)
 
     ax::NodeEditor::End();
     ax::NodeEditor::SetCurrentEditor(nullptr);
+}
+
+void App::render_panel()
+{
+    ImGui::Text("Pin Types");
+    for (auto& pin_info : pin_infos)
+    {
+        pin_info.render();
+    }
+
+    ImGui::Text("Node Type (drag)");
+    for (auto n = 0u; n < node_infos.size(); n++)
+    {
+        auto& info = node_infos[n];
+        info.render();
+        if (info.is_dragged())
+        {
+            prepare_create(n);
+        }
+        else
+        {
+            confirm_create(n);
+        }
+    }
 }
 
 void App::render()
@@ -157,8 +248,7 @@ void App::delete_node(std::uint64_t node_id)
     if (node != nodes.end())
     {
         std::unordered_set<std::uint64_t> links_to_delete;
-        const auto cleanup_pins = //
-            [&links_to_delete, this](const auto& current_pins)
+        const auto cleanup_pins = [&links_to_delete, this](const auto& current_pins)
         {
             for (auto it = current_pins.rbegin(); it != current_pins.rend(); ++it)
             {
@@ -168,7 +258,6 @@ void App::delete_node(std::uint64_t node_id)
                 {
                     links_to_delete.emplace(link_id);
                 }
-                pins.erase(pin_id);
                 ids.release(pin_id);
             }
         };
@@ -198,26 +287,18 @@ void App::prepare_create(std::uint64_t type_index)
         for (const auto& type_i : node_infos[type_index].inputs)
         {
             auto pin_id_i = ids.reserve();
-            tmp->pins_i.emplace_back(std::make_unique<Pin>(
-                pin_id_i,
-                ax::NodeEditor::PinKind::Input,
-                type_i,
-                pin_infos[type_i].label,
-                pin_infos[type_i].icon
-            ));
+            tmp->pins_i.emplace_back(
+                pin_infos[type_i].create(pin_id_i, ax::NodeEditor::PinKind::Input)
+            );
             pins.emplace(pin_id_i, std::make_tuple(tmp.get(), tmp->pins_i.back().get()));
         }
 
         for (const auto& type_o : node_infos[type_index].outputs)
         {
             auto pin_id_o = ids.reserve();
-            tmp->pins_o.emplace_back(std::make_unique<Pin>(
-                pin_id_o,
-                ax::NodeEditor::PinKind::Output,
-                type_o,
-                pin_infos[type_o].label,
-                pin_infos[type_o].icon
-            ));
+            tmp->pins_o.emplace_back(
+                pin_infos[type_o].create(pin_id_o, ax::NodeEditor::PinKind::Output)
+            );
             pins.emplace(pin_id_o, std::make_tuple(tmp.get(), tmp->pins_o.back().get()));
         }
         for (const auto& control : node_infos[type_index].controls)

@@ -27,43 +27,56 @@ namespace
             return T();
         }
 
-        // description how to populate nodeinfo (message)
+        static void to_message(nil::nedit::proto::NodeInfo& info);
     };
 
-    template <typename T>
-    struct InputWithControl
+    template <>
+    void Control<bool>::to_message(nil::nedit::proto::NodeInfo& info)
     {
-        InputWithControl(std::string init_name)
+        auto* s = info.add_controls()->mutable_toggle();
+        s->set_value(false);
+    }
+
+    template <>
+    void Control<int>::to_message(nil::nedit::proto::NodeInfo& info)
+    {
+        auto* s = info.add_controls()->mutable_spinbox();
+        s->set_value(0);
+        s->set_min(0);
+        s->set_max(10);
+    }
+
+    template <>
+    void Control<float>::to_message(nil::nedit::proto::NodeInfo& info)
+    {
+        auto* s = info.add_controls()->mutable_slider();
+        s->set_value(1.0f);
+        s->set_min(0.0f);
+        s->set_max(2.0f);
+    }
+
+    template <>
+    void Control<std::string>::to_message(nil::nedit::proto::NodeInfo& info)
+    {
+        auto* s = info.add_controls()->mutable_text();
+        s->set_value("<sample text>");
+    }
+
+    template <typename T>
+    struct Input
+    {
+        explicit Input(std::string init_name)
             : name(std::move(init_name))
         {
         }
 
         std::tuple<T> operator()(const T& value)
         {
-            std::cout << "InputWithControl_" << name << '<' << value << '>' << std::endl;
-            return {value};
-        }
-
-        std::string name;
-    };
-
-    template <typename T>
-    struct Input
-    {
-        Input(std::string init_name, T init_value)
-            : name(std::move(init_name))
-            , value(std::move(init_value))
-        {
-        }
-
-        std::tuple<T> operator()()
-        {
             std::cout << "Input_" << name << '<' << value << '>' << std::endl;
             return {value};
         }
 
         std::string name;
-        T value;
     };
 
     struct Add
@@ -96,7 +109,7 @@ namespace
     template <typename T>
     struct Consume
     {
-        void operator()(T v)
+        void operator()(const T& v)
         {
             std::cout << "Consume: " << v << std::endl;
         }
@@ -106,17 +119,31 @@ namespace
     //  -  find a way to abstract out the message type
     //  -  create a library. if possible, gate can take ownership of this, only if the message
     //  handling is abstracted out.
-    class App
+    class App final
     {
         using IDs = std::vector<std::uint64_t>;
         using Factory = std::function<void(nil::gate::Core&, const IDs&, const IDs&, const IDs&)>;
 
-    public:
-        App()
+        struct RelaxedEdge
         {
-            std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-        }
+            nil::gate::IEdge* edge;
 
+            template <typename T>
+            operator nil::gate::MutableEdge<T>*() const
+            {
+                return static_cast<nil::gate::MutableEdge<T>*>(edge);
+            }
+
+            template <typename T>
+            operator nil::gate::ReadOnlyEdge<T>*() const
+            {
+                return static_cast<nil::gate::ReadOnlyEdge<T>*>(edge);
+            }
+        };
+
+    public:
+        App() = default;
+        ~App() = default;
         App(const App&) = delete;
         App(App&&) = delete;
         App& operator=(const App&) = delete;
@@ -142,16 +169,20 @@ namespace
         }
 
         template <typename T, typename... Controls, typename... Args>
-        App& add_node(std::string label, Args&&... args)
+        App& add_node(std::string label, const Args&... args)
         {
+            using input_t = typename nil::gate::detail::traits<std::decay_t<T>>::i;
+            using output_t = typename nil::gate::detail::traits<std::decay_t<T>>::o;
             nodes.push_back(
                 [&]()
                 {
                     nil::nedit::proto::NodeInfo info;
-                    using input_t = typename nil::gate::detail::traits<std::decay_t<T>>::i::type;
-                    add_inputs<T>(info, input_t());
-                    using output_t = typename nil::gate::detail::traits<std::decay_t<T>>::o::type;
-                    add_outputs<T>(info, output_t());
+                    add_inputs<T>(
+                        info,
+                        typename input_t::type(),
+                        std::make_index_sequence<input_t::size - sizeof...(Controls)>()
+                    );
+                    add_outputs<T>(info, typename output_t::type());
                     add_controls<T, Controls...>(info);
                     info.set_label(std::move(label));
                     return info;
@@ -169,59 +200,67 @@ namespace
                     if (sizeof...(Controls) > 0)
                     {
                         // controls.size() == sizeof...(Controls)
-                        const auto exposed_edges = core.edges<typename Controls::type...>();
                         this->create_control_edges<T, Controls...>(
-                            exposed_edges,
+                            core,
                             controls,
                             std::make_index_sequence<sizeof...(Controls)>()
                         );
-                        this->create_node<T, Controls...>(
-                            core,
-                            exposed_edges,
-                            inputs,
-                            outputs,
-                            args...
-                        );
                     }
-                    else
-                    {
-                        this->create_node<T>(core, {}, inputs, outputs, args...);
-                    }
+                    constexpr auto input_count                //
+                        = input_t::size < sizeof...(Controls) //
+                        ? 0u
+                        : input_t::size - sizeof...(Controls);
+                    this->create_node<T>(
+                        core,
+                        inputs,
+                        outputs,
+                        controls,
+                        std::make_index_sequence<input_count>(),
+                        typename output_t::make_index_sequence(),
+                        std::make_index_sequence<sizeof...(Controls)>(),
+                        args...
+                    );
                 }
             );
             return *this;
         }
 
-        // TODO: for fixing
-        // - control_edges
-        // - internal_edges
-        // - node_factories
-        // - create_control_edges
-        // - create_control_edges
         void reset()
         {
             control_edges.clear();
             internal_edges.clear();
         }
 
-        std::vector<Factory> node_factories;
+        void create_node(
+            nil::gate::Core& core,
+            std::uint64_t type,
+            const std::vector<std::uint64_t>& inputs,
+            const std::vector<std::uint64_t>& outputs,
+            const std::vector<std::uint64_t>& controls
+        )
+        {
+            node_factories[type](core, inputs, outputs, controls);
+        }
+
         std::vector<nil::nedit::proto::PinInfo> pins;   // messages
         std::vector<nil::nedit::proto::NodeInfo> nodes; // messages
-        std::unordered_map<std::uint64_t, nil::gate::IEdge*> control_edges;
+        std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
 
     private:
-        std::unordered_map<std::uint64_t, nil::gate::IEdge*> internal_edges;
+        std::vector<Factory> node_factories;
+        std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
         std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
 
         template <typename T, typename... C, std::size_t... indices>
         void create_control_edges(
-            std::tuple<nil::gate::MutableEdge<typename C::type>*...> mutable_edges,
-            std::vector<std::uint64_t> ids,
-            std::index_sequence<indices...> //
+            nil::gate::Core& core,
+            const std::vector<std::uint64_t>& ids,
+            std::index_sequence<indices...> /* unused */ //
         )
         {
             if constexpr (sizeof...(C) > 0)
             {
+                const auto mutable_edges = core.edges<typename C::type...>();
                 (create_control_edge<T, C>(std::get<indices>(mutable_edges), ids[indices]), ...);
             }
         }
@@ -229,65 +268,62 @@ namespace
         template <typename T, typename C>
         void create_control_edge(nil::gate::MutableEdge<typename C::type>* edge, std::uint64_t id)
         {
-            edge->set_value(C::value()); // default value
-            std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-            std::cout << id << std::endl;
-            std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-            for (const auto& i : control_edges)
-            {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cout << i.first << std::endl;
-            }
-            control_edges.emplace(id, edge);
-            std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-            for (const auto& i : control_edges)
-            {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cout << i.first << std::endl;
-            }
+            edge->set_value(C::value());
+            control_edges.emplace(id, RelaxedEdge{edge});
         }
 
         template <
             typename T,
-            typename... C,
             std::size_t... input_indices,
             std::size_t... output_indices,
             std::size_t... control_indices,
             typename... Args>
         void create_node(
             nil::gate::Core& core,
-            std::tuple<nil::gate::MutableEdge<typename C::type>*...> controls,
-            std::vector<std::uint64_t> inputs,
-            std::vector<std::uint64_t> outputs,
-            Args&&... args
+            const std::vector<std::uint64_t>& inputs,
+            const std::vector<std::uint64_t>& outputs,
+            const std::vector<std::uint64_t>& controls,
+            std::index_sequence<input_indices...> /* unused */,
+            std::index_sequence<output_indices...> /* unused */,
+            std::index_sequence<control_indices...> /* unused */,
+            const Args&... args
         )
         {
-            if constexpr (sizeof...(input_indices) > 0 || sizeof...(control_indices))
+            const auto result = core.node<T>(
+                {
+                    internal_edges[inputs[input_indices]]...,
+                    control_edges[controls[control_indices]]... //
+                },
+                args...
+            );
+            if constexpr (sizeof...(output_indices) > 0u)
             {
-                const auto result = core.node<T>(
-                    {inputs[input_indices]..., std::get<control_indices>(controls)...},
-                    args...
+                (                                                     //
+                    this->internal_edges.emplace(                     //
+                        outputs[output_indices],                      //
+                        RelaxedEdge{std::get<output_indices>(result)} //
+                    ),                                                //
+                    ...                                               //
                 );
-                (this->internal_edges
-                     .emplace(outputs[output_indices], std::get<output_indices>(result)),
-                 ...);
-            }
-            else
-            {
-                const auto result = core.node<T>({}, args...);
-                (this->internal_edges
-                     .emplace(outputs[output_indices], std::get<output_indices>(result)),
-                 ...);
             }
         }
 
-        template <typename T, typename... Inputs>
+        template <typename T, typename... Inputs, std::size_t... indices>
         void add_inputs(
             nil::nedit::proto::NodeInfo& info,
-            nil::utils::traits::types<Inputs...> /* unused */
+            nil::utils::traits::types<Inputs...> /* unused */,
+            std::index_sequence<indices...> /* unused */
         )
         {
-            (info.add_inputs(type_to_pin_index.at(nil::utils::traits::type<Inputs>::value)), ...);
+            (                                         //
+                info.add_inputs(type_to_pin_index.at( //
+                    nil::utils::traits::type<         //
+                        std::tuple_element_t<         //
+                            indices,                  //
+                            std::tuple<Inputs...>>>::value
+                )),
+                ...
+            );
         }
 
         template <typename T, typename... Outputs>
@@ -302,30 +338,7 @@ namespace
         template <typename T, typename... Controls>
         void add_controls(nil::nedit::proto::NodeInfo& info)
         {
-            (add_control<T>(info, nil::utils::traits::types<Controls>()), ...);
-        }
-
-        template <typename T>
-        void add_control(
-            nil::nedit::proto::NodeInfo& info,
-            nil::utils::traits::types<Control<float>> /* unused */
-        )
-        {
-            auto* s = info.add_controls()->mutable_slider();
-            s->set_value(1.0f);
-            s->set_min(0.0f);
-            s->set_max(2.0f);
-        }
-
-        template <typename T>
-        void add_control(
-            nil::nedit::proto::NodeInfo& info,
-            nil::utils::traits::types<Control<std::string>> /* unused */
-        )
-        {
-            info.add_controls() //
-                ->mutable_text()
-                ->set_value("<sample text>");
+            (Controls::to_message(info), ...);
         }
     };
 }
@@ -352,21 +365,17 @@ int EXT::run(const nil::cli::Options& options) const
         .add_pin<int>("int", {1.0f, 0.0f, 0.0f, 1.0f})
         .add_pin<float>("float", {0.0f, 0.0f, 1.0f, 1.0f})
         .add_pin<std::string>("string", {0.0f, 1.0f, 1.0f, 1.0f})
-        .add_node<Input<float>, Control<float>>("Input_f<1.0f>", "f", 1.0f)
-        .add_node<Input<std::string>, Control<std::string>>(
-            "Input_s<sample_text>",
-            "s",
-            "sample_text"
-        )
-        .add_node<Input<bool>>("Input_b<false>", "b", false)
-        .add_node<Input<bool>>("Input_b<true>", "b", true)
-        .add_node<Input<int>>("Input_i<5>", "i", 5)
-        .add_node<Input<int>>("Input_i<10>", "i", 10)
+        .add_node<Input<bool>, Control<bool>>("Input_b", "b")
+        .add_node<Input<int>, Control<int>>("Input_i", "i")
+        .add_node<Input<float>, Control<float>>("Input_f", "f")
+        .add_node<Input<std::string>, Control<std::string>>("Input_s", "s")
+        .add_node<Consume<bool>>("Consume<b>")
+        .add_node<Consume<int>>("Consume<i>")
+        .add_node<Consume<float>>("Consume<f>")
+        .add_node<Consume<std::string>>("Consume<s>")
         .add_node<Inverter>("Inverter")
         .add_node<Add>("Add")
-        .add_node<Mul>("Mul")
-        .add_node<Consume<int>>("Consume<i>")
-        .add_node<Consume<float>>("Consume<f>");
+        .add_node<Mul>("Mul");
 
     nil::gate::Core core;
 
@@ -391,31 +400,46 @@ int EXT::run(const nil::cli::Options& options) const
         }
     );
 
-    std::unordered_map<std::uint64_t, nil::gate::IEdge*> control_edges;
     client.on_message(
         nil::nedit::proto::message_type::ControlUpdate,
-        [&core, &control_edges](const std::string&, const nil::nedit::proto::ControlUpdate& message)
+        [&core, &app](const std::string&, const nil::nedit::proto::ControlUpdate& message)
         {
-            if (message.has_f())
+            const auto it = app.control_edges.find(message.id());
+            if (it != app.control_edges.end())
             {
-                auto* edge = control_edges[message.id()];
-                if (edge != nullptr)
+                auto* edge = it->second.edge;
+                if (message.has_b())
                 {
-                    static_cast<nil::gate::MutableEdge<float>*>(edge)->set_value(message.f());
-                    core.run();
+                    static_cast<nil::gate::MutableEdge<bool>*>(edge) //
+                        ->set_value(message.b());
                 }
+                else if (message.has_i())
+                {
+                    static_cast<nil::gate::MutableEdge<std::int32_t>*>(edge) //
+                        ->set_value(message.i());
+                }
+                else if (message.has_f())
+                {
+                    static_cast<nil::gate::MutableEdge<float>*>(edge) //
+                        ->set_value(message.f());
+                }
+                else if (message.has_s())
+                {
+                    static_cast<nil::gate::MutableEdge<std::string>*>(edge) //
+                        ->set_value(message.s());
+                }
+                core.run();
             }
         }
     );
 
     client.on_message(
         nil::nedit::proto::message_type::GraphUpdate,
-        [&core, &app, &control_edges](const std::string&, const nil::nedit::proto::Graph& graph)
+        [&core, &app](const std::string&, const nil::nedit::proto::Graph& graph)
         {
             core = {};
-            control_edges = {};
+            app.reset();
 
-            std::unordered_map<std::uint64_t, nil::gate::IEdge*> edges;
             std::vector<nil::gate::builder::Node> nodes;
             for (const auto& node : graph.nodes())
             {
@@ -428,92 +452,7 @@ int EXT::run(const nil::cli::Options& options) const
             }
             for (const auto& node : nil::gate::builder::sort_by_score(nodes))
             {
-                switch (node.type)
-                {
-                    case 0u:
-                    {
-                        const auto control = core.edge<float>();
-                        control->set_value(1.0f);
-                        control_edges.emplace(node.controls[0], control);
-                        const auto [result] = core.node<InputWithControl<float>>({control}, "f");
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 1u:
-                    {
-                        const auto control = core.edge<std::string>();
-                        control->set_value("sample_text");
-                        control_edges.emplace(node.controls[0], control);
-                        const auto [result] = core.node<InputWithControl<std::string>>({}, "s");
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 2u:
-                    {
-                        const auto [result] = core.node<Input<bool>>({}, "b", false);
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 3u:
-                    {
-                        const auto [result] = core.node<Input<bool>>({}, "b", true);
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 4u:
-                    {
-                        const auto [result] = core.node<Input<int>>({}, "i", 5);
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 5u:
-                    {
-                        const auto [result] = core.node<Input<int>>({}, "i", 10);
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 6u:
-                    {
-                        const auto [result] = core.node<Inverter>({
-                            static_cast<nil::gate::ReadOnlyEdge<bool>*>(edges[node.inputs[0]]),
-                            static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[1]]) //
-                        });
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 7u:
-                    {
-                        const auto [result] = core.node<Add>({
-                            static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[0]]),
-                            static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[1]]) //
-                        });
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 8u:
-                    {
-                        const auto [result] = core.node<Mul>({
-                            static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[0]]),
-                            static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[1]]) //
-                        });
-                        edges.emplace(node.outputs[0], result);
-                        break;
-                    }
-                    case 9u:
-                    {
-                        core.node<Consume<int>>(
-                            {static_cast<nil::gate::ReadOnlyEdge<int>*>(edges[node.inputs[0]])}
-                        );
-                        break;
-                    }
-                    case 10u:
-                    {
-                        core.node<Consume<float>>(
-                            {static_cast<nil::gate::ReadOnlyEdge<float>*>(edges[node.inputs[0]])}
-                        );
-                        break;
-                    }
-                }
+                app.create_node(core, node.type, node.inputs, node.outputs, node.controls);
             }
 
             try

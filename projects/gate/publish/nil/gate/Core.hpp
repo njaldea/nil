@@ -136,8 +136,8 @@ namespace nil::gate
             Args&&... args
         )
         {
-            auto node_ptr = //
-                std::make_unique<detail::Node<T>>(edges, indices, std::forward<Args>(args)...);
+            auto node_ptr
+                = std::make_unique<detail::Node<T>>(edges, indices, std::forward<Args>(args)...);
             auto* n = node_ptr.get();
             owned_nodes.emplace_back(std::move(node_ptr));
             // attach node to input edges' output

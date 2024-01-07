@@ -16,14 +16,28 @@ message NodeInfo {
             float value = 3;
         }
 
+        message SpinboxControlInfo
+        {
+            int32 min = 1;
+            int32 max = 2;
+            int32 value = 3;
+        }
+
+        message ToggleControlInfo
+        {
+            bool value = 1;
+        }
+
         message TextControlInfo
         {
             string value = 1;
         }
 
         oneof control {
-            SliderControlInfo slider = 2;
-            TextControlInfo text = 3;
+            ToggleControlInfo toggle = 2;
+            SpinboxControlInfo spinbox = 3;
+            SliderControlInfo slider = 4;
+            TextControlInfo text = 5;
         }
     }
 

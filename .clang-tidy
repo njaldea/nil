@@ -27,7 +27,11 @@ Checks: >
   -hicpp-signed-bitwise
 WarningsAsErrors: >
   *,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -hicpp-explicit-conversions,
+  -hicpp-no-array-decay,
+  -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  -cppcoreguidelines-non-private-member-variables-in-classes
 HeaderFileExtensions:
   - ''
   - h

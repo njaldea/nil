@@ -35,6 +35,19 @@ nil::cli::OptionInfo GUI::options() const
         .build();
 }
 
+template <typename T, typename U>
+nil::nedit::proto::ControlUpdate make_control_update_message(
+    std::uint64_t id,
+    T value,
+    void (nil::nedit::proto::ControlUpdate::*setter)(U)
+)
+{
+    nil::nedit::proto::ControlUpdate m;
+    m.set_id(id);
+    (m.*setter)(value);
+    return m;
+}
+
 int GUI::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -115,7 +128,6 @@ int GUI::run(const nil::cli::Options& options) const
          &actions,
          &app]                                                          //
         (const std::string&, const nil::nedit::proto::PinInfo& message) //
-
         {
             if (is_frozen)
             {
@@ -161,7 +173,55 @@ int GUI::run(const nil::cli::Options& options) const
 
             for (const auto& control : message.controls())
             {
-                if (control.has_slider())
+                if (control.has_toggle())
+                {
+                    const auto& toggle = control.toggle();
+                    const auto value = toggle.value();
+                    info.controls.emplace_back(
+                        [=, &server](std::uint64_t id)
+                        {
+                            auto notifier = [&server, id](bool v)
+                            {
+                                namespace proto_msg = nil::nedit::proto;
+                                auto setter = &proto_msg::ControlUpdate::set_b;
+                                server.publish(
+                                    proto_msg::message_type::ControlUpdate,
+                                    make_control_update_message(id, v, setter)
+                                );
+                            };
+                            return std::make_unique<ToggleControl>(id, value, std::move(notifier));
+                        }
+                    );
+                }
+                else if (control.has_spinbox())
+                {
+                    const auto& spinbox = control.spinbox();
+                    const auto value = spinbox.value();
+                    const auto min = spinbox.min();
+                    const auto max = spinbox.max();
+                    info.controls.emplace_back(
+                        [=, &server](std::uint64_t id)
+                        {
+                            auto notifier = [&server, id](std::int32_t v)
+                            {
+                                namespace proto_msg = nil::nedit::proto;
+                                auto setter = &proto_msg::ControlUpdate::set_i;
+                                server.publish(
+                                    proto_msg::message_type::ControlUpdate,
+                                    make_control_update_message(id, v, setter)
+                                );
+                            };
+                            return std::make_unique<SpinboxControl>(
+                                id,
+                                value,
+                                min,
+                                max,
+                                std::move(notifier)
+                            );
+                        }
+                    );
+                }
+                else if (control.has_slider())
                 {
                     const auto& slider = control.slider();
                     const auto value = slider.value();
@@ -170,35 +230,42 @@ int GUI::run(const nil::cli::Options& options) const
                     info.controls.emplace_back(
                         [=, &server](std::uint64_t id)
                         {
+                            auto notifier = [&server, id](float v)
+                            {
+                                namespace proto_msg = nil::nedit::proto;
+                                auto setter = &proto_msg::ControlUpdate::set_f;
+                                server.publish(
+                                    proto_msg::message_type::ControlUpdate,
+                                    make_control_update_message(id, v, setter)
+                                );
+                            };
                             return std::make_unique<SliderControl>(
                                 id,
                                 value,
                                 min,
                                 max,
-                                [&server, id](float v)
-                                {
-                                    std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__
-                                              << std::endl;
-                                    nil::nedit::proto::ControlUpdate m;
-                                    m.set_id(id);
-                                    m.set_f(v);
-                                    server.publish(
-                                        nil::nedit::proto::message_type::ControlUpdate,
-                                        m
-                                    );
-                                }
-                            ); //
+                                std::move(notifier)
+                            );
                         }
                     );
                 }
                 else if (control.has_text())
                 {
                     const auto& text = control.text();
-                    const auto value = text.value();
+                    const auto& value = text.value();
                     info.controls.emplace_back(
-                        [=](std::uint64_t id)
+                        [=, &server](std::uint64_t id)
                         {
-                            return std::make_unique<TextControl>(id, value); //
+                            auto notifier = [&server, id](const std::string& v)
+                            {
+                                namespace proto_msg = nil::nedit::proto;
+                                auto setter = &proto_msg::ControlUpdate::set_s<const std::string&>;
+                                server.publish(
+                                    proto_msg::message_type::ControlUpdate,
+                                    make_control_update_message(id, v, setter)
+                                );
+                            };
+                            return std::make_unique<TextControl>(id, value, std::move(notifier));
                         }
                     );
                 }
@@ -238,13 +305,13 @@ int GUI::run(const nil::cli::Options& options) const
         | ImGuiWindowFlags_NoSavedSettings        //
         | ImGuiWindowFlags_NoBringToFrontOnFocus; //
 
+    const auto swap = [&actions, &mutex]()
+    {
+        const auto _ = std::unique_lock(mutex);
+        return std::exchange(actions, {});
+    };
     while (glfwWindowShouldClose(window) == 0)
     {
-        const auto swap = [&actions, &mutex]()
-        {
-            const auto _ = std::unique_lock(mutex);
-            return std::exchange(actions, {});
-        };
         for (const auto& action : swap())
         {
             action();
@@ -263,12 +330,13 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, style.WindowBorderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, style.WindowRounding);
 
-        app.render(context);
+        app.render(*context);
 
         ImGui::PopStyleVar(2);
         ImGui::End();
 
         ImGui::Begin("Panel");
+        ImGui::PushItemWidth(1.0f);
 
         if (ImGui::Button("play"))
         {
@@ -302,41 +370,9 @@ int GUI::run(const nil::cli::Options& options) const
             }();
         }
 
-        ImGui::Text("Pin Types");
-        for (const auto& pin_info : app.pin_infos)
-        {
-            ImGui::Dummy(ImVec2(5, 0));
-            ImGui::SameLine();
-            ImGui::TextColored(pin_info.icon.color, "%s", pin_info.label.data());
-        }
+        app.render_panel();
 
-        ImGui::Text("Node Type (drag)");
-        for (auto n = 0u; n < app.node_infos.size(); n++)
-        {
-            ImGui::Dummy(ImVec2(5, 0));
-            ImGui::SameLine();
-            ImGui::Selectable(app.node_infos[n].label.c_str());
-
-            constexpr auto src_flags //
-                = ImGuiDragDropFlags_SourceNoDisableHover
-                | ImGuiDragDropFlags_SourceNoPreviewTooltip
-                | ImGuiDragDropFlags_SourceNoHoldToOpenOthers;
-            if (ImGui::BeginDragDropSource(src_flags))
-            {
-                app.prepare_create(n);
-                ImGui::EndDragDropSource();
-            }
-            else
-            {
-                app.confirm_create(n);
-            }
-
-            if (ImGui::BeginDragDropTarget())
-            {
-                ImGui::EndDragDropTarget();
-            }
-        }
-
+        ImGui::PopItemWidth();
         ImGui::End();
 
         ImGui::Render();

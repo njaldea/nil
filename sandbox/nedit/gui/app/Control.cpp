@@ -2,9 +2,65 @@
 
 #include <string>
 
+#include <imgui_stdlib.h>
+
 Control::Control(ax::NodeEditor::PinId init_id)
     : id(init_id)
 {
+}
+
+ToggleControl::ToggleControl(
+    ax::NodeEditor::PinId init_id,
+    bool init_value,
+    std::function<void(bool)> init_notify
+)
+    : Control(init_id)
+    , value(init_value)
+    , notify(std::move(init_notify))
+{
+}
+
+void ToggleControl::render()
+{
+    bool need_update = false;
+    ImGui::PushID(int(id.Get()));
+    ImGui::PushItemWidth(100.f);
+    need_update = ImGui::Checkbox("Checkbox", &value);
+    ImGui::PopItemWidth();
+    ImGui::PopID();
+    if (need_update && notify)
+    {
+        notify(value);
+    }
+}
+
+SpinboxControl::SpinboxControl(
+    ax::NodeEditor::PinId init_id,
+    std::int32_t init_value,
+    std::int32_t init_min,
+    std::int32_t init_max,
+    std::function<void(std::int32_t)> init_notify
+)
+    : Control(init_id)
+    , value(init_value)
+    , min(init_min)
+    , max(init_max)
+    , notify(std::move(init_notify))
+{
+}
+
+void SpinboxControl::render()
+{
+    bool need_update = false;
+    ImGui::PushID(int(id.Get()));
+    ImGui::PushItemWidth(100.f);
+    need_update = ImGui::SliderInt("Spinbox", &value, min, max);
+    ImGui::PopItemWidth();
+    ImGui::PopID();
+    if (need_update && notify)
+    {
+        notify(value);
+    }
 }
 
 SliderControl::SliderControl(
@@ -26,10 +82,8 @@ void SliderControl::render()
 {
     bool need_update = false;
     ImGui::PushID(int(id.Get()));
-    ImGui::PushItemWidth(50.f);
+    ImGui::PushItemWidth(100.f);
     need_update = ImGui::SliderFloat("Slider", &value, min, max) || need_update;
-    ImGui::SameLine();
-    need_update = ImGui::InputFloat("", &value) || need_update;
     ImGui::PopItemWidth();
     ImGui::PopID();
 
@@ -39,18 +93,28 @@ void SliderControl::render()
     }
 }
 
-TextControl::TextControl(ax::NodeEditor::PinId init_id, std::string init_value)
+TextControl::TextControl(
+    ax::NodeEditor::PinId init_id,
+    std::string init_value,
+    std::function<void(const std::string&)> init_notify
+)
     : Control(init_id)
+    , value(std::move(init_value))
+    , notify(std::move(init_notify))
 {
-    value.resize(100); // size?
-    std::copy(init_value.cbegin(), init_value.cend(), value.begin());
 }
 
 void TextControl::render()
 {
+    bool need_update = false;
     ImGui::PushID(int(id.Get()));
     ImGui::PushItemWidth(100.f);
-    ImGui::InputText("Text", value.data(), value.size());
+    need_update = ImGui::InputText("Text", &value);
     ImGui::PopItemWidth();
     ImGui::PopID();
+
+    if (need_update && notify)
+    {
+        notify(value);
+    }
 }
