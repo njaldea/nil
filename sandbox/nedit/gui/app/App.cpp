@@ -46,6 +46,7 @@ void App::create_link(const ax::NodeEditor::PinId& a, const ax::NodeEditor::PinI
 {
     if (a == b)
     {
+        ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
         return;
     }
 
@@ -76,7 +77,7 @@ void App::create_link(const ax::NodeEditor::PinId& a, const ax::NodeEditor::PinI
         return;
     }
 
-    // TODO: do i need to do it in both directions? one pass might be enough
+    // [TODO] do i need to do it in both directions? one pass might be enough
     if (is_reachable(node_start, node_end, pins, links, &Node::pins_i, &Link::entry)
         || is_reachable(node_end, node_start, pins, links, &Node::pins_o, &Link::exit))
     {

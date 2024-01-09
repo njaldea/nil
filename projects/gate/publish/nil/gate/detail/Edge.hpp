@@ -27,7 +27,8 @@ namespace nil::gate::detail
         Edge& operator=(const Edge&) = delete;
 
         /**
-         * @brief set value. propagate node execution
+         * @brief set value without propagate node execution.
+         *      to be used only by the node.
          *
          * @param data
          */

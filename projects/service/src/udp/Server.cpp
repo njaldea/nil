@@ -47,9 +47,12 @@ namespace nil::service::udp
                         boost::asio::buffer(i),
                         boost::asio::buffer(msg)
                     };
-                    for (const auto& connection : connections)
+                    for (const auto& [cid, connection] : connections)
                     {
-                        socket.send_to(b, connection.second->endpoint);
+                        if (cid == id)
+                        {
+                            socket.send_to(b, connection->endpoint);
+                        }
                     }
                 }
             );

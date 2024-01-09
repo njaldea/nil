@@ -13,6 +13,10 @@ namespace nil::gate
 {
     namespace builder
     {
+        /**
+         * @brief This is a node representation without regard to the type of edges.
+         *      `std::uint64_t` represents the ID of the edges each input/output are connected to.
+         */
         struct Node
         {
             // node's index when registered to builder

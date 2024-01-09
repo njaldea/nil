@@ -197,7 +197,7 @@ namespace nil::service::udp
 
     void Client::send(const std::string& id, const void* data, std::uint64_t size)
     {
-        if (impl->targetID != id)
+        if (impl->targetID == id)
         {
             impl->publish(static_cast<const std::uint8_t*>(data), size);
         }
