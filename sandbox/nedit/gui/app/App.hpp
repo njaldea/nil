@@ -88,13 +88,21 @@ private:
     void delete_node(std::uint64_t node_id);
 
 public:
+    // [TODO] evaluate if this should be passed to Node/Pin/Control.
+    //      by passing it to those classes, I can delegate the
+    //  cleanup to their destructors.
+    //      for example, node removal could potentially be done
+    //  inside Node itself.
     IDs ids;
+
     // [TODO] reevaluate container type
-    // creation/deletion is easier with unordered_map
-    // rendering (iteration) is more expensive with unordered_map
+    //   -  creation/deletion is easier with unordered_map
+    //   -  rendering (iteration) is more expensive with unordered_map
+    // [TODO] consider not using unique_ptrs since polymorphism is not used here
     std::unordered_map<std::uint64_t, std::unique_ptr<Node>> nodes;
-    std::unordered_map<std::uint64_t, std::tuple<Node*, Pin*>> pins;
     std::unordered_map<std::uint64_t, std::unique_ptr<Link>> links;
+    // this is cached here to allow easier mapping during link creation
+    std::unordered_map<std::uint64_t, std::tuple<Node*, Pin*>> pins;
 
     std::unique_ptr<Node> tmp;
     bool finalize_node = false;

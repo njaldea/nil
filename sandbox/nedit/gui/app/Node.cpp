@@ -18,7 +18,6 @@ void Node::render() const
     ax::NodeEditor::BeginNode(id);
     {
         ImGui::BeginGroup();
-        ImGui::TextColored(ImVec4(0, 0, 0, 1), "id[%ld]", id.Get());
         ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", label.data());
         ImGui::EndGroup();
     }

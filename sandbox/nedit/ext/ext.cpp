@@ -373,7 +373,9 @@ int EXT::run(const nil::cli::Options& options) const
         .add_node<Consume<std::string>>("Consume<s>")
         .add_node<Inverter>("Inverter")
         .add_node<Add>("Add")
-        .add_node<Mul>("Mul");
+        .add_node<Add, Control<int>>("Add with value")
+        .add_node<Mul>("Mul")
+        .add_node<Mul, Control<int>>("Mul with value");
 
     nil::gate::Core core;
 

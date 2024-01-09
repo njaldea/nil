@@ -355,6 +355,13 @@ int GUI::run(const nil::cli::Options& options) const
                             std::cout << "connections not complete" << std::endl;
                             return;
                         }
+                        // [TODO] consider removing links stored inside pin
+                        //  pro of having it stored is that for input pins
+                        //      I can immediately check if pin is connected
+                        //  pro of removing it would make the responsibility less convoluted
+                        //      side effect is that creating the graph message would not be
+                        //      as straight forward like below.
+                        //      alternative is to access the link from app.pins
                         node->add_inputs(app.links[*pin->links.begin()]->entry->id.Get());
                     }
                     for (const auto& pin : n.second->pins_o)

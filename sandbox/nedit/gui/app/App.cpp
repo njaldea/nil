@@ -2,7 +2,7 @@
 
 #include "Control.hpp"
 
-#include <iostream>
+#include <set>
 
 namespace
 {
@@ -245,35 +245,43 @@ void App::delete_link(std::uint64_t link_id)
 
 void App::delete_node(std::uint64_t node_id)
 {
-    auto node = nodes.find(node_id);
-    if (node != nodes.end())
+    auto node_it = nodes.find(node_id);
+    if (node_it != nodes.end())
     {
-        std::unordered_set<std::uint64_t> links_to_delete;
+        auto& node = node_it->second;
+        std::set<std::uint64_t> links_to_delete;
         const auto cleanup_pins = [&links_to_delete, this](const auto& current_pins)
         {
-            for (auto it = current_pins.rbegin(); it != current_pins.rend(); ++it)
+            for (const auto& pin : current_pins)
             {
-                const auto* pin = it->get();
-                const auto pin_id = pin->id.Get();
                 for (const auto& link_id : pin->links)
                 {
                     links_to_delete.emplace(link_id);
                 }
-                ids.release(pin_id);
             }
         };
-        cleanup_pins(node->second->pins_i);
-        cleanup_pins(node->second->pins_o);
-        for (const auto& link_id : links_to_delete)
+        cleanup_pins(node->pins_i);
+        cleanup_pins(node->pins_o);
+        for (auto it = links_to_delete.rbegin(); it != links_to_delete.rend(); ++it)
         {
-            delete_link(link_id);
-            ids.release(link_id);
+            delete_link(*it);
+            ids.release(*it);
         }
-        for (const auto& control : node->second->controls)
+        for (auto it = node->controls.rbegin(); it != node->controls.rend(); ++it)
         {
-            ids.release(control->id.Get());
+            ids.release(it->get()->id.Get());
         }
-        nodes.erase(node);
+        for (auto it = node->pins_o.rbegin(); it != node->pins_o.rend(); ++it)
+        {
+            pins.erase(it->get()->id.Get());
+            ids.release(it->get()->id.Get());
+        }
+        for (auto it = node->pins_i.rbegin(); it != node->pins_i.rend(); ++it)
+        {
+            pins.erase(it->get()->id.Get());
+            ids.release(it->get()->id.Get());
+        }
+        nodes.erase(node_it);
         ids.release(node_id);
     }
 }
