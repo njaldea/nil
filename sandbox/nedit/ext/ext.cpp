@@ -2,7 +2,7 @@
 #include "../codec.hpp"
 
 #include <nil/service.hpp>
-#include <nil/utils/traits/type.hpp>
+#include <nil/utils/traits/identity.hpp>
 
 #include "app/install.hpp"
 

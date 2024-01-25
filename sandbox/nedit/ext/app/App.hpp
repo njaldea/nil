@@ -4,7 +4,7 @@
 
 #include <nil/gate.hpp>
 
-#include <nil/utils/traits/type.hpp>
+#include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/node_info.pb.h>
 #include <gen/nedit/messages/pin_info.pb.h>

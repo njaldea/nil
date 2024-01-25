@@ -7,7 +7,7 @@ endif()
 set(
     HEADERS
         publish/nil/utils/traits/callable.hpp
-        publish/nil/utils/traits/type.hpp
+        publish/nil/utils/traits/identity.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${HEADERS})
