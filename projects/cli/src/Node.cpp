@@ -14,7 +14,7 @@ namespace nil::cli
 
     Node::~Node() noexcept = default;
 
-    int Node::run(int argc, const char** argv) const
+    int Node::run(int argc, const char* const* argv) const
     {
         if (argc > 1)
         {

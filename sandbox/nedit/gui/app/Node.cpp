@@ -7,8 +7,8 @@
 
 namespace gui
 {
-    Node::Node(IDs& init_ids, std::uint64_t init_type, std::string_view init_label)
-        : id(init_ids)
+    Node::Node(ID init_id, std::uint64_t init_type, std::string_view init_label)
+        : id(std::move(init_id))
         , type(init_type)
         , label(init_label)
     {

@@ -5,9 +5,9 @@ option optimize_for = LITE_RUNTIME;
 package nil.nedit.proto.message_type;
 
 enum MessageType {
-    PinInfo = 0;
-    NodeInfo = 1;
-    GraphUpdate = 2;
+    State = 0;
+    Load = 1;
+    Update = 2;
     ControlUpdate = 3;
     SetupBegin = 4;
     SetupEnd = 5;

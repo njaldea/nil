@@ -53,7 +53,7 @@ namespace nil::cli
         std::string usage,
         const SubNodes& subnodes,
         int argc,
-        const char** argv
+        const char* const* argv
     )
         : impl(std::make_unique<Impl>(std::move(usage)))
     {

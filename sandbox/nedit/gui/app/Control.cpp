@@ -6,17 +6,17 @@
 
 namespace gui
 {
-    Control::Control(IDs& init_ids)
-        : id(init_ids)
+    Control::Control(ID init_id)
+        : id(std::move(init_id))
     {
     }
 
     ToggleControl::ToggleControl(
-        IDs& init_ids,
+        ID init_id,
         bool init_value,
         std::function<void(std::uint64_t, bool)> init_notify
     )
-        : Control(init_ids)
+        : Control(std::move(init_id))
         , value(init_value)
         , notify(std::move(init_notify))
     {
@@ -37,13 +37,13 @@ namespace gui
     }
 
     SpinboxControl::SpinboxControl(
-        IDs& init_ids,
+        ID init_id,
         std::int32_t init_value,
         std::int32_t init_min,
         std::int32_t init_max,
         std::function<void(std::uint64_t, std::int32_t)> init_notify
     )
-        : Control(init_ids)
+        : Control(std::move(init_id))
         , value(init_value)
         , min(init_min)
         , max(init_max)
@@ -66,13 +66,13 @@ namespace gui
     }
 
     SliderControl::SliderControl(
-        IDs& init_ids,
+        ID init_id,
         float init_value,
         float init_min,
         float init_max,
         std::function<void(std::uint64_t, float)> init_notify
     )
-        : Control(init_ids)
+        : Control(std::move(init_id))
         , value(init_value)
         , min(init_min)
         , max(init_max)
@@ -96,11 +96,11 @@ namespace gui
     }
 
     TextControl::TextControl(
-        IDs& init_ids,
+        ID init_id,
         std::string init_value,
         std::function<void(std::uint64_t, const std::string&)> init_notify
     )
-        : Control(init_ids)
+        : Control(std::move(init_id))
         , value(std::move(init_value))
         , notify(std::move(init_notify))
     {
@@ -122,12 +122,12 @@ namespace gui
     }
 
     ComboBoxControl::ComboBoxControl(
-        IDs& init_ids,
+        ID init_id,
         std::string init_value,
         std::vector<std::string> init_selection,
         std::function<void(std::uint64_t, const std::string&)> init_notify
     )
-        : Control(init_ids)
+        : Control(std::move(init_id))
         , value(std::move(init_value))
         , selection(std::move(init_selection))
         , notify(std::move(init_notify))

@@ -18,7 +18,7 @@ namespace nil::cli
             std::string usage,
             const SubNodes& subnodes,
             int argc,
-            const char** argv
+            const char* const* argv
         );
         ~Options() noexcept;
 

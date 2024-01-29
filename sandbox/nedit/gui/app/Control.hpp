@@ -11,17 +11,16 @@ namespace gui
 {
     struct Control
     {
-        Control(IDs& init_ids);
+        Control(ID init_id);
         virtual ~Control() noexcept = default;
         virtual void render() = 0;
-
         ID id;
     };
 
     struct ToggleControl final: Control
     {
         ToggleControl(
-            IDs& init_ids,
+            ID init_id,
             bool init_value,
             std::function<void(std::uint64_t, bool)> init_notify
         );
@@ -35,7 +34,7 @@ namespace gui
     struct SpinboxControl final: Control
     {
         SpinboxControl(
-            IDs& init_ids,
+            ID init_id,
             std::int32_t init_value,
             std::int32_t init_min,
             std::int32_t init_max,
@@ -53,7 +52,7 @@ namespace gui
     struct SliderControl final: Control
     {
         SliderControl(
-            IDs& init_ids,
+            ID init_id,
             float init_value,
             float init_min,
             float init_max,
@@ -71,7 +70,7 @@ namespace gui
     struct TextControl final: Control
     {
         TextControl(
-            IDs& init_ids,
+            ID init_id,
             std::string init_value,
             std::function<void(std::uint64_t, const std::string&)> init_notify
         );
@@ -85,7 +84,7 @@ namespace gui
     struct ComboBoxControl final: Control
     {
         ComboBoxControl(
-            IDs& init_ids,
+            ID init_id,
             std::string init_value,
             std::vector<std::string> init_selection,
             std::function<void(std::uint64_t, const std::string&)> init_notify

@@ -16,7 +16,7 @@ namespace gui
             Pin* exit;
         };
 
-        Link(IDs& init_ids, Info info);
+        Link(ID init_id, Info info);
         ~Link() noexcept = default;
 
         void render() const;

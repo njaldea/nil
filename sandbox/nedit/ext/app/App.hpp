@@ -6,8 +6,7 @@
 
 #include <nil/utils/traits/identity.hpp>
 
-#include <gen/nedit/messages/node_info.pb.h>
-#include <gen/nedit/messages/pin_info.pb.h>
+#include <gen/nedit/messages/state.pb.h>
 
 namespace ext
 {
@@ -69,8 +68,7 @@ namespace ext
         using IDs = std::vector<std::uint64_t>;
         using Factory = std::function<void(GraphState&, const IDs&, const IDs&, const IDs&)>;
 
-        std::vector<nil::nedit::proto::PinInfo> pins;
-        std::vector<nil::nedit::proto::NodeInfo> nodes;
+        nil::nedit::proto::State info;
         std::vector<Factory> node_factories;
         std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
     };
@@ -93,8 +91,8 @@ namespace ext
         {
             template <typename... Inputs, std::size_t... indices>
             void add_inputs(
-                std::unordered_map<const void*, std::uint64_t> type_to_pin_index,
-                nil::nedit::proto::NodeInfo& info,
+                const std::unordered_map<const void*, std::uint64_t>& type_to_pin_index,
+                nil::nedit::proto::State::Types::Node& info,
                 nil::utils::traits::types<Inputs...> /* unused */,
                 std::index_sequence<indices...> /* unused */
             )
@@ -110,8 +108,8 @@ namespace ext
 
             template <typename... Outputs>
             void add_outputs(
-                std::unordered_map<const void*, std::uint64_t> type_to_pin_index,
-                nil::nedit::proto::NodeInfo& info,
+                const std::unordered_map<const void*, std::uint64_t>& type_to_pin_index,
+                nil::nedit::proto::State::Types::Node& info,
                 nil::utils::traits::types<Outputs...> /* unused */
             )
             {
@@ -121,7 +119,7 @@ namespace ext
 
             template <typename... Controls, std::size_t... indices>
             void add_controls(
-                nil::nedit::proto::NodeInfo& info,
+                nil::nedit::proto::State::Types::Node& info,
                 const std::tuple<Controls...>& controls,
                 std::index_sequence<indices...> /* unused */
             )
@@ -217,19 +215,18 @@ namespace ext
         namespace api
         {
             template <typename T>
-            nil::nedit::proto::PinInfo to_message(const Pin<T>& pin)
+            void to_message(nil::nedit::proto::State::Types::Pin& info, const Pin<T>& pin)
             {
-                nil::nedit::proto::PinInfo info;
                 info.mutable_color()->set_r(pin.color[0]);
                 info.mutable_color()->set_g(pin.color[1]);
                 info.mutable_color()->set_b(pin.color[2]);
                 info.mutable_color()->set_a(pin.color[3]);
                 info.set_label(pin.label);
-                return info;
             }
 
             template <typename T, typename... Controls>
-            nil::nedit::proto::NodeInfo to_message(
+            void to_message(
+                nil::nedit::proto::State::Types::Node& info,
                 const Node<T, Controls...>& node,
                 std::unordered_map<const void*, std::uint64_t> type_to_pin_index
             )
@@ -237,21 +234,23 @@ namespace ext
                 using input_t = typename nil::gate::detail::traits<T>::i;
                 using output_t = typename nil::gate::detail::traits<T>::o;
 
-                nil::nedit::proto::NodeInfo info;
                 detail::msg::add_inputs(
                     type_to_pin_index,
                     info,
                     typename input_t::type(),
                     std::make_index_sequence<input_t::size - sizeof...(Controls)>()
                 );
-                detail::msg::add_outputs(type_to_pin_index, info, typename output_t::type());
+                detail::msg::add_outputs(
+                    type_to_pin_index,
+                    info,
+                    typename output_t::type() //
+                );
                 detail::msg::add_controls(
                     info,
                     get_controls(node),
                     std::make_index_sequence<sizeof...(Controls)>()
                 );
                 info.set_label(node.label);
-                return info;
             }
 
             template <typename T, typename... Controls, typename... Args>
@@ -315,15 +314,22 @@ namespace ext
         template <typename T>
         App& add_pin(const Pin<T>& pin)
         {
-            state.type_to_pin_index.emplace(nil::utils::traits::identity_v<T>, state.pins.size());
-            state.pins.push_back(detail::api::to_message(pin));
+            state.type_to_pin_index.emplace(
+                nil::utils::traits::identity_v<T>,
+                state.info.types().pins_size()
+            );
+            detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
             return *this;
         }
 
         template <typename T, typename... Controls, typename... Args>
         App& add_node(const Node<T, Controls...>& node, const Args&... args)
         {
-            state.nodes.push_back(detail::api::to_message(node, state.type_to_pin_index));
+            detail::api::to_message(
+                *state.info.mutable_types()->add_nodes(),
+                node,
+                state.type_to_pin_index
+            );
             state.node_factories.push_back(detail::api::factory(node, args...));
             return *this;
         }

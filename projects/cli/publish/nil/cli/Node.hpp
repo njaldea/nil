@@ -94,7 +94,7 @@ namespace nil::cli
          *
          * @return `int`    STATUS CODE
          */
-        int run(int argc, const char** argv) const;
+        int run(int argc, const char* const* argv) const;
 
     private:
         std::unique_ptr<Command> command;

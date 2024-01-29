@@ -35,27 +35,19 @@ int EXT::run(const nil::cli::Options& options) const
     ext::App app(app_state);
     ext::install(app);
 
+    const std::string types = app_state.info.types().SerializeAsString();
+
     nil::service::TypedService client(                         //
         nil::service::make_service<nil::service::tcp::Client>( //
             {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
         )
     );
 
-    client.on_connect(
-        [&client, &app_state](const std::string& id)
-        {
-            client.send(id, nil::nedit::proto::message_type::SetupBegin, std::string());
-            for (const auto& pin : app_state.pins)
-            {
-                client.send(id, nil::nedit::proto::message_type::PinInfo, pin);
-            }
-            for (const auto& node : app_state.nodes)
-            {
-                client.send(id, nil::nedit::proto::message_type::NodeInfo, node);
-            }
-            client.send(id, nil::nedit::proto::message_type::SetupEnd, std::string());
-        }
-    );
+    const auto send_state //
+        = [&client, &app_state](const std::string& id)
+    { client.send(id, nil::nedit::proto::message_type::State, app_state.info); };
+
+    client.on_connect(send_state);
 
     client.on_message(
         nil::nedit::proto::message_type::ControlUpdate,
@@ -94,41 +86,76 @@ int EXT::run(const nil::cli::Options& options) const
         }
     );
 
-    client.on_message(
-        nil::nedit::proto::message_type::GraphUpdate,
-        [&graph_state, &app_state](const std::string&, const nil::nedit::proto::Graph& graph)
+    const auto load_state                    //
+        = [&graph_state, &app_state, &types] //
+        (const nil::nedit::proto::State& info)
+    {
+        std::string state = info.types().SerializeAsString();
+
+        if (state != types)
         {
-            graph_state = {};
+            return false;
+        }
 
-            std::vector<ext::NodeData> nodes;
-            nodes.reserve(std::size_t(graph.nodes().size()));
-            for (const auto& node : graph.nodes())
-            {
-                nodes.push_back({
-                    .type = node.type(),
-                    .inputs = {node.inputs().begin(), node.inputs().end()},
-                    .outputs = {node.outputs().begin(), node.outputs().end()},
-                    .controls = {node.controls().begin(), node.controls().end()} //
-                });
-            }
+        app_state.info = info;
 
-            for (const auto& node : ext::sort_by_score(nodes))
-            {
-                app_state.node_factories[node.type](
-                    graph_state,
-                    node.inputs,
-                    node.outputs,
-                    node.controls
-                );
-            }
+        graph_state = {};
 
-            try
+        std::vector<ext::NodeData> nodes;
+        nodes.reserve(std::size_t(info.graph().nodes().size()));
+        for (const auto& node : info.graph().nodes())
+        {
+            nodes.push_back({
+                .type = node.type(),
+                .inputs = {node.inputs().begin(), node.inputs().end()},
+                .outputs = {node.outputs().begin(), node.outputs().end()},
+                .controls = {node.controls().begin(), node.controls().end()} //
+            });
+        }
+
+        for (const auto& node : ext::sort_by_score(nodes))
+        {
+            app_state
+                .node_factories[node.type](graph_state, node.inputs, node.outputs, node.controls);
+        }
+
+        try
+        {
+            graph_state.core.run();
+        }
+        catch (const std::exception& ex)
+        {
+            std::cout << ex.what() << std::endl;
+        }
+
+        return true;
+    };
+
+    client.on_message(
+        nil::nedit::proto::message_type::Load,
+        [&](const std::string& id, const nil::nedit::proto::State& info)
+        {
+            if (load_state(info))
             {
-                graph_state.core.run();
+                send_state(id);
             }
-            catch (const std::exception& ex)
+            else
             {
-                std::cout << ex.what() << std::endl;
+                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
+                std::cout << "state is not compatible to types" << std::endl;
+            }
+        }
+    );
+
+    client.on_message(
+        nil::nedit::proto::message_type::Update,
+        [&](const std::string&, const nil::nedit::proto::State& info)
+        {
+            if (!load_state(info))
+            {
+                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
+                std::cout << "state is not compatible to types" << std::endl;
+                // this should be dead code.
             }
         }
     );

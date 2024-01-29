@@ -6,9 +6,9 @@ protobuf_generate_cpp(
     PROTO_SRC
     PROTO_HEADER
     type.proto
+    state.proto
+    metadata.proto
     graph_update.proto
-    node_info.proto
-    pin_info.proto
     control_update.proto
 )
 

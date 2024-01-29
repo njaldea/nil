@@ -82,7 +82,7 @@ namespace gui
 
         if (ax::NodeEditor::AcceptNewItem())
         {
-            auto link = std::make_unique<Link>(ids, Link::Info{start.pin, end.pin});
+            auto link = std::make_unique<Link>(ids.reserve(), Link::Info{start.pin, end.pin});
             auto* ptr = link.get();
             const auto id = link->id.value;
             links.emplace(id, std::move(link));
@@ -93,8 +93,19 @@ namespace gui
 
     void App::render(ax::NodeEditor::EditorContext& context)
     {
+        const auto [b, a] = [this]()
+        {
+            const auto _ = std::unique_lock(this->mutex);
+            return std::make_tuple(std::move(this->before_render), std::move(this->after_render));
+        }();
+
         ax::NodeEditor::SetCurrentEditor(&context);
         ax::NodeEditor::Begin("My Editor", ImVec2(0.0, 0.0f));
+
+        for (const auto& before : b)
+        {
+            before();
+        }
 
         push_style();
         render();
@@ -102,8 +113,25 @@ namespace gui
         edit_delete();
         pop_style();
 
+        for (const auto& after : a)
+        {
+            after();
+        }
+
         ax::NodeEditor::End();
         ax::NodeEditor::SetCurrentEditor(nullptr);
+    }
+
+    void App::reset()
+    {
+        nodes.clear();
+        links.clear();
+        pins.clear();
+        tmp.reset();
+        finalize_node = false;
+        node_infos.clear();
+        pin_infos.clear();
+        ids = {};
     }
 
     void App::render_panel()
@@ -275,18 +303,83 @@ namespace gui
         }
     }
 
+    void App::load_node(
+        std::uint64_t node_id,
+        std::uint64_t type_index,
+        std::vector<std::uint64_t> input_ids,
+        std::vector<std::uint64_t> output_ids,
+        std::vector<std::uint64_t> control_ids
+    )
+    {
+        auto& node_info = node_infos[type_index];
+        auto tmp_node = std::make_unique<Node>(ids.reserve(node_id), type_index, node_info.label);
+
+        // input_ids should be equal to node_info.inputs
+        tmp_node->pins_i.reserve(node_info.inputs.size());
+        for (auto index = 0u; index < input_ids.size(); ++index)
+        {
+            auto& pin_info = pin_infos[node_info.inputs[index]];
+            auto& pin = tmp_node->pins_i.emplace_back(
+                ids.reserve(input_ids[index]),
+                ax::NodeEditor::PinKind::Input,
+                &pin_info,
+                pin_info.label,
+                pin_info.icon
+            );
+            pins.emplace(pin.id.value, PinMapping{tmp_node.get(), &pin, {}});
+        }
+
+        // output_ids should be equal to node_info.outputs
+        tmp_node->pins_o.reserve(node_info.outputs.size());
+        for (auto index = 0u; index < output_ids.size(); ++index)
+        {
+            auto& pin_info = pin_infos[node_info.outputs[index]];
+            auto& pin = tmp_node->pins_o.emplace_back(
+                ids.reserve(output_ids[index]),
+                ax::NodeEditor::PinKind::Output,
+                &pin_info,
+                pin_info.label,
+                pin_info.icon
+            );
+            pins.emplace(pin.id.value, PinMapping{tmp_node.get(), &pin, {}});
+        }
+
+        // control_ids should be equal to node_info.controls
+        for (auto index = 0u; index < control_ids.size(); ++index)
+        {
+            tmp_node->controls.push_back( //
+                node_info.controls[index](ids.reserve(control_ids[index]))
+            );
+        }
+        nodes.emplace(node_id, std::move(tmp_node));
+    }
+
+    void App::load_link(
+        std::uint64_t link_id,
+        std::uint64_t entry_pin_id,
+        std::uint64_t exit_pin_id
+    )
+    {
+        auto& start = pins[entry_pin_id];
+        auto& end = pins[exit_pin_id];
+        auto link = std::make_unique<Link>(ids.reserve(link_id), Link::Info{start.pin, end.pin});
+        start.links.emplace(link.get());
+        end.links.emplace(link.get());
+        links.emplace(link_id, std::move(link));
+    }
+
     void App::prepare_create(std::uint64_t type_index)
     {
         if (!tmp)
         {
-            tmp = std::make_unique<Node>(ids, type_index, node_infos[type_index].label);
+            tmp = std::make_unique<Node>(ids.reserve(), type_index, node_infos[type_index].label);
 
             tmp->pins_i.reserve(node_infos[type_index].inputs.size());
             for (const auto& type_i : node_infos[type_index].inputs)
             {
                 auto& pin_info = pin_infos[type_i];
                 auto& pin = tmp->pins_i.emplace_back(
-                    ids,
+                    ids.reserve(),
                     ax::NodeEditor::PinKind::Input,
                     &pin_info,
                     pin_info.label,
@@ -300,7 +393,7 @@ namespace gui
             {
                 auto& pin_info = pin_infos[type_o];
                 auto& pin = tmp->pins_o.emplace_back(
-                    ids,
+                    ids.reserve(),
                     ax::NodeEditor::PinKind::Output,
                     &pin_info,
                     pin_info.label,
@@ -308,9 +401,10 @@ namespace gui
                 );
                 pins.emplace(pin.id.value, PinMapping{tmp.get(), &pin, {}});
             }
+
             for (const auto& control : node_infos[type_index].controls)
             {
-                tmp->controls.push_back(control(ids));
+                tmp->controls.push_back(control(ids.reserve()));
             }
         }
     }

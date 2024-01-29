@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.nedit.proto;
+
+message Metadata {
+    message Node {
+        uint64 id = 1;
+        uint64 type = 2;
+        repeated uint64 inputs = 3;
+        repeated uint64 outputs = 4;
+        repeated uint64 controls = 5;
+        float x = 6;
+        float y = 7;
+    }
+
+    message Link {
+        uint64 id = 1;
+        uint64 input = 2;
+        uint64 output = 3;
+    }
+
+    repeated Node nodes = 1;
+    repeated Link links = 2;
+}

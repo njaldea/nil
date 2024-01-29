@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
@@ -49,7 +50,7 @@ namespace gui
         std::string label;
         std::vector<std::uint64_t> inputs;
         std::vector<std::uint64_t> outputs;
-        std::vector<std::function<std::unique_ptr<Control>(IDs&)>> controls;
+        std::vector<std::function<std::unique_ptr<Control>(ID)>> controls;
     };
 
     struct PinInfo final
@@ -81,6 +82,22 @@ namespace gui
         void prepare_create(std::uint64_t type);
         void confirm_create(std::uint64_t type);
 
+        void load_node(
+            std::uint64_t node_id,
+            std::uint64_t type_index,
+            std::vector<std::uint64_t> input_ids,
+            std::vector<std::uint64_t> output_ids,
+            std::vector<std::uint64_t> control_ids
+        );
+
+        void load_link(
+            std::uint64_t node_id,
+            std::uint64_t entry_pin_id,
+            std::uint64_t exit_pin_id
+        );
+
+        void reset();
+
     private:
         static void push_style();
         static void pop_style();
@@ -105,5 +122,9 @@ namespace gui
 
         std::vector<NodeInfo> node_infos;
         std::vector<PinInfo> pin_infos;
+
+        std::mutex mutex;
+        std::vector<std::function<void()>> before_render;
+        std::vector<std::function<void()>> after_render;
     };
 }

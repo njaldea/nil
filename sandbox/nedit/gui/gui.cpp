@@ -23,8 +23,8 @@
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/graph_update.pb.h>
-#include <gen/nedit/messages/node_info.pb.h>
-#include <gen/nedit/messages/pin_info.pb.h>
+#include <gen/nedit/messages/metadata.pb.h>
+#include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
 
 nil::cli::OptionInfo GUI::options() const
@@ -35,19 +35,6 @@ nil::cli::OptionInfo GUI::options() const
         .build();
 }
 
-template <typename T, typename U>
-nil::nedit::proto::ControlUpdate make_control_update_message(
-    std::uint64_t id,
-    T value,
-    void (nil::nedit::proto::ControlUpdate::*setter)(U)
-)
-{
-    nil::nedit::proto::ControlUpdate m;
-    m.set_id(id);
-    (m.*setter)(value);
-    return m;
-}
-
 int GUI::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -56,15 +43,13 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
+    bool loop = true;
+
     nil::service::TypedService server( //
         nil::service::make_service<nil::service::tcp::Server>({
             .port = std::uint16_t(options.number("port")) //
         })
     );
-
-    std::mutex mutex;
-    std::vector<std::function<void()>> actions;
-    bool is_frozen = false;
 
     glfwSetErrorCallback( //
         [](int error, const char* description)
@@ -100,8 +85,6 @@ int GUI::run(const nil::cli::Options& options) const
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
-    const ImGuiStyle& style = ImGui::GetStyle();
-
     ImGui::StyleColorsDark();
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -110,227 +93,219 @@ int GUI::run(const nil::cli::Options& options) const
     auto* context = ax::NodeEditor::CreateEditor();
     gui::App app;
 
-    server.on_message(
-        nil::nedit::proto::message_type::SetupBegin,
-        [&is_frozen, &mutex, &actions, &app]()
-        {
-            is_frozen = false;
-            const auto _ = std::unique_lock(mutex);
-            actions.emplace_back([&app]() mutable { app = {}; });
-        }
-    );
+    nil::nedit::proto::State info;
 
     server.on_message(
-        nil::nedit::proto::message_type::SetupEnd,
-        [&is_frozen, &mutex]() { is_frozen = true; }
-    );
-
-    server.on_message(
-        nil::nedit::proto::message_type::PinInfo,
-        [&is_frozen,
-         &mutex,
-         &actions,
-         &app]                                                          //
-        (const std::string&, const nil::nedit::proto::PinInfo& message) //
+        nil::nedit::proto::message_type::State,
+        [&app,
+         &server,
+         &info]                                                       //
+        (const std::string&, const nil::nedit::proto::State& message) //
         {
-            if (is_frozen)
+            std::vector<std::function<void()>> tmp;
+            tmp.emplace_back([&app]() mutable { app.reset(); });
+
+            tmp.push_back([&info, message]() mutable { info = std::move(message); });
+
+            for (const auto& pin : message.types().pins())
             {
-                return;
-            }
-            auto info = gui::PinInfo{
-                message.label(),
-                {ImVec4(
-                    message.color().r(),
-                    message.color().g(),
-                    message.color().b(),
-                    message.color().a()
-                )}
-            };
-            const auto _ = std::unique_lock(mutex);
-            actions.emplace_back( //
-                [&app, info = std::move(info)]() mutable
-                { app.pin_infos.emplace_back(std::move(info)); }
-            );
-        }
-    );
-
-    server.on_message(
-        nil::nedit::proto::message_type::NodeInfo,
-        [&server,
-         &is_frozen,
-         &mutex,
-         &actions,
-         &app] //
-        (const std::string&, const nil::nedit::proto::NodeInfo& message)
-        {
-            if (is_frozen)
-            {
-                return;
+                auto pin_info = gui::PinInfo{
+                    pin.label(),
+                    {ImVec4(pin.color().r(), pin.color().g(), pin.color().b(), pin.color().a())}
+                };
+                tmp.emplace_back( //
+                    [&app, info = std::move(pin_info)]() mutable
+                    { app.pin_infos.emplace_back(std::move(info)); }
+                );
             }
 
-            auto info = gui::NodeInfo{
-                message.label(),
-                {message.inputs().begin(), message.inputs().end()},
-                {message.outputs().begin(), message.outputs().end()},
-                {}
-            };
-
-            for (const auto& control : message.controls())
+            for (const auto& node : message.types().nodes())
             {
-                switch (control.control_case())
+                auto node_info = gui::NodeInfo{
+                    node.label(),
+                    {node.inputs().begin(), node.inputs().end()},
+                    {node.outputs().begin(), node.outputs().end()},
+                    {}
+                };
+
+                using Control = nil::nedit::proto::State::Types::Node::Control;
+                for (const auto& control : node.controls())
                 {
-                    case nil::nedit::proto::NodeInfo::ControlInfo::ControlCase::kToggle:
+                    switch (control.control_case())
                     {
-                        const auto& toggle = control.toggle();
-                        const auto value = toggle.value();
-                        info.controls.emplace_back(
-                            [=, &server](gui::IDs& ids)
-                            {
-                                auto notifier = [&server](std::uint64_t id, bool v)
+                        case Control::ControlCase::kToggle:
+                        {
+                            const auto& toggle = control.toggle();
+                            const auto value = toggle.value();
+                            node_info.controls.emplace_back(
+                                [=, &server](gui::ID id)
                                 {
-                                    namespace proto_msg = nil::nedit::proto;
-                                    auto setter = &proto_msg::ControlUpdate::set_b;
-                                    server.publish(
-                                        proto_msg::message_type::ControlUpdate,
-                                        make_control_update_message(id, v, setter)
+                                    auto notifier = [&server](std::uint64_t nid, bool v)
+                                    {
+                                        namespace p = nil::nedit::proto;
+                                        p::ControlUpdate msg;
+                                        msg.set_id(nid);
+                                        msg.set_b(v);
+                                        server.publish(p::message_type::ControlUpdate, msg);
+                                    };
+                                    return std::make_unique<gui::ToggleControl>(
+                                        std::move(id),
+                                        value,
+                                        std::move(notifier)
                                     );
-                                };
-                                return std::make_unique<gui::ToggleControl>(
-                                    ids,
-                                    value,
-                                    std::move(notifier)
-                                );
-                            }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::NodeInfo::ControlInfo::ControlCase::kSpinbox:
-                    {
-                        const auto& spinbox = control.spinbox();
-                        const auto value = spinbox.value();
-                        const auto min = spinbox.min();
-                        const auto max = spinbox.max();
-                        info.controls.emplace_back(
-                            [=, &server](gui::IDs& ids)
-                            {
-                                auto notifier = [&server](std::uint64_t id, std::int32_t v)
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kSpinbox:
+                        {
+                            const auto& spinbox = control.spinbox();
+                            const auto value = spinbox.value();
+                            const auto min = spinbox.min();
+                            const auto max = spinbox.max();
+                            node_info.controls.emplace_back(
+                                [=, &server](gui::ID id)
                                 {
-                                    namespace proto_msg = nil::nedit::proto;
-                                    auto setter = &proto_msg::ControlUpdate::set_i;
-                                    server.publish(
-                                        proto_msg::message_type::ControlUpdate,
-                                        make_control_update_message(id, v, setter)
+                                    auto notifier = [&server](std::uint64_t nid, std::int32_t v)
+                                    {
+                                        namespace p = nil::nedit::proto;
+                                        p::ControlUpdate msg;
+                                        msg.set_id(nid);
+                                        msg.set_i(v);
+                                        server.publish(p::message_type::ControlUpdate, msg);
+                                    };
+                                    return std::make_unique<gui::SpinboxControl>(
+                                        std::move(id),
+                                        value,
+                                        min,
+                                        max,
+                                        std::move(notifier)
                                     );
-                                };
-                                return std::make_unique<gui::SpinboxControl>(
-                                    ids,
-                                    value,
-                                    min,
-                                    max,
-                                    std::move(notifier)
-                                );
-                            }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::NodeInfo::ControlInfo::ControlCase::kSlider:
-                    {
-                        const auto& slider = control.slider();
-                        const auto value = slider.value();
-                        const auto min = slider.min();
-                        const auto max = slider.max();
-                        info.controls.emplace_back(
-                            [=, &server](gui::IDs& ids)
-                            {
-                                auto notifier = [&server](std::uint64_t id, float v)
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kSlider:
+                        {
+                            const auto& slider = control.slider();
+                            const auto value = slider.value();
+                            const auto min = slider.min();
+                            const auto max = slider.max();
+                            node_info.controls.emplace_back(
+                                [=, &server](gui::ID id)
                                 {
-                                    namespace proto_msg = nil::nedit::proto;
-                                    auto setter = &proto_msg::ControlUpdate::set_f;
-                                    server.publish(
-                                        proto_msg::message_type::ControlUpdate,
-                                        make_control_update_message(id, v, setter)
+                                    auto notifier = [&server](std::uint64_t nid, float v)
+                                    {
+                                        namespace p = nil::nedit::proto;
+                                        p::ControlUpdate msg;
+                                        msg.set_id(nid);
+                                        msg.set_f(v);
+                                        server.publish(p::message_type::ControlUpdate, msg);
+                                    };
+                                    return std::make_unique<gui::SliderControl>(
+                                        std::move(id),
+                                        value,
+                                        min,
+                                        max,
+                                        std::move(notifier)
                                     );
-                                };
-                                return std::make_unique<gui::SliderControl>(
-                                    ids,
-                                    value,
-                                    min,
-                                    max,
-                                    std::move(notifier)
-                                );
-                            }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::NodeInfo::ControlInfo::ControlCase::kText:
-                    {
-                        const auto& text = control.text();
-                        const auto& value = text.value();
-                        info.controls.emplace_back(
-                            [=, &server](gui::IDs& ids)
-                            {
-                                auto notifier = [&server](std::uint64_t id, const std::string& v)
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kText:
+                        {
+                            const auto& text = control.text();
+                            const auto& value = text.value();
+                            node_info.controls.emplace_back(
+                                [=, &server](gui::ID id)
                                 {
-                                    namespace proto_msg = nil::nedit::proto;
-                                    auto setter
-                                        = &proto_msg::ControlUpdate::set_s<const std::string&>;
-                                    server.publish(
-                                        proto_msg::message_type::ControlUpdate,
-                                        make_control_update_message(id, v, setter)
+                                    auto notifier
+                                        = [&server](std::uint64_t nid, const std::string& v)
+                                    {
+                                        namespace p = nil::nedit::proto;
+                                        p::ControlUpdate msg;
+                                        msg.set_id(nid);
+                                        msg.set_s(v);
+                                        server.publish(p::message_type::ControlUpdate, msg);
+                                    };
+                                    return std::make_unique<gui::TextControl>(
+                                        std::move(id),
+                                        value,
+                                        std::move(notifier)
                                     );
-                                };
-                                return std::make_unique<gui::TextControl>(
-                                    ids,
-                                    value,
-                                    std::move(notifier)
-                                );
-                            }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::NodeInfo::ControlInfo::ControlCase::kCombobox:
-                    {
-                        const auto& combobox = control.combobox();
-                        const auto& value = combobox.value();
-                        const auto& selection = std::vector<std::string>(
-                            combobox.selection().begin(),
-                            combobox.selection().end()
-                        );
-                        info.controls.emplace_back(
-                            [=, &server](gui::IDs& ids)
-                            {
-                                auto notifier = [&server](std::uint64_t id, const std::string& v)
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kCombobox:
+                        {
+                            const auto& combobox = control.combobox();
+                            const auto& value = combobox.value();
+                            const auto& selection = std::vector<std::string>(
+                                combobox.selection().begin(),
+                                combobox.selection().end()
+                            );
+                            node_info.controls.emplace_back(
+                                [=, &server](gui::ID id)
                                 {
-                                    namespace proto_msg = nil::nedit::proto;
-                                    auto setter
-                                        = &proto_msg::ControlUpdate::set_s<const std::string&>;
-                                    server.publish(
-                                        proto_msg::message_type::ControlUpdate,
-                                        make_control_update_message(id, v, setter)
+                                    auto notifier
+                                        = [&server](std::uint64_t nid, const std::string& v)
+                                    {
+                                        namespace p = nil::nedit::proto;
+                                        p::ControlUpdate msg;
+                                        msg.set_id(nid);
+                                        msg.set_s(v);
+                                        server.publish(p::message_type::ControlUpdate, msg);
+                                    };
+                                    return std::make_unique<gui::ComboBoxControl>(
+                                        std::move(id),
+                                        value,
+                                        selection,
+                                        std::move(notifier)
                                     );
-                                };
-                                return std::make_unique<gui::ComboBoxControl>(
-                                    ids,
-                                    value,
-                                    selection,
-                                    std::move(notifier)
-                                );
-                            }
-                        );
-                        break;
-                    }
-                    default:
-                    {
-                        break;
+                                }
+                            );
+                            break;
+                        }
+                        default:
+                        {
+                            break;
+                        }
                     }
                 }
+                tmp.emplace_back( //
+                    [&app, node_info = std::move(node_info)]() mutable
+                    { app.node_infos.emplace_back(std::move(node_info)); }
+                );
             }
 
-            const auto _ = std::unique_lock(mutex);
-            actions.emplace_back( //
-                [&app, info = std::move(info)]() mutable
-                { app.node_infos.emplace_back(std::move(info)); }
+            tmp.emplace_back(
+                [&info, &app]()
+                {
+                    nil::nedit::proto::Metadata m;
+                    m.ParseFromString(info.metadata());
+                    for (const auto& node : m.nodes())
+                    {
+                        app.load_node(
+                            node.id(),
+                            node.type(),
+                            {node.inputs().begin(), node.inputs().end()},
+                            {node.outputs().begin(), node.outputs().end()},
+                            {node.controls().begin(), node.controls().end()}
+                        );
+                        ax::NodeEditor::SetNodePosition(node.id(), ImVec2{node.x(), node.y()});
+                    }
+                    for (const auto& link : m.links())
+                    {
+                        app.load_link(link.id(), link.input(), link.output());
+                    }
+                }
             );
+
+            // load the graph here if it is available;
+            const auto _ = std::unique_lock(app.mutex);
+            app.before_render = std::move(tmp);
         }
     );
 
@@ -360,18 +335,74 @@ int GUI::run(const nil::cli::Options& options) const
         | ImGuiWindowFlags_NoSavedSettings   //
         | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    const auto swap = [&actions, &mutex]()
+    const auto load = [&]()
     {
-        const auto _ = std::unique_lock(mutex);
-        return std::exchange(actions, {});
-    };
-    while (glfwWindowShouldClose(window) == 0)
-    {
-        for (const auto& action : swap())
+        auto* graph = info.mutable_graph();
+        graph->clear_nodes();
+
+        nil::nedit::proto::Metadata metadata;
+        for (const auto& [id, n] : app.nodes)
         {
-            action();
+            // for graph
+            {
+                auto* node = graph->add_nodes();
+                node->set_id(id);
+                node->set_type(n->type);
+                for (const auto& pin : n->pins_i)
+                {
+                    const auto& links = app.pins.at(pin.id.value).links;
+                    if (links.empty())
+                    {
+                        std::cout << "connections not complete" << std::endl;
+                        return;
+                    }
+                    node->add_inputs((*links.begin())->entry->id.value);
+                }
+                for (const auto& pin : n->pins_o)
+                {
+                    node->add_outputs(pin.id.value);
+                }
+                for (const auto& control : n->controls)
+                {
+                    node->add_controls(control->id.value);
+                }
+            }
+            // for metadata
+            {
+                auto* node = metadata.add_nodes();
+                const auto pos = ax::NodeEditor::GetNodePosition(id);
+                node->set_id(id);
+                node->set_type(n->type);
+                for (const auto& pin : n->pins_i)
+                {
+                    node->add_inputs(pin.id.value);
+                }
+                for (const auto& pin : n->pins_o)
+                {
+                    node->add_outputs(pin.id.value);
+                }
+                for (const auto& control : n->controls)
+                {
+                    node->add_controls(control->id.value);
+                }
+                node->set_x(pos.x);
+                node->set_y(pos.y);
+            }
         }
 
+        for (const auto& [id, link] : app.links)
+        {
+            auto* meta_link = metadata.add_links();
+            meta_link->set_id(id);
+            meta_link->set_input(link->entry->id.value);
+            meta_link->set_output(link->exit->id.value);
+        }
+        info.set_metadata(metadata.SerializeAsString());
+        server.publish(nil::nedit::proto::message_type::Load, info);
+    };
+
+    while (glfwWindowShouldClose(window) == 0 && loop)
+    {
         glfwPollEvents();
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -382,8 +413,8 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
         ImGui::Begin("Content", nullptr, window_flag);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, style.WindowBorderSize);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, style.WindowRounding);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, ImGui::GetStyle().WindowBorderSize);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, ImGui::GetStyle().WindowRounding);
 
         app.render(*context);
 
@@ -393,40 +424,18 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::Begin("Panel");
         ImGui::PushItemWidth(1.0f);
 
-        if (ImGui::Button("play"))
+        // will be turned into load file
+        if (ImGui::Button("force-load"))
         {
-            [&]()
-            {
-                nil::nedit::proto::Graph graph;
-                for (const auto& n : app.nodes)
-                {
-                    auto* node = graph.add_nodes();
-                    node->set_id(n.second->id.value);
-                    node->set_type(n.second->type);
-                    for (const auto& pin : n.second->pins_i)
-                    {
-                        const auto& links = app.pins.at(pin.id.value).links;
-                        if (links.empty())
-                        {
-                            std::cout << "connections not complete" << std::endl;
-                            return;
-                        }
-                        node->add_inputs((*links.begin())->entry->id.value);
-                    }
-                    for (const auto& pin : n.second->pins_o)
-                    {
-                        node->add_outputs(pin.id.value);
-                    }
-                    for (const auto& control : n.second->controls)
-                    {
-                        node->add_controls(control->id.value);
-                    }
-                }
-                server.publish(nil::nedit::proto::message_type::GraphUpdate, graph);
-            }();
+            const auto _ = std::unique_lock(app.mutex);
+            app.after_render.push_back(load);
         }
 
         app.render_panel();
+
+        // if (app.has_changed()) {
+        //     send an update
+        // }
 
         ImGui::PopItemWidth();
         ImGui::End();
@@ -443,7 +452,7 @@ int GUI::run(const nil::cli::Options& options) const
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    ImGui::DestroyContext(nullptr);
 
     glfwDestroyWindow(window);
     glfwTerminate();

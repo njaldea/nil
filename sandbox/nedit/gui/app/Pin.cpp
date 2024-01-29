@@ -9,13 +9,13 @@
 namespace gui
 {
     Pin::Pin(
-        IDs& init_ids,
+        ID init_id,
         ax::NodeEditor::PinKind init_kind,
         const void* init_type,
         std::string_view init_label,
         const FlowIcon& init_icon
     )
-        : id(init_ids)
+        : id(std::move(init_id))
         , kind(init_kind)
         , type(init_type)
         , label(init_label)

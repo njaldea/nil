@@ -3,8 +3,8 @@
 
 namespace gui
 {
-    Link::Link(IDs& init_ids, Info info)
-        : id(init_ids)
+    Link::Link(ID init_id, Info info)
+        : id(std::move(init_id))
         , entry(info.entry)
         , exit(info.exit)
     {

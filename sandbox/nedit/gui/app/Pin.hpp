@@ -13,7 +13,7 @@ namespace gui
 
     struct Pin final
     {
-        Pin(IDs& init_ids,
+        Pin(ID init_id,
             ax::NodeEditor::PinKind init_kind,
             const void* init_type,
             std::string_view init_label,

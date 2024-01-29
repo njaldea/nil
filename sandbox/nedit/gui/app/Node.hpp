@@ -15,7 +15,7 @@ namespace gui
 
     struct Node final
     {
-        Node(IDs& init_ids, std::uint64_t init_type, std::string_view init_label);
+        Node(ID init_id, std::uint64_t init_type, std::string_view init_label);
         ~Node() noexcept = default;
 
         Node(Node&&) = default;

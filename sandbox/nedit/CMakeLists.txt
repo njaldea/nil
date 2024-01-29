@@ -30,6 +30,7 @@ set(
         gui/app/Pin.cpp
         gui/app/FlowIcon.cpp
         gui/app/Control.cpp
+        gui/app/IDs.cpp
 )
 
 set(
@@ -46,6 +47,7 @@ set(
         gui/app/Pin.hpp
         gui/app/FlowIcon.hpp
         gui/app/Control.hpp
+        gui/app/IDs.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
