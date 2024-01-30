@@ -79,7 +79,14 @@ message State {
             repeated uint64 controls = 5;
         }
 
-        repeated Node nodes = 3;
+        message Link {
+            uint64 id = 1;
+            uint64 input = 2;
+            uint64 output = 3;
+        }
+
+        repeated Node nodes = 1;
+        repeated Link links = 2;
     }
 
     Types types = 1;

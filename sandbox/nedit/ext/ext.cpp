@@ -12,6 +12,7 @@
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/graph_update.pb.h>
+#include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
 
 nil::cli::OptionInfo EXT::options() const
@@ -101,8 +102,13 @@ int EXT::run(const nil::cli::Options& options) const
 
         graph_state = {};
 
+        std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
+        for (const auto& link : info.graph().links())
+        {
+            i_to_o.emplace(link.output(), link.input());
+        }
+
         std::vector<ext::NodeData> nodes;
-        nodes.reserve(std::size_t(info.graph().nodes().size()));
         for (const auto& node : info.graph().nodes())
         {
             nodes.push_back({
@@ -111,12 +117,25 @@ int EXT::run(const nil::cli::Options& options) const
                 .outputs = {node.outputs().begin(), node.outputs().end()},
                 .controls = {node.controls().begin(), node.controls().end()} //
             });
+
+            for (auto& i : nodes.back().inputs)
+            {
+                if (i_to_o.contains(i))
+                {
+                    i = i_to_o.at(i);
+                }
+                else
+                {
+                    std::cout << "incomplete input... not supported" << std::endl;
+                    return true;
+                }
+            }
         }
 
         for (const auto& node : ext::sort_by_score(nodes))
         {
-            app_state
-                .node_factories[node.type](graph_state, node.inputs, node.outputs, node.controls);
+            auto& factory = app_state.node_factories[node.type];
+            factory(graph_state, node.inputs, node.outputs, node.controls);
         }
 
         try

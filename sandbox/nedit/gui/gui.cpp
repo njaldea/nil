@@ -283,9 +283,7 @@ int GUI::run(const nil::cli::Options& options) const
             tmp.emplace_back(
                 [&info, &app]()
                 {
-                    nil::nedit::proto::Metadata m;
-                    m.ParseFromString(info.metadata());
-                    for (const auto& node : m.nodes())
+                    for (const auto& node : info.graph().nodes())
                     {
                         app.load_node(
                             node.id(),
@@ -294,11 +292,17 @@ int GUI::run(const nil::cli::Options& options) const
                             {node.outputs().begin(), node.outputs().end()},
                             {node.controls().begin(), node.controls().end()}
                         );
-                        ax::NodeEditor::SetNodePosition(node.id(), ImVec2{node.x(), node.y()});
                     }
-                    for (const auto& link : m.links())
+                    for (const auto& link : info.graph().links())
                     {
                         app.load_link(link.id(), link.input(), link.output());
+                    }
+
+                    nil::nedit::proto::Metadata m;
+                    m.ParseFromString(info.metadata());
+                    for (const auto& node : m.nodes())
+                    {
+                        ax::NodeEditor::SetNodePosition(node.id(), ImVec2{node.x(), node.y()});
                     }
                 }
             );
@@ -339,8 +343,17 @@ int GUI::run(const nil::cli::Options& options) const
     {
         auto* graph = info.mutable_graph();
         graph->clear_nodes();
+        graph->clear_links();
 
         nil::nedit::proto::Metadata metadata;
+
+        for (const auto& [id, link] : app.links)
+        {
+            auto* l = graph->add_links();
+            l->set_id(id);
+            l->set_input(link->entry->id.value);
+            l->set_output(link->exit->id.value);
+        }
         for (const auto& [id, n] : app.nodes)
         {
             // for graph
@@ -350,13 +363,7 @@ int GUI::run(const nil::cli::Options& options) const
                 node->set_type(n->type);
                 for (const auto& pin : n->pins_i)
                 {
-                    const auto& links = app.pins.at(pin.id.value).links;
-                    if (links.empty())
-                    {
-                        std::cout << "connections not complete" << std::endl;
-                        return;
-                    }
-                    node->add_inputs((*links.begin())->entry->id.value);
+                    node->add_inputs(pin.id.value);
                 }
                 for (const auto& pin : n->pins_o)
                 {
@@ -372,30 +379,9 @@ int GUI::run(const nil::cli::Options& options) const
                 auto* node = metadata.add_nodes();
                 const auto pos = ax::NodeEditor::GetNodePosition(id);
                 node->set_id(id);
-                node->set_type(n->type);
-                for (const auto& pin : n->pins_i)
-                {
-                    node->add_inputs(pin.id.value);
-                }
-                for (const auto& pin : n->pins_o)
-                {
-                    node->add_outputs(pin.id.value);
-                }
-                for (const auto& control : n->controls)
-                {
-                    node->add_controls(control->id.value);
-                }
                 node->set_x(pos.x);
                 node->set_y(pos.y);
             }
-        }
-
-        for (const auto& [id, link] : app.links)
-        {
-            auto* meta_link = metadata.add_links();
-            meta_link->set_id(id);
-            meta_link->set_input(link->entry->id.value);
-            meta_link->set_output(link->exit->id.value);
         }
         info.set_metadata(metadata.SerializeAsString());
         server.publish(nil::nedit::proto::message_type::Load, info);
