@@ -10,9 +10,12 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
+#include <imgui_stdlib.h>
 
 #include <GLFW/glfw3.h>
 
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <iostream>
 #include <mutex>
@@ -339,7 +342,7 @@ int GUI::run(const nil::cli::Options& options) const
         | ImGuiWindowFlags_NoSavedSettings   //
         | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    const auto load = [&]()
+    const auto load = [&](nil::nedit::proto::message_type::MessageType message_type)
     {
         auto* graph = info.mutable_graph();
         graph->clear_nodes();
@@ -384,8 +387,10 @@ int GUI::run(const nil::cli::Options& options) const
             }
         }
         info.set_metadata(metadata.SerializeAsString());
-        server.publish(nil::nedit::proto::message_type::Load, info);
+        server.publish(message_type, info);
     };
+
+    std::string path = (std::filesystem::current_path() / "state.dump").string();
 
     while (glfwWindowShouldClose(window) == 0 && loop)
     {
@@ -398,33 +403,65 @@ int GUI::run(const nil::cli::Options& options) const
         const auto* viewport = ImGui::GetMainViewport();
         ImGui::SetNextWindowPos(viewport->Pos);
         ImGui::SetNextWindowSize(viewport->Size);
+
+        ImGui::PushID(1);
         ImGui::Begin("Content", nullptr, window_flag);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, ImGui::GetStyle().WindowBorderSize);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, ImGui::GetStyle().WindowRounding);
-
         app.render(*context);
-
         ImGui::PopStyleVar(2);
         ImGui::End();
+        ImGui::PopID();
 
+        ImGui::PushID(2);
         ImGui::Begin("Panel");
-        ImGui::PushItemWidth(1.0f);
 
-        // will be turned into load file
-        if (ImGui::Button("force-load"))
+        ImGui::PushItemWidth(std::max(ImGui::GetWindowWidth() - 20.0f, 300.f));
+        ImGui::InputText("###file", &path);
+        ImGui::PopItemWidth();
+        if (ImGui::Button("load") && std::filesystem::exists(path))
         {
-            const auto _ = std::unique_lock(app.mutex);
-            app.after_render.push_back(load);
+            try
+            {
+                std::ifstream file(path);
+                nil::nedit::proto::State tmp;
+                tmp.ParseFromIstream(&file);
+                server.publish(nil::nedit::proto::message_type::Load, tmp);
+            }
+            catch (const std::exception& e)
+            {
+                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
+                std::cerr << e.what() << '\n';
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("save"))
+        {
+            try
+            {
+                std::ofstream file(path);
+                // TODO: make sure that the path is valid:
+                // - not a directory
+                // - ---
+                info.SerializeToOstream(&file);
+            }
+            catch (const std::exception& e)
+            {
+                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
+                std::cerr << e.what() << '\n';
+            }
         }
 
         app.render_panel();
 
-        // if (app.has_changed()) {
-        //     send an update
-        // }
+        if (app.pop_diff())
+        {
+            const auto _ = std::unique_lock(app.mutex);
+            app.after_render.push_back([&]() { load(nil::nedit::proto::message_type::Update); });
+        }
 
-        ImGui::PopItemWidth();
         ImGui::End();
+        ImGui::PopID();
 
         ImGui::Render();
         int display_w = 0;

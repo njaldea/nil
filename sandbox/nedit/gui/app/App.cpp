@@ -88,6 +88,7 @@ namespace gui
             links.emplace(id, std::move(link));
             start.links.emplace(ptr);
             end.links.emplace(ptr);
+            changed = true;
         }
     }
 
@@ -134,11 +135,22 @@ namespace gui
         ids = {};
     }
 
+    bool App::pop_diff()
+    {
+        const auto c = changed;
+        changed = false;
+        return c;
+    }
+
     void App::render_panel()
     {
         ImGui::Text("Pin Types");
         for (auto& pin_info : pin_infos)
         {
+            ImGui::PushItemWidth(30.0f);
+            ImGui::LabelText("", " >  ");
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
             pin_info.render();
         }
 
@@ -146,6 +158,10 @@ namespace gui
         for (auto n = 0u; n < node_infos.size(); n++)
         {
             auto& info = node_infos[n];
+            ImGui::PushItemWidth(30.0f);
+            ImGui::LabelText("", " >  ");
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
             info.render();
             if (info.is_dragged())
             {
@@ -167,6 +183,7 @@ namespace gui
                 const auto id = tmp->id.value;
                 nodes.emplace(id, std::move(tmp));
                 finalize_node = false;
+                changed = true;
             }
             else
             {
@@ -249,6 +266,7 @@ namespace gui
                         pins.at(current_link->entry->id.value).links.erase(current_link);
                         pins.at(current_link->exit->id.value).links.erase(current_link);
                         links.erase(link);
+                        changed = true;
                     }
                 }
             }
@@ -300,6 +318,7 @@ namespace gui
                 pins.erase(pin.id.value);
             }
             nodes.erase(node_it);
+            changed = true;
         }
     }
 

@@ -98,6 +98,8 @@ namespace gui
 
         void reset();
 
+        bool pop_diff();
+
     private:
         static void push_style();
         static void pop_style();
@@ -123,6 +125,7 @@ namespace gui
         std::vector<NodeInfo> node_infos;
         std::vector<PinInfo> pin_infos;
 
+        bool changed = false;
         std::mutex mutex;
         std::vector<std::function<void()>> before_render;
         std::vector<std::function<void()>> after_render;
