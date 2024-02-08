@@ -40,26 +40,7 @@ namespace nil::gate::detail
         /**
          * @brief clear value. marks all sub nodes as pending for execution
          */
-        void pend()
-        {
-            this->data = {};
-            for (auto* out : this->outs)
-            {
-                out->pend();
-            }
-        }
-
-        /**
-         * @brief allow cancellation?
-         */
-        void cancel()
-        {
-            this->data = {};
-            for (auto* out : this->outs)
-            {
-                out->cancel();
-            }
-        }
+        using MutableEdge<T>::pend;
 
         void attach_output(INode* node)
         {

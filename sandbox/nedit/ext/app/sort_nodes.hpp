@@ -12,6 +12,7 @@ namespace ext
     struct NodeData final
     {
         // node's index when registered to builder
+        std::uint64_t id;
         std::uint64_t type;
         std::vector<std::uint64_t> inputs;
         std::vector<std::uint64_t> outputs;

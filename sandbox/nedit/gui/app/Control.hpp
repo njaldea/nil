@@ -7,93 +7,101 @@
 #include <functional>
 #include <string>
 
+namespace nil::service
+{
+    class TypedService;
+}
+
 namespace gui
 {
-    struct Control
+    class Control
     {
-        Control(ID init_id);
+    public:
+        Control(nil::service::TypedService& init_service, ID init_id);
         virtual ~Control() noexcept = default;
         virtual void render() = 0;
+
+    protected:
+        nil::service::TypedService& service;
+
+    public:
         ID id;
     };
 
-    struct ToggleControl final: Control
+    class ToggleControl final: public Control
     {
-        ToggleControl(
-            ID init_id,
-            bool init_value,
-            std::function<void(std::uint64_t, bool)> init_notify
-        );
+    public:
+        ToggleControl(nil::service::TypedService& init_service, ID init_id, bool init_value);
 
         void render() override;
 
+    private:
         bool value;
-        std::function<void(std::uint64_t, bool)> notify;
     };
 
-    struct SpinboxControl final: Control
+    class SpinboxControl final: public Control
     {
+    public:
         SpinboxControl(
+            nil::service::TypedService& init_service,
             ID init_id,
             std::int32_t init_value,
             std::int32_t init_min,
-            std::int32_t init_max,
-            std::function<void(std::uint64_t, std::int32_t)> init_notify
+            std::int32_t init_max
         );
 
         void render() override;
 
+    private:
         std::int32_t value;
         std::int32_t min;
         std::int32_t max;
-        std::function<void(std::uint64_t, std::int32_t)> notify;
     };
 
-    struct SliderControl final: Control
+    class SliderControl final: public Control
     {
+    public:
         SliderControl(
+            nil::service::TypedService& init_service,
             ID init_id,
             float init_value,
             float init_min,
-            float init_max,
-            std::function<void(std::uint64_t, float)> init_notify
+            float init_max
         );
 
         void render() override;
 
+    private:
         float value;
         float min;
         float max;
-        std::function<void(std::uint64_t, float)> notify;
     };
 
-    struct TextControl final: Control
+    class TextControl final: public Control
     {
-        TextControl(
-            ID init_id,
-            std::string init_value,
-            std::function<void(std::uint64_t, const std::string&)> init_notify
-        );
+    public:
+        TextControl(nil::service::TypedService& init_service, ID init_id, std::string init_value);
 
         void render() override;
 
+    private:
         std::string value;
-        std::function<void(std::uint64_t, const std::string&)> notify;
     };
 
-    struct ComboBoxControl final: Control
+    class ComboBoxControl final: public Control
     {
+    public:
         ComboBoxControl(
+            nil::service::TypedService& init_service,
             ID init_id,
             std::string init_value,
-            std::vector<std::string> init_selection,
-            std::function<void(std::uint64_t, const std::string&)> init_notify
+            std::vector<std::string> init_selection
         );
 
         void render() override;
 
+    private:
         std::string value;
         std::vector<std::string> selection;
-        std::function<void(std::uint64_t, const std::string&)> notify;
     };
 }

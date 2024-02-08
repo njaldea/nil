@@ -8,7 +8,6 @@ namespace nil::gate::detail
         enum class State
         {
             Pending,
-            Cancelled, // [TODO] add handling, how?
             Done
         };
 
@@ -16,6 +15,5 @@ namespace nil::gate::detail
 
         virtual void exec() = 0;
         virtual void pend() = 0;
-        virtual void cancel() = 0;
     };
 }

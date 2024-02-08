@@ -26,7 +26,7 @@ namespace nil::gate::detail
 
         void exec() override
         {
-            if (state == State::Pending && is_runnable(typename input_t::make_index_sequence()))
+            if (state == State::Pending)
             {
                 exec(
                     typename input_t::make_index_sequence(),
@@ -44,15 +44,6 @@ namespace nil::gate::detail
             }
         }
 
-        void cancel() override
-        {
-            if (state == State::Pending)
-            {
-                state = State::Cancelled;
-                cancel(typename output_t::make_index_sequence());
-            }
-        }
-
         typename output_t::readonly_edges output_edges()
         {
             return output_edges(typename output_t::make_index_sequence());
@@ -60,9 +51,9 @@ namespace nil::gate::detail
 
     private:
         template <std::size_t>
-        INode* init_outputs(INode* self)
+        INode* spread_this()
         {
-            return self;
+            return this;
         }
 
         template <
@@ -79,7 +70,7 @@ namespace nil::gate::detail
         )
             : instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
-            , outputs(init_outputs<o_indices>(this)...)
+            , outputs(spread_this<o_indices>()...)
         {
             (static_cast<Edge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
         }
@@ -88,18 +79,6 @@ namespace nil::gate::detail
         void pend(std::index_sequence<o_indices...>)
         {
             (std::get<o_indices>(outputs).pend(), ...);
-        }
-
-        template <std::size_t... o_indices>
-        void cancel(std::index_sequence<o_indices...>)
-        {
-            (std::get<o_indices>(outputs).cancel(), ...);
-        }
-
-        template <std::size_t... i_indices>
-        bool is_runnable(std::index_sequence<i_indices...>) const
-        {
-            return true && (... && std::get<i_indices>(inputs)->has_value());
         }
 
         template <std::size_t... i_indices, std::size_t... o_indices>

@@ -8,18 +8,13 @@
 
 namespace ext
 {
+    // NodeData input ids in input are mapped to the output pin of the connected node
     std::vector<NodeData> sort_by_score(const std::vector<NodeData>& nodes)
     {
-        struct Edge final
-        {
-            const NodeData* input = nullptr;
-            std::vector<const NodeData*> outputs;
-        };
-
         struct Scorer final
         {
             static std::uint32_t recurse(
-                const std::unordered_map<std::uint64_t, Edge>& edges,
+                const std::unordered_map<std::uint64_t, const NodeData*>& edge_to_node,
                 const NodeData* current_node,
                 std::unordered_map<const NodeData*, std::uint32_t>& cache
             )
@@ -36,37 +31,39 @@ namespace ext
                 auto score = 0u;
                 for (const auto& i : current_node->inputs)
                 {
-                    score = std::max(recurse(edges, edges.at(i).input, cache) + 1u, score);
+                    if (edge_to_node.contains(i))
+                    {
+                        score = std::max(
+                            recurse(edge_to_node, edge_to_node.at(i), cache) + 1u,
+                            score
+                        );
+                    }
                 }
                 cache.emplace(current_node, score);
                 return score;
             }
         };
 
-        const auto edges = [&nodes]()
+        const auto edge_to_node = [&nodes]()
         {
-            std::unordered_map<std::uint64_t, Edge> retval;
+            std::unordered_map<std::uint64_t, const NodeData*> retval;
             for (const auto& node : nodes)
             {
-                for (const auto& i : node.inputs)
-                {
-                    retval[i].outputs.push_back(&node);
-                }
                 for (const auto& o : node.outputs)
                 {
-                    retval[o].input = &node;
+                    retval.emplace(o, &node);
                 }
             }
             return retval;
         }();
 
-        const auto scores = [&nodes, &edges]()
+        const auto scores = [&nodes, &edge_to_node]()
         {
             std::multimap<std::uint32_t, const NodeData*> retval;
             std::unordered_map<const NodeData*, std::uint32_t> cache;
             for (const auto& node : nodes)
             {
-                retval.emplace(Scorer::recurse(edges, &node, cache), &node);
+                retval.emplace(Scorer::recurse(edge_to_node, &node, cache), &node);
             }
             return retval;
         }();

@@ -9,9 +9,11 @@
 #include <array>
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/graph_update.pb.h>
+#include <gen/nedit/messages/node_state.pb.h>
 #include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
 
@@ -32,10 +34,8 @@ int EXT::run(const nil::cli::Options& options) const
     }
 
     ext::AppState app_state;
-    ext::GraphState graph_state;
     ext::App app(app_state);
     ext::install(app);
-
     const std::string types = app_state.info.types().SerializeAsString();
 
     nil::service::TypedService client(                         //
@@ -43,6 +43,31 @@ int EXT::run(const nil::cli::Options& options) const
             {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
         )
     );
+
+    const auto make_state = [&client]()
+    {
+        ext::GraphState state;
+
+        state.activate = [&client](std::uint64_t id)
+        {
+            nil::nedit::proto::NodeState message;
+            message.set_id(id);
+            message.set_active(true);
+            client.publish(nil::nedit::proto::message_type::NodeState, message.SerializeAsString());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        };
+
+        state.deactivate = [&client](std::uint64_t id)
+        {
+            nil::nedit::proto::NodeState message;
+            message.set_id(id);
+            message.set_active(false);
+            client.publish(nil::nedit::proto::message_type::NodeState, message.SerializeAsString());
+        };
+
+        return state;
+    };
+    ext::GraphState graph_state = make_state();
 
     const auto send_state //
         = [&client, &app_state](const std::string& id)
@@ -87,20 +112,18 @@ int EXT::run(const nil::cli::Options& options) const
         }
     );
 
-    const auto load_state                    //
-        = [&graph_state, &app_state, &types] //
+    const auto load_state                                 //
+        = [&graph_state, &app_state, &types, &make_state] //
         (const nil::nedit::proto::State& info)
     {
-        std::string state = info.types().SerializeAsString();
-
-        if (state != types)
+        if (info.types().SerializeAsString() != types)
         {
             return false;
         }
 
         app_state.info = info;
 
-        graph_state = {};
+        graph_state = make_state();
 
         std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
         for (const auto& link : info.graph().links())
@@ -112,12 +135,14 @@ int EXT::run(const nil::cli::Options& options) const
         for (const auto& node : info.graph().nodes())
         {
             nodes.push_back({
+                .id = node.id(),
                 .type = node.type(),
                 .inputs = {node.inputs().begin(), node.inputs().end()},
                 .outputs = {node.outputs().begin(), node.outputs().end()},
                 .controls = {node.controls().begin(), node.controls().end()} //
             });
 
+            // convert id of input from id of the pin to the id of the port it is connected to.
             for (auto& i : nodes.back().inputs)
             {
                 if (i_to_o.contains(i))
@@ -135,16 +160,7 @@ int EXT::run(const nil::cli::Options& options) const
         for (const auto& node : ext::sort_by_score(nodes))
         {
             auto& factory = app_state.node_factories[node.type];
-            factory(graph_state, node.inputs, node.outputs, node.controls);
-        }
-
-        try
-        {
-            graph_state.core.run();
-        }
-        catch (const std::exception& ex)
-        {
-            std::cout << ex.what() << std::endl;
+            factory(graph_state, node.id, node.inputs, node.outputs, node.controls);
         }
 
         return true;
@@ -157,6 +173,15 @@ int EXT::run(const nil::cli::Options& options) const
             if (load_state(info))
             {
                 send_state(id);
+
+                try
+                {
+                    graph_state.core.run();
+                }
+                catch (const std::exception& ex)
+                {
+                    std::cout << ex.what() << std::endl;
+                }
             }
             else
             {
@@ -170,11 +195,21 @@ int EXT::run(const nil::cli::Options& options) const
         nil::nedit::proto::message_type::Update,
         [&](const std::string&, const nil::nedit::proto::State& info)
         {
-            if (!load_state(info))
+            if (load_state(info))
+            {
+                try
+                {
+                    graph_state.core.run();
+                }
+                catch (const std::exception& ex)
+                {
+                    std::cout << ex.what() << std::endl;
+                }
+            }
+            else
             {
                 std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
                 std::cout << "state is not compatible to types" << std::endl;
-                // this should be dead code.
             }
         }
     );

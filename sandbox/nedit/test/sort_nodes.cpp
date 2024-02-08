@@ -11,6 +11,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
         std::vector<ext::NodeData> retval;
         retval.emplace_back( //
             ext::NodeData{
+                .id = 0,
                 .type = 1,
                 .inputs = {2},
                 .outputs = {3},
@@ -19,6 +20,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
         );
         retval.emplace_back( //
             ext::NodeData{
+                .id = 1,
                 .type = 2,
                 .inputs = {3},
                 .outputs = {5},
@@ -27,6 +29,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
         );
         retval.emplace_back( //
             ext::NodeData{
+                .id = 2,
                 .type = 1,
                 .inputs = {5},
                 .outputs = {7},
@@ -40,6 +43,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
     ASSERT_EQ(result.size(), nodes.size());
     for (auto i = 0u; i < result.size(); ++i)
     {
+        ASSERT_EQ(result[i].id, nodes[i].id);
         ASSERT_EQ(result[i].type, nodes[i].type);
         ASSERT_EQ(result[i].inputs, nodes[i].inputs);
         ASSERT_EQ(result[i].outputs, nodes[i].outputs);
@@ -55,6 +59,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
         std::vector<ext::NodeData> retval;
         retval.emplace_back( //
             ext::NodeData{
+                .id = 2,
                 .type = 1,
                 .inputs = {5},
                 .outputs = {7},
@@ -63,6 +68,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
         );
         retval.emplace_back( //
             ext::NodeData{
+                .id = 1,
                 .type = 2,
                 .inputs = {3},
                 .outputs = {5},
@@ -71,6 +77,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
         );
         retval.emplace_back( //
             ext::NodeData{
+                .id = 0,
                 .type = 1,
                 .inputs = {2},
                 .outputs = {3},
@@ -84,6 +91,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
     ASSERT_EQ(result.size(), nodes.size());
     for (auto i = 0u; i < result.size(); ++i)
     {
+        ASSERT_EQ(result[i].id, nodes[result.size() - i - 1].id);
         ASSERT_EQ(result[i].type, nodes[result.size() - i - 1].type);
         ASSERT_EQ(result[i].inputs, nodes[result.size() - i - 1].inputs);
         ASSERT_EQ(result[i].outputs, nodes[result.size() - i - 1].outputs);

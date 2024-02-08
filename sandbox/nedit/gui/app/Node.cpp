@@ -16,6 +16,13 @@ namespace gui
 
     void Node::render() const
     {
+        if (activated)
+        {
+            ax::NodeEditor::PushStyleColor(
+                ax::NodeEditor::StyleColor_NodeBg,
+                {1.0f, 0.0f, 0.0f, 1.0f}
+            );
+        }
         ax::NodeEditor::BeginNode(id.value);
         {
             ImGui::BeginGroup();
@@ -71,5 +78,9 @@ namespace gui
             ImGui::EndGroup();
         }
         ax::NodeEditor::EndNode();
+        if (activated)
+        {
+            ax::NodeEditor::PopStyleColor();
+        }
     }
 }

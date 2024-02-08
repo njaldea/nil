@@ -97,7 +97,10 @@ namespace gui
         const auto [b, a] = [this]()
         {
             const auto _ = std::unique_lock(this->mutex);
-            return std::make_tuple(std::move(this->before_render), std::move(this->after_render));
+            return std::make_tuple(
+                std::exchange(this->before_render, {}),
+                std::exchange(this->after_render, {})
+            );
         }();
 
         ax::NodeEditor::SetCurrentEditor(&context);

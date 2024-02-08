@@ -3,7 +3,6 @@
 #include "sort_nodes.hpp"
 
 #include <nil/gate.hpp>
-
 #include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/state.pb.h>
@@ -61,12 +60,66 @@ namespace ext
         nil::gate::Core core;
         std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
+        std::function<void(std::uint64_t)> activate;
+        std::function<void(std::uint64_t)> deactivate;
+    };
+
+    template <typename T, typename Inputs>
+    struct Activatable;
+
+    template <typename T, typename... Inputs>
+    struct Activatable<T, nil::utils::traits::types<Inputs...>>
+    {
+        template <typename... Args>
+        Activatable(GraphState& init_state, std::uint64_t init_id, const Args&... args)
+            : state(init_state)
+            , id(init_id)
+            , object{args...}
+        {
+        }
+
+        auto operator()(const Inputs&... args) const
+        {
+            struct Scoped
+            {
+                Scoped(GraphState& init_state, std::uint64_t init_id)
+                    : state(init_state)
+                    , id(init_id)
+                {
+                    state.activate(id);
+                }
+
+                ~Scoped()
+                {
+                    state.deactivate(id);
+                }
+
+                GraphState& state;
+                std::uint64_t id;
+            };
+
+            if constexpr (sizeof...(Inputs) > 0)
+            {
+                Scoped _(state, id);
+                return object.operator()(args...);
+            }
+            else
+            {
+                Scoped _(state, id);
+                return object.operator()();
+            }
+        }
+
+        GraphState& state;
+        std::uint64_t id;
+        T object;
     };
 
     struct AppState
     {
         using IDs = std::vector<std::uint64_t>;
-        using Factory = std::function<void(GraphState&, const IDs&, const IDs&, const IDs&)>;
+        using Factory
+            = std::function<void(GraphState&, std::uint64_t, const IDs&, const IDs&, const IDs&)>;
 
         nil::nedit::proto::State info;
         std::vector<Factory> node_factories;
@@ -131,15 +184,14 @@ namespace ext
         namespace creation
         {
             template <typename C>
-            void create_control_edge(
-                GraphState& state,
-                nil::gate::MutableEdge<decltype(std::declval<C>().value)>* edge,
-                std::uint64_t id,
-                const C& control
-            )
+            void create_control_edge(GraphState& state, std::uint64_t id, const C& control)
             {
-                edge->set_value(control.value);
-                state.control_edges.emplace(id, GraphState::RelaxedEdge{edge});
+                state.control_edges.emplace(
+                    id,
+                    GraphState::RelaxedEdge{
+                        state.core.edge<decltype(std::declval<C>().value)>(control.value)
+                    }
+                );
             }
 
             template <typename T, typename... C, std::size_t... indices>
@@ -153,15 +205,7 @@ namespace ext
             {
                 if constexpr (sizeof...(C) > 0)
                 {
-                    const auto mutable_edges
-                        = state.core.edges<decltype(std::declval<C>().value)...>();
-                    (create_control_edge<C>(
-                         state,
-                         std::get<indices>(mutable_edges),
-                         ids[indices],
-                         std::get<indices>(controls)
-                     ),
-                     ...);
+                    (create_control_edge<C>(state, ids[indices], std::get<indices>(controls)), ...);
                 }
             }
 
@@ -173,6 +217,7 @@ namespace ext
                 typename... Args>
             void create_node(
                 GraphState& state,
+                std::uint64_t id,
                 const std::vector<std::uint64_t>& i,
                 const std::vector<std::uint64_t>& o,
                 const std::vector<std::uint64_t>& c,
@@ -184,11 +229,14 @@ namespace ext
             {
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
-                    const auto result = state.core.node<T>(
+                    const auto result = state.core.node<
+                        Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
                         {
                             state.internal_edges[i[i_indices]]...,
                             state.control_edges[c[c_indices]]... //
                         },
+                        state,
+                        id,
                         args...
                     );
                     (                                                            //
@@ -201,13 +249,16 @@ namespace ext
                 }
                 else
                 {
-                    state.core.node<T>(
-                        {
-                            state.internal_edges[i[i_indices]]...,
-                            state.control_edges[c[c_indices]]... //
-                        },
-                        args...
-                    );
+                    state.core
+                        .node<Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
+                            {
+                                state.internal_edges[i[i_indices]]...,
+                                state.control_edges[c[c_indices]]... //
+                            },
+                            state,
+                            id,
+                            args...
+                        );
                 }
             }
         }
@@ -263,6 +314,7 @@ namespace ext
                 return                           //
                     [controls, ... args = args]( //
                         GraphState& state,
+                        std::uint64_t id,
                         const std::vector<std::uint64_t>& input_ids,
                         const std::vector<std::uint64_t>& output_ids,
                         const std::vector<std::uint64_t>& control_ids
@@ -280,6 +332,7 @@ namespace ext
                     constexpr auto input_count = input_t::size - sizeof...(Controls);
                     detail::creation::create_node<T>(
                         state,
+                        id,
                         input_ids,
                         output_ids,
                         control_ids,

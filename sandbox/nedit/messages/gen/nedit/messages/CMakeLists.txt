@@ -7,6 +7,7 @@ protobuf_generate_cpp(
     PROTO_HEADER
     type.proto
     state.proto
+    node_state.proto
     metadata.proto
     graph_update.proto
     control_update.proto

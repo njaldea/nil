@@ -8,7 +8,6 @@ enum MessageType {
     State = 0;
     Load = 1;
     Update = 2;
-    ControlUpdate = 3;
-    SetupBegin = 4;
-    SetupEnd = 5;
+    NodeState = 3;
+    ControlUpdate = 4;
 }

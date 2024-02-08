@@ -1,4 +1,10 @@
 #include "Control.hpp"
+#include "../../codec.hpp"
+
+#include <nil/service/TypedService.hpp>
+
+#include <gen/nedit/messages/control_update.pb.h>
+#include <gen/nedit/messages/type.pb.h>
 
 #include <string>
 
@@ -6,19 +12,19 @@
 
 namespace gui
 {
-    Control::Control(ID init_id)
-        : id(std::move(init_id))
+    Control::Control(nil::service::TypedService& init_service, ID init_id)
+        : service(init_service)
+        , id(std::move(init_id))
     {
     }
 
     ToggleControl::ToggleControl(
+        nil::service::TypedService& init_service,
         ID init_id,
-        bool init_value,
-        std::function<void(std::uint64_t, bool)> init_notify
+        bool init_value
     )
-        : Control(std::move(init_id))
+        : Control(init_service, std::move(init_id))
         , value(init_value)
-        , notify(std::move(init_notify))
     {
     }
 
@@ -30,24 +36,26 @@ namespace gui
         need_update = ImGui::Checkbox("Checkbox", &value);
         ImGui::PopItemWidth();
         ImGui::PopID();
-        if (need_update && notify)
+        if (need_update)
         {
-            notify(id.value, value);
+            nil::nedit::proto::ControlUpdate msg;
+            msg.set_id(id.value);
+            msg.set_b(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
         }
     }
 
     SpinboxControl::SpinboxControl(
+        nil::service::TypedService& init_service,
         ID init_id,
         std::int32_t init_value,
         std::int32_t init_min,
-        std::int32_t init_max,
-        std::function<void(std::uint64_t, std::int32_t)> init_notify
+        std::int32_t init_max
     )
-        : Control(std::move(init_id))
+        : Control(init_service, std::move(init_id))
         , value(init_value)
         , min(init_min)
         , max(init_max)
-        , notify(std::move(init_notify))
     {
     }
 
@@ -59,24 +67,26 @@ namespace gui
         need_update = ImGui::SliderInt("Spinbox", &value, min, max);
         ImGui::PopItemWidth();
         ImGui::PopID();
-        if (need_update && notify)
+        if (need_update)
         {
-            notify(id.value, value);
+            nil::nedit::proto::ControlUpdate msg;
+            msg.set_id(id.value);
+            msg.set_i(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
         }
     }
 
     SliderControl::SliderControl(
+        nil::service::TypedService& init_service,
         ID init_id,
         float init_value,
         float init_min,
-        float init_max,
-        std::function<void(std::uint64_t, float)> init_notify
+        float init_max
     )
-        : Control(std::move(init_id))
+        : Control(init_service, std::move(init_id))
         , value(init_value)
         , min(init_min)
         , max(init_max)
-        , notify(std::move(init_notify))
     {
     }
 
@@ -89,20 +99,22 @@ namespace gui
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update && notify)
+        if (need_update)
         {
-            notify(id.value, value);
+            nil::nedit::proto::ControlUpdate msg;
+            msg.set_id(id.value);
+            msg.set_f(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
         }
     }
 
     TextControl::TextControl(
+        nil::service::TypedService& init_service,
         ID init_id,
-        std::string init_value,
-        std::function<void(std::uint64_t, const std::string&)> init_notify
+        std::string init_value
     )
-        : Control(std::move(init_id))
+        : Control(init_service, std::move(init_id))
         , value(std::move(init_value))
-        , notify(std::move(init_notify))
     {
     }
 
@@ -115,22 +127,24 @@ namespace gui
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update && notify)
+        if (need_update)
         {
-            notify(id.value, value);
+            nil::nedit::proto::ControlUpdate msg;
+            msg.set_id(id.value);
+            msg.set_s(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
         }
     }
 
     ComboBoxControl::ComboBoxControl(
+        nil::service::TypedService& init_service,
         ID init_id,
         std::string init_value,
-        std::vector<std::string> init_selection,
-        std::function<void(std::uint64_t, const std::string&)> init_notify
+        std::vector<std::string> init_selection
     )
-        : Control(std::move(init_id))
+        : Control(init_service, std::move(init_id))
         , value(std::move(init_value))
         , selection(std::move(init_selection))
-        , notify(std::move(init_notify))
     {
     }
 
@@ -163,9 +177,12 @@ namespace gui
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update && notify)
+        if (need_update)
         {
-            notify(id.value, value);
+            nil::nedit::proto::ControlUpdate msg;
+            msg.set_id(id.value);
+            msg.set_s(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
         }
     }
 }

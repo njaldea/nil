@@ -60,26 +60,6 @@ namespace nil::gate
         }
 
         // Invalid type passed
-        template <typename... T>
-        std::enable_if_t<
-            !(true && (... && detail::edge_validate<T>::value)),
-            std::tuple<MutableEdge<T>*...>>
-            edges() = delete;
-
-        /**
-         * @tparam T                                - edge type
-         * @return `std::tuple<MutableEdge<T>*...>` - edge instances (still owned by core)
-         */
-        template <typename... T>
-        std::enable_if_t<
-            (true && (... && detail::edge_validate<T>::value)),
-            std::tuple<MutableEdge<T>*...>>
-            edges()
-        {
-            return std::tuple(this->edge<T>()...);
-        }
-
-        // Invalid type passed
         template <typename T>
         std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge() = delete;
 
@@ -89,11 +69,13 @@ namespace nil::gate
          * @tparam T                    - edge type
          * @return `MutableEdge<T>*`    - edge instance (still owned by core)
          */
-        template <typename T>
-        std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge()
+        template <typename T, typename... Args>
+        std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(Args&&... args)
         {
             return static_cast<MutableEdge<T>*>(
-                required_edges.emplace_back(std::make_unique<MutableEdge<T>>()).get()
+                required_edges
+                    .emplace_back(std::make_unique<MutableEdge<T>>(std::forward<Args>(args)...))
+                    .get()
             );
         }
 
@@ -102,13 +84,6 @@ namespace nil::gate
          */
         void run()
         {
-            for (const auto& edge : required_edges)
-            {
-                if (!edge->has_value())
-                {
-                    throw std::runtime_error("value for a required edge is missing");
-                }
-            }
             for (const auto& node : owned_nodes)
             {
                 node->exec();

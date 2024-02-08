@@ -45,7 +45,9 @@ int main()
 
     // const auto [a1, a2, a3, a4] = core.node<A>({}, "a");
     auto* a1 = core.edge<std::unique_ptr<const bool>>();
-    const auto [a2, a3, a4] = core.edges<int, double, std::string>();
+    auto* a2 = core.edge<int>();
+    auto* a3 = core.edge<double>();
+    auto* a4 = core.edge<std::string>();
     const auto [b1] = core.node<B>({a1}, "b");
     const auto [c1] = core.node<C>({a2}, "c");
     const auto [d1] = core.node<D>({a3}, "d");

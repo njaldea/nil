@@ -31,5 +31,7 @@ namespace gui
         std::vector<Pin> pins_i;
         std::vector<Pin> pins_o;
         std::vector<std::unique_ptr<Control>> controls;
+
+        bool activated = false;
     };
 }
