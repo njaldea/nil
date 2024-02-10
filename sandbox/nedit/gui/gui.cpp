@@ -38,6 +38,250 @@ nil::cli::OptionInfo GUI::options() const
         .build();
 }
 
+constexpr auto window_flag               //
+    = ImGuiWindowFlags_NoDecoration      //
+    | ImGuiWindowFlags_NoMove            //
+    | ImGuiWindowFlags_NoScrollWithMouse //
+    | ImGuiWindowFlags_NoSavedSettings   //
+    | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+constexpr auto draw = +[](GLFWwindow* w)
+{
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glfwSwapBuffers(w);
+};
+
+void load(nil::service::TypedService& service, const gui::App& app, nil::nedit::proto::State& info)
+{
+    auto* graph = info.mutable_graph();
+    graph->clear_nodes();
+    graph->clear_links();
+
+    nil::nedit::proto::Metadata metadata;
+
+    for (const auto& [id, link] : app.links)
+    {
+        auto* l = graph->add_links();
+        l->set_id(id);
+        l->set_input(link->entry->id.value);
+        l->set_output(link->exit->id.value);
+    }
+    for (const auto& [id, n] : app.nodes)
+    {
+        // for graph
+        {
+            auto* node = graph->add_nodes();
+            node->set_id(id);
+            node->set_type(n->type);
+            for (const auto& pin : n->pins_i)
+            {
+                node->add_inputs(pin.id.value);
+            }
+            for (const auto& pin : n->pins_o)
+            {
+                node->add_outputs(pin.id.value);
+            }
+            for (const auto& control : n->controls)
+            {
+                node->add_controls(control->id.value);
+            }
+        }
+        // for metadata
+        {
+            auto* node = metadata.add_nodes();
+            const auto pos = ax::NodeEditor::GetNodePosition(id);
+            node->set_id(id);
+            node->set_x(pos.x);
+            node->set_y(pos.y);
+        }
+    }
+    info.set_metadata(metadata.SerializeAsString());
+    service.publish(nil::nedit::proto::message_type::State, info);
+}
+
+auto process_state(
+    nil::service::TypedService& service,
+    gui::App& app,
+    nil::nedit::proto::State& info,
+    const nil::nedit::proto::State& new_info
+)
+{
+    std::vector<std::function<void()>> tmp;
+    tmp.emplace_back([&app]() { app.reset(); });
+    tmp.emplace_back([&info, m = new_info]() mutable { info = std::move(m); });
+
+    // pins
+    tmp.emplace_back(
+        [&info, &app]()
+        {
+            for (const auto& pin : info.types().pins())
+            {
+                app.pin_infos.push_back({
+                    pin.label(),
+                    ImVec4(
+                        pin.color().r(),
+                        pin.color().g(),
+                        pin.color().b(),
+                        pin.color().a()
+                    ) //
+                });
+            }
+        }
+    );
+
+    // nodes
+    tmp.emplace_back(
+        [&info, &app, &service]()
+        {
+            for (const auto& node : info.types().nodes())
+            {
+                auto node_info = gui::NodeInfo{
+                    node.label(),
+                    {node.inputs().begin(), node.inputs().end()},
+                    {node.outputs().begin(), node.outputs().end()},
+                    {}
+                };
+
+                using Control = nil::nedit::proto::State::Types::Node::Control;
+                for (const auto& control : node.controls())
+                {
+                    switch (control.control_case())
+                    {
+                        case Control::ControlCase::kToggle:
+                        {
+                            const auto& toggle = control.toggle();
+                            const auto value = toggle.value();
+                            node_info.controls.emplace_back(
+                                [=, &service](gui::ID id) {
+                                    return std::make_unique<gui::ToggleControl>(
+                                        service,
+                                        std::move(id),
+                                        value
+                                    );
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kSpinbox:
+                        {
+                            const auto& spinbox = control.spinbox();
+                            const auto value = spinbox.value();
+                            const auto min = spinbox.min();
+                            const auto max = spinbox.max();
+                            node_info.controls.emplace_back(
+                                [=, &service](gui::ID id) {
+                                    return std::make_unique<gui::SpinboxControl>(
+                                        service,
+                                        std::move(id),
+                                        value,
+                                        min,
+                                        max
+                                    );
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kSlider:
+                        {
+                            const auto& slider = control.slider();
+                            const auto value = slider.value();
+                            const auto min = slider.min();
+                            const auto max = slider.max();
+                            node_info.controls.emplace_back(
+                                [=, &service](gui::ID id) {
+                                    return std::make_unique<gui::SliderControl>(
+                                        service,
+                                        std::move(id),
+                                        value,
+                                        min,
+                                        max
+                                    );
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kText:
+                        {
+                            const auto& text = control.text();
+                            const auto& value = text.value();
+                            node_info.controls.emplace_back(
+                                [=, &service](gui::ID id) {
+                                    return std::make_unique<gui::TextControl>(
+                                        service,
+                                        std::move(id),
+                                        value
+                                    );
+                                }
+                            );
+                            break;
+                        }
+                        case Control::ControlCase::kCombobox:
+                        {
+                            const auto& combobox = control.combobox();
+                            const auto& value = combobox.value();
+                            const auto& selection = std::vector<std::string>(
+                                combobox.selection().begin(),
+                                combobox.selection().end()
+                            );
+                            node_info.controls.emplace_back(
+                                [=, &service](gui::ID id) {
+                                    return std::make_unique<gui::ComboBoxControl>(
+                                        service,
+                                        std::move(id),
+                                        value,
+                                        selection
+                                    );
+                                }
+                            );
+                            break;
+                        }
+                        default:
+                        {
+                            break;
+                        }
+                    }
+                }
+                app.node_infos.emplace_back(std::move(node_info));
+            }
+        }
+    );
+
+    tmp.emplace_back(
+        [&info, &app]()
+        {
+            for (const auto& node : info.graph().nodes())
+            {
+                app.load_node(
+                    node.id(),
+                    node.type(),
+                    {node.inputs().begin(), node.inputs().end()},
+                    {node.outputs().begin(), node.outputs().end()},
+                    {node.controls().begin(), node.controls().end()}
+                );
+            }
+            for (const auto& link : info.graph().links())
+            {
+                app.load_link(link.id(), link.input(), link.output());
+            }
+
+            nil::nedit::proto::Metadata m;
+            m.ParseFromString(info.metadata());
+            for (const auto& node : m.nodes())
+            {
+                ax::NodeEditor::SetNodePosition(node.id(), ImVec2{node.x(), node.y()});
+            }
+        }
+    );
+
+    tmp.emplace_back( //
+        [&service]() { service.publish(nil::nedit::proto::message_type::Run); }
+    );
+
+    return tmp;
+}
+
 int GUI::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -46,10 +290,9 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    bool loop = true;
-
-    nil::service::TypedService server( //
-        nil::service::make_service<nil::service::tcp::Server>({
+    nil::service::TypedService service( //
+        nil::service::make_service<nil::service::tcp::Client>({
+            .host = "127.0.0.1",
             .port = std::uint16_t(options.number("port")) //
         })
     );
@@ -92,193 +335,26 @@ int GUI::run(const nil::cli::Options& options) const
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-    auto* context = ax::NodeEditor::CreateEditor();
     gui::App app;
-
     nil::nedit::proto::State info;
 
-    server.on_message(
+    service.on_message(
         nil::nedit::proto::message_type::NodeState,
         [&app](const std::string&, const nil::nedit::proto::NodeState& message)
         {
             const auto _ = std::unique_lock(app.mutex);
-            app.before_render.push_back( //
+            app.before_render.emplace_back( //
                 [&app, id = message.id(), activated = message.active()]()
                 { app.nodes.at(id)->activated = activated; }
             );
         }
     );
 
-    server.on_message(
+    service.on_message(
         nil::nedit::proto::message_type::State,
-        [&app, &server, &info](const std::string&, const nil::nedit::proto::State& message)
+        [&app, &service, &info](const std::string&, const nil::nedit::proto::State& message)
         {
-            std::vector<std::function<void()>> tmp;
-            tmp.emplace_back([&app]() { app.reset(); });
-            tmp.emplace_back([&info, message]() mutable { info = std::move(message); });
-
-            // pins
-            tmp.emplace_back(
-                [&info, &app]()
-                {
-                    for (const auto& pin : info.types().pins())
-                    {
-                        app.pin_infos.push_back({
-                            pin.label(),
-                            {ImVec4(
-                                pin.color().r(),
-                                pin.color().g(),
-                                pin.color().b(),
-                                pin.color().a()
-                            )} //
-                        });
-                    }
-                }
-            );
-
-            // nodes
-            tmp.emplace_back(
-                [&info, &app, &server]()
-                {
-                    for (const auto& node : info.types().nodes())
-                    {
-                        auto node_info = gui::NodeInfo{
-                            node.label(),
-                            {node.inputs().begin(), node.inputs().end()},
-                            {node.outputs().begin(), node.outputs().end()},
-                            {}
-                        };
-
-                        using Control = nil::nedit::proto::State::Types::Node::Control;
-                        for (const auto& control : node.controls())
-                        {
-                            switch (control.control_case())
-                            {
-                                case Control::ControlCase::kToggle:
-                                {
-                                    const auto& toggle = control.toggle();
-                                    const auto value = toggle.value();
-                                    node_info.controls.emplace_back(
-                                        [=, &server](gui::ID id) {
-                                            return std::make_unique<gui::ToggleControl>(
-                                                server,
-                                                std::move(id),
-                                                value
-                                            );
-                                        }
-                                    );
-                                    break;
-                                }
-                                case Control::ControlCase::kSpinbox:
-                                {
-                                    const auto& spinbox = control.spinbox();
-                                    const auto value = spinbox.value();
-                                    const auto min = spinbox.min();
-                                    const auto max = spinbox.max();
-                                    node_info.controls.emplace_back(
-                                        [=, &server](gui::ID id) {
-                                            return std::make_unique<gui::SpinboxControl>(
-                                                server,
-                                                std::move(id),
-                                                value,
-                                                min,
-                                                max
-                                            );
-                                        }
-                                    );
-                                    break;
-                                }
-                                case Control::ControlCase::kSlider:
-                                {
-                                    const auto& slider = control.slider();
-                                    const auto value = slider.value();
-                                    const auto min = slider.min();
-                                    const auto max = slider.max();
-                                    node_info.controls.emplace_back(
-                                        [=, &server](gui::ID id) {
-                                            return std::make_unique<gui::SliderControl>(
-                                                server,
-                                                std::move(id),
-                                                value,
-                                                min,
-                                                max
-                                            );
-                                        }
-                                    );
-                                    break;
-                                }
-                                case Control::ControlCase::kText:
-                                {
-                                    const auto& text = control.text();
-                                    const auto& value = text.value();
-                                    node_info.controls.emplace_back(
-                                        [=, &server](gui::ID id) {
-                                            return std::make_unique<gui::TextControl>(
-                                                server,
-                                                std::move(id),
-                                                value
-                                            );
-                                        }
-                                    );
-                                    break;
-                                }
-                                case Control::ControlCase::kCombobox:
-                                {
-                                    const auto& combobox = control.combobox();
-                                    const auto& value = combobox.value();
-                                    const auto& selection = std::vector<std::string>(
-                                        combobox.selection().begin(),
-                                        combobox.selection().end()
-                                    );
-                                    node_info.controls.emplace_back(
-                                        [=, &server](gui::ID id) {
-                                            return std::make_unique<gui::ComboBoxControl>(
-                                                server,
-                                                std::move(id),
-                                                value,
-                                                selection
-                                            );
-                                        }
-                                    );
-                                    break;
-                                }
-                                default:
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                        app.node_infos.emplace_back(std::move(node_info));
-                    }
-                }
-            );
-
-            tmp.emplace_back(
-                [&info, &app]()
-                {
-                    for (const auto& node : info.graph().nodes())
-                    {
-                        app.load_node(
-                            node.id(),
-                            node.type(),
-                            {node.inputs().begin(), node.inputs().end()},
-                            {node.outputs().begin(), node.outputs().end()},
-                            {node.controls().begin(), node.controls().end()}
-                        );
-                    }
-                    for (const auto& link : info.graph().links())
-                    {
-                        app.load_link(link.id(), link.input(), link.output());
-                    }
-
-                    nil::nedit::proto::Metadata m;
-                    m.ParseFromString(info.metadata());
-                    for (const auto& node : m.nodes())
-                    {
-                        ax::NodeEditor::SetNodePosition(node.id(), ImVec2{node.x(), node.y()});
-                    }
-                }
-            );
+            auto tmp = process_state(service, app, info, message);
 
             // load the graph here if it is available;
             const auto _ = std::unique_lock(app.mutex);
@@ -289,15 +365,7 @@ int GUI::run(const nil::cli::Options& options) const
         }
     );
 
-    std::thread comm([&server]() { server.run(); });
-
-    static constexpr auto draw = +[](GLFWwindow* w)
-    {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(w);
-    };
+    std::thread comm([&service]() { service.run(); });
 
     glfwSetFramebufferSizeCallback(
         window,
@@ -308,64 +376,10 @@ int GUI::run(const nil::cli::Options& options) const
         }
     );
 
-    constexpr auto window_flag               //
-        = ImGuiWindowFlags_NoDecoration      //
-        | ImGuiWindowFlags_NoMove            //
-        | ImGuiWindowFlags_NoScrollWithMouse //
-        | ImGuiWindowFlags_NoSavedSettings   //
-        | ImGuiWindowFlags_NoBringToFrontOnFocus;
-
-    const auto load = [&](nil::nedit::proto::message_type::MessageType message_type)
-    {
-        auto* graph = info.mutable_graph();
-        graph->clear_nodes();
-        graph->clear_links();
-
-        nil::nedit::proto::Metadata metadata;
-
-        for (const auto& [id, link] : app.links)
-        {
-            auto* l = graph->add_links();
-            l->set_id(id);
-            l->set_input(link->entry->id.value);
-            l->set_output(link->exit->id.value);
-        }
-        for (const auto& [id, n] : app.nodes)
-        {
-            // for graph
-            {
-                auto* node = graph->add_nodes();
-                node->set_id(id);
-                node->set_type(n->type);
-                for (const auto& pin : n->pins_i)
-                {
-                    node->add_inputs(pin.id.value);
-                }
-                for (const auto& pin : n->pins_o)
-                {
-                    node->add_outputs(pin.id.value);
-                }
-                for (const auto& control : n->controls)
-                {
-                    node->add_controls(control->id.value);
-                }
-            }
-            // for metadata
-            {
-                auto* node = metadata.add_nodes();
-                const auto pos = ax::NodeEditor::GetNodePosition(id);
-                node->set_id(id);
-                node->set_x(pos.x);
-                node->set_y(pos.y);
-            }
-        }
-        info.set_metadata(metadata.SerializeAsString());
-        server.publish(message_type, info);
-    };
-
     std::string path = (std::filesystem::current_path() / "state.dump").string();
 
-    while (glfwWindowShouldClose(window) == 0 && loop)
+    auto* context = ax::NodeEditor::CreateEditor();
+    while (glfwWindowShouldClose(window) == 0)
     {
         glfwPollEvents();
 
@@ -399,7 +413,7 @@ int GUI::run(const nil::cli::Options& options) const
                 std::ifstream file(path);
                 nil::nedit::proto::State tmp;
                 tmp.ParseFromIstream(&file);
-                server.publish(nil::nedit::proto::message_type::Load, tmp);
+                service.publish(nil::nedit::proto::message_type::State, tmp);
             }
             catch (const std::exception& e)
             {
@@ -425,13 +439,16 @@ int GUI::run(const nil::cli::Options& options) const
             }
         }
 
-        app.render_panel();
-
-        if (app.pop_diff())
+        if (ImGui::Checkbox("allow editing", &app.allow_editing))
         {
-            const auto _ = std::unique_lock(app.mutex);
-            app.after_render.emplace_back([&]() { load(nil::nedit::proto::message_type::Update); });
+            if (!app.allow_editing && app.pop_diff())
+            {
+                const auto _ = std::unique_lock(app.mutex);
+                app.after_render.emplace_back([&]() { load(service, app, info); });
+            }
         }
+
+        app.render_panel();
 
         ImGui::End();
         ImGui::PopID();
@@ -453,7 +470,7 @@ int GUI::run(const nil::cli::Options& options) const
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    server.stop();
+    service.stop();
     comm.join();
 
     return 0;

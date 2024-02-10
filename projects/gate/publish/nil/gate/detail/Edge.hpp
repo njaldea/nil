@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../MEdge.hpp"
+#include "Deferrer.hpp"
 
 namespace nil::gate::detail
 {
@@ -14,8 +15,11 @@ namespace nil::gate::detail
     class Edge final: public MutableEdge<T>
     {
     public:
-        Edge(INode* node)
-            : ins(node)
+        template <typename... Args>
+        Edge(Args&&... args)
+            : MutableEdge<T>(std::forward<Args>(args)...)
+            , deferrer(nullptr)
+            , ins(nullptr)
         {
         }
 
@@ -26,28 +30,64 @@ namespace nil::gate::detail
         Edge& operator=(Edge&&) = delete;
         Edge& operator=(const Edge&) = delete;
 
-        /**
-         * @brief set value without propagate node execution.
-         *      to be used only by the node.
-         *
-         * @param data
-         */
+        void set_value(T new_data) override
+        {
+            struct Callable: ICallable
+            {
+                Callable(T init_data, Edge<T>* init_parent)
+                    : data(std::move(init_data))
+                    , parent(init_parent)
+                {
+                }
+
+                void call() override
+                {
+                    if (parent->data != data)
+                    {
+                        parent->data = std::move(data);
+                        parent->pend();
+                    }
+                }
+
+                T data;
+                Edge<T>* parent;
+            };
+
+            std::lock_guard _(deferrer->mutex);
+            deferrer->tasks.emplace_back(std::make_unique<Callable>(std::move(new_data), this));
+        }
+
         void exec(T new_data)
         {
             this->data = std::move(new_data);
         }
 
-        /**
-         * @brief clear value. marks all sub nodes as pending for execution
-         */
-        using MutableEdge<T>::pend;
+        void pend()
+        {
+            for (auto* out : this->outs)
+            {
+                out->pend();
+            }
+        }
+
+        void attach_input(INode* node)
+        {
+            ins = node;
+        }
 
         void attach_output(INode* node)
         {
-            this->outs.push_back(node);
+            outs.push_back(node);
+        }
+
+        void attach_deferrer(Deferrer* new_deferrer)
+        {
+            deferrer = new_deferrer;
         }
 
     private:
+        Deferrer* deferrer;
         INode* ins;
+        std::vector<detail::INode*> outs;
     };
 }

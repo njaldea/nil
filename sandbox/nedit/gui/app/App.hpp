@@ -91,7 +91,7 @@ namespace gui
         );
 
         void load_link(
-            std::uint64_t node_id,
+            std::uint64_t link_id,
             std::uint64_t entry_pin_id,
             std::uint64_t exit_pin_id
         );
@@ -120,7 +120,6 @@ namespace gui
         std::unordered_map<std::uint64_t, PinMapping> pins;
 
         std::unique_ptr<Node> tmp;
-        bool finalize_node = false;
 
         std::vector<NodeInfo> node_infos;
         std::vector<PinInfo> pin_infos;
@@ -129,5 +128,7 @@ namespace gui
         std::mutex mutex;
         std::vector<std::function<void()>> before_render;
         std::vector<std::function<void()>> after_render;
+
+        bool allow_editing = false;
     };
 }

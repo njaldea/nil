@@ -7,7 +7,7 @@ package nil.nedit.proto.message_type;
 enum MessageType {
     State = 0;
     Load = 1;
-    Update = 2;
+    Run = 2;
     NodeState = 3;
     ControlUpdate = 4;
 }

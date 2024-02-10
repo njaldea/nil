@@ -46,6 +46,15 @@ namespace nil::service
         }
     };
 
+    // TODO:
+    //  integrate TypeService to IService directly.
+    //  this can be done by allowing the following:
+    //      - a templated publish/send method where there is a parameter pack that will be
+    //      serialized in order
+    //      - a handler builder that will be passed forward to on_message that will be responsibe in
+    //      destructuring the data/size
+    //  this will require writing codec for primitive types (at least number types)
+
     class TypedService final
     {
     public:

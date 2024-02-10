@@ -27,9 +27,9 @@ namespace nil::gate
         Core() = default;
         ~Core() noexcept = default;
 
-        Core(Core&&) = default;
+        Core(Core&&) = delete;
         Core(const Core&) = delete;
-        Core& operator=(Core&&) = default;
+        Core& operator=(Core&&) = delete;
         Core& operator=(const Core&) = delete;
 
         // Invalid types for input/output detected
@@ -54,7 +54,11 @@ namespace nil::gate
             typename detail::traits<T>::o::readonly_edges> //
             node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
         {
-            auto node = std::make_unique<detail::Node<T>>(input_edges, std::forward<Args>(args)...);
+            auto node = std::make_unique<detail::Node<T>>(
+                &deferrer,
+                input_edges,
+                std::forward<Args>(args)...
+            );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
                 ->output_edges();
         }
@@ -72,11 +76,10 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(Args&&... args)
         {
-            return static_cast<MutableEdge<T>*>(
-                required_edges
-                    .emplace_back(std::make_unique<MutableEdge<T>>(std::forward<Args>(args)...))
-                    .get()
-            );
+            auto new_edge = std::make_unique<detail::Edge<T>>(std::forward<Args>(args)...);
+            auto* e = required_edges.emplace_back(std::move(new_edge)).get();
+            static_cast<detail::Edge<T>*>(e)->attach_deferrer(&deferrer);
+            return static_cast<MutableEdge<T>*>(e);
         }
 
         /**
@@ -84,6 +87,16 @@ namespace nil::gate
          */
         void run()
         {
+            const auto tasks = [this]()
+            {
+                std::lock_guard _(deferrer.mutex);
+                return std::exchange(deferrer.tasks, {});
+            }();
+            for (const auto& d : tasks)
+            {
+                d->call();
+            }
+
             for (const auto& node : owned_nodes)
             {
                 node->exec();
@@ -91,6 +104,7 @@ namespace nil::gate
         }
 
     private:
+        detail::Deferrer deferrer;
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
     };

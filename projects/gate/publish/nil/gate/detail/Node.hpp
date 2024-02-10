@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Deferrer.hpp"
 #include "INode.hpp"
 #include "types.hpp"
 
@@ -13,8 +14,13 @@ namespace nil::gate::detail
 
     public:
         template <typename... Args>
-        Node(const typename input_t::readonly_edges& init_inputs, Args&&... args)
+        Node(
+            Deferrer* init_deferrer,
+            const typename input_t::readonly_edges& init_inputs,
+            Args&&... args
+        )
             : Node(
+                  init_deferrer,
                   init_inputs,
                   typename input_t::type(),
                   typename input_t::make_index_sequence(),
@@ -62,17 +68,22 @@ namespace nil::gate::detail
             std::size_t... o_indices,
             typename... Args>
         Node(
+            Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
             nil::utils::traits::types<I...>,
             std::index_sequence<i_indices...>,
             std::index_sequence<o_indices...>,
             Args&&... args
         )
-            : instance{std::forward<Args>(args)...}
+            : deferrer(init_deferrer)
+            , state(State::Pending)
+            , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
-            , outputs(spread_this<o_indices>()...)
+            , outputs()
         {
             (static_cast<Edge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
+            (std::get<o_indices>(outputs).attach_output(this), ...);
+            (std::get<o_indices>(outputs).attach_deferrer(deferrer), ...);
         }
 
         template <std::size_t... o_indices>
@@ -104,7 +115,8 @@ namespace nil::gate::detail
                 typename output_t::readonly_edges(std::addressof(std::get<o_indices>(outputs))...);
         }
 
-        State state = State::Pending;
+        Deferrer* deferrer;
+        State state;
 
         T instance;
         typename input_t::readonly_edges inputs;

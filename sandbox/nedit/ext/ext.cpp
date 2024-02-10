@@ -38,31 +38,38 @@ int EXT::run(const nil::cli::Options& options) const
     ext::install(app);
     const std::string types = app_state.info.types().SerializeAsString();
 
-    nil::service::TypedService client(                         //
-        nil::service::make_service<nil::service::tcp::Client>( //
-            {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
+    nil::service::TypedService service(                        //
+        nil::service::make_service<nil::service::tcp::Server>( //
+            {.port = std::uint16_t(options.number("port"))}
         )
     );
 
-    const auto make_state = [&client]()
+    const auto make_state = [&service]()
     {
         ext::GraphState state;
+        state.core = std::make_unique<nil::gate::Core>();
 
-        state.activate = [&client](std::uint64_t id)
+        state.activate = [&service](std::uint64_t id)
         {
             nil::nedit::proto::NodeState message;
             message.set_id(id);
             message.set_active(true);
-            client.publish(nil::nedit::proto::message_type::NodeState, message.SerializeAsString());
+            service.publish(
+                nil::nedit::proto::message_type::NodeState,
+                message.SerializeAsString()
+            );
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         };
 
-        state.deactivate = [&client](std::uint64_t id)
+        state.deactivate = [&service](std::uint64_t id)
         {
             nil::nedit::proto::NodeState message;
             message.set_id(id);
             message.set_active(false);
-            client.publish(nil::nedit::proto::message_type::NodeState, message.SerializeAsString());
+            service.publish(
+                nil::nedit::proto::message_type::NodeState,
+                message.SerializeAsString()
+            );
         };
 
         return state;
@@ -70,12 +77,12 @@ int EXT::run(const nil::cli::Options& options) const
     ext::GraphState graph_state = make_state();
 
     const auto send_state //
-        = [&client, &app_state](const std::string& id)
-    { client.send(id, nil::nedit::proto::message_type::State, app_state.info); };
+        = [&service, &app_state](const std::string& id)
+    { service.send(id, nil::nedit::proto::message_type::State, app_state.info); };
 
-    client.on_connect(send_state);
+    service.on_connect(send_state);
 
-    client.on_message(
+    service.on_message(
         nil::nedit::proto::message_type::ControlUpdate,
         [&graph_state](const std::string&, const nil::nedit::proto::ControlUpdate& message)
         {
@@ -107,7 +114,7 @@ int EXT::run(const nil::cli::Options& options) const
                     default:
                         return;
                 }
-                graph_state.core.run();
+                graph_state.core->run();
             }
         }
     );
@@ -166,22 +173,13 @@ int EXT::run(const nil::cli::Options& options) const
         return true;
     };
 
-    client.on_message(
-        nil::nedit::proto::message_type::Load,
+    service.on_message(
+        nil::nedit::proto::message_type::State,
         [&](const std::string& id, const nil::nedit::proto::State& info)
         {
             if (load_state(info))
             {
                 send_state(id);
-
-                try
-                {
-                    graph_state.core.run();
-                }
-                catch (const std::exception& ex)
-                {
-                    std::cout << ex.what() << std::endl;
-                }
             }
             else
             {
@@ -191,29 +189,21 @@ int EXT::run(const nil::cli::Options& options) const
         }
     );
 
-    client.on_message(
-        nil::nedit::proto::message_type::Update,
-        [&](const std::string&, const nil::nedit::proto::State& info)
+    service.on_message(
+        nil::nedit::proto::message_type::Run,
+        [&]()
         {
-            if (load_state(info))
+            try
             {
-                try
-                {
-                    graph_state.core.run();
-                }
-                catch (const std::exception& ex)
-                {
-                    std::cout << ex.what() << std::endl;
-                }
+                graph_state.core->run();
             }
-            else
+            catch (const std::exception& ex)
             {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cout << "state is not compatible to types" << std::endl;
+                std::cout << ex.what() << std::endl;
             }
         }
     );
 
-    client.run();
+    service.run();
     return 0;
 }

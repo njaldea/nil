@@ -113,8 +113,11 @@ namespace gui
 
         push_style();
         render();
-        edit_create();
-        edit_delete();
+        if (allow_editing)
+        {
+            edit_create();
+            edit_delete();
+        }
         pop_style();
 
         for (const auto& after : a)
@@ -132,7 +135,6 @@ namespace gui
         links.clear();
         pins.clear();
         tmp.reset();
-        finalize_node = false;
         node_infos.clear();
         pin_infos.clear();
         ids = {};
@@ -166,13 +168,16 @@ namespace gui
             ImGui::PopItemWidth();
             ImGui::SameLine();
             info.render();
-            if (info.is_dragged())
+            if (allow_editing)
             {
-                prepare_create(n);
-            }
-            else
-            {
-                confirm_create(n);
+                if (info.is_dragged())
+                {
+                    prepare_create(n);
+                }
+                else
+                {
+                    confirm_create(n);
+                }
             }
         }
     }
@@ -181,19 +186,9 @@ namespace gui
     {
         if (tmp)
         {
-            if (finalize_node)
-            {
-                const auto id = tmp->id.value;
-                nodes.emplace(id, std::move(tmp));
-                finalize_node = false;
-                changed = true;
-            }
-            else
-            {
-                tmp->render();
-                const auto pos = ImGui::GetIO().MousePos;
-                ax::NodeEditor::SetNodePosition(tmp->id.value, ImVec2(pos.x - 20, pos.y - 20));
-            }
+            tmp->render();
+            const auto pos = ImGui::GetIO().MousePos;
+            ax::NodeEditor::SetNodePosition(tmp->id.value, ImVec2(pos.x - 20, pos.y - 20));
         }
         for (auto& node : nodes)
         {
@@ -292,34 +287,26 @@ namespace gui
         if (node_it != nodes.end())
         {
             auto& node = node_it->second;
-            std::set<Link*> links_to_delete;
-            const auto cleanup_pins = [&links_to_delete, this](const auto& current_pins)
+            constexpr auto process =                              //
+                [](                                               //
+                    const std::vector<gui::Pin>& pins_to_process, //
+                    std::unordered_map<std::uint64_t, gui::PinMapping>& stored_pins,
+                    std::unordered_map<std::uint64_t, std::unique_ptr<gui::Link>>& stored_links,
+                    gui::Pin*(gui::Link::*side)
+                )
             {
-                for (const auto& pin : current_pins)
+                for (const auto& pin : pins_to_process)
                 {
-                    for (Link* link : pins.at(pin.id.value).links)
+                    for (auto* link : stored_pins.at(pin.id.value).links)
                     {
-                        links_to_delete.emplace(link);
+                        stored_pins.at((link->*side)->id.value).links.erase(link);
+                        stored_links.erase(link->id.value);
                     }
+                    stored_pins.erase(pin.id.value);
                 }
             };
-            cleanup_pins(node->pins_i);
-            cleanup_pins(node->pins_o);
-            for (auto it = links_to_delete.rbegin(); it != links_to_delete.rend(); ++it)
-            {
-                Link* link = *it;
-                pins.at(link->entry->id.value).links.erase(link);
-                pins.at(link->exit->id.value).links.erase(link);
-                links.erase(link->id.value);
-            }
-            for (const auto& pin : node->pins_o)
-            {
-                pins.erase(pin.id.value);
-            }
-            for (const auto& pin : node->pins_i)
-            {
-                pins.erase(pin.id.value);
-            }
+            process(node->pins_i, pins, links, &gui::Link::entry);
+            process(node->pins_o, pins, links, &gui::Link::exit);
             nodes.erase(node_it);
             changed = true;
         }
@@ -373,6 +360,7 @@ namespace gui
                 node_info.controls[index](ids.reserve(control_ids[index]))
             );
         }
+
         nodes.emplace(node_id, std::move(tmp_node));
     }
 
@@ -435,7 +423,14 @@ namespace gui
     {
         if (tmp && tmp->type == type)
         {
-            finalize_node = true;
+            before_render.emplace_back(
+                [this]()
+                {
+                    const auto id = tmp->id.value;
+                    nodes.emplace(id, std::move(tmp));
+                    changed = true;
+                }
+            );
         }
     }
 }

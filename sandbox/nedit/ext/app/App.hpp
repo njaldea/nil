@@ -57,7 +57,7 @@ namespace ext
             }
         };
 
-        nil::gate::Core core;
+        std::unique_ptr<nil::gate::Core> core;
         std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
         std::function<void(std::uint64_t)> activate;
@@ -189,7 +189,7 @@ namespace ext
                 state.control_edges.emplace(
                     id,
                     GraphState::RelaxedEdge{
-                        state.core.edge<decltype(std::declval<C>().value)>(control.value)
+                        state.core->edge<decltype(std::declval<C>().value)>(control.value)
                     }
                 );
             }
@@ -229,7 +229,7 @@ namespace ext
             {
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
-                    const auto result = state.core.node<
+                    const auto result = state.core->node<
                         Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
                         {
                             state.internal_edges[i[i_indices]]...,
@@ -250,7 +250,7 @@ namespace ext
                 else
                 {
                     state.core
-                        .node<Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
+                        ->node<Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
                             {
                                 state.internal_edges[i[i_indices]]...,
                                 state.control_edges[c[c_indices]]... //
