@@ -38,10 +38,10 @@ namespace gui
         ImGui::PopID();
         if (need_update)
         {
-            nil::nedit::proto::ControlUpdate msg;
+            nil::nedit::proto::ControlUpdateB msg;
             msg.set_id(id.value);
-            msg.set_b(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
+            msg.set_value(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdateB, msg);
         }
     }
 
@@ -69,10 +69,10 @@ namespace gui
         ImGui::PopID();
         if (need_update)
         {
-            nil::nedit::proto::ControlUpdate msg;
+            nil::nedit::proto::ControlUpdateI msg;
             msg.set_id(id.value);
-            msg.set_i(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
+            msg.set_value(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdateI, msg);
         }
     }
 
@@ -101,10 +101,10 @@ namespace gui
 
         if (need_update)
         {
-            nil::nedit::proto::ControlUpdate msg;
+            nil::nedit::proto::ControlUpdateF msg;
             msg.set_id(id.value);
-            msg.set_f(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
+            msg.set_value(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdateF, msg);
         }
     }
 
@@ -129,10 +129,10 @@ namespace gui
 
         if (need_update)
         {
-            nil::nedit::proto::ControlUpdate msg;
+            nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
-            msg.set_s(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
+            msg.set_value(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdateS, msg);
         }
     }
 
@@ -179,10 +179,10 @@ namespace gui
 
         if (need_update)
         {
-            nil::nedit::proto::ControlUpdate msg;
+            nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
-            msg.set_s(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdate, msg);
+            msg.set_value(value);
+            service.publish(nil::nedit::proto::message_type::ControlUpdateS, msg);
         }
     }
 }

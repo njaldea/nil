@@ -9,5 +9,8 @@ enum MessageType {
     Load = 1;
     Run = 2;
     NodeState = 3;
-    ControlUpdate = 4;
+    ControlUpdateB = 4;
+    ControlUpdateI = 5;
+    ControlUpdateF = 6;
+    ControlUpdateS = 7;
 }

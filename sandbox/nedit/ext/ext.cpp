@@ -17,6 +17,8 @@
 #include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
 
+#include <boost/asio.hpp>
+
 nil::cli::OptionInfo EXT::options() const
 {
     return nil::cli::Builder()
@@ -25,6 +27,44 @@ nil::cli::OptionInfo EXT::options() const
         .build();
 }
 
+//  TODO:
+//      Create a better "priority" executor/debouncer. right now, i have to push everything in.
+//  ideally:
+//   -  some older tasks can be removed and be overridden by newer tasks
+//   -  some task can be registered once and can be "retriggered" easily
+//       -  this is what posts do. caller have to check if it is already available befor pushing
+//      Maybe possible to add this to service library
+struct Executor
+{
+    std::vector<std::function<void()>> tasks;
+    std::vector<std::function<void()>> posts;
+
+    std::mutex mutex;
+    boost::asio::io_context context;
+
+    void run()
+    {
+        const auto [t, p] = [this]()
+        {
+            const std::lock_guard _(mutex);
+            return std::make_tuple(std::exchange(tasks, {}), std::exchange(posts, {}));
+        }();
+        for (const auto& tt : t)
+        {
+            tt();
+        }
+        for (const auto& pp : p)
+        {
+            pp();
+        }
+        const std::lock_guard _(mutex);
+        if (!tasks.empty() || !posts.empty())
+        {
+            context.post([this]() { run(); });
+        }
+    }
+};
+
 int EXT::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -32,6 +72,8 @@ int EXT::run(const nil::cli::Options& options) const
         options.help(std::cout);
         return 0;
     }
+
+    Executor executor;
 
     ext::AppState app_state;
     ext::App app(app_state);
@@ -82,41 +124,48 @@ int EXT::run(const nil::cli::Options& options) const
 
     service.on_connect(send_state);
 
-    service.on_message(
-        nil::nedit::proto::message_type::ControlUpdate,
-        [&graph_state](const std::string&, const nil::nedit::proto::ControlUpdate& message)
-        {
-            const auto it = graph_state.control_edges.find(message.id());
-            if (it != graph_state.control_edges.end())
+    const auto control_update = [&graph_state, &executor](const auto& message)
+    {
+        const std::lock_guard _(executor.mutex);
+        executor.tasks.emplace_back(
+            [&graph_state, &executor, message]()
             {
-                switch (message.value_case())
+                const auto it = graph_state.control_edges.find(message.id());
+                if (it != graph_state.control_edges.end())
                 {
-                    case nil::nedit::proto::ControlUpdate::ValueCase::kB:
+                    it->second.set_value(message.value());
+                    if (executor.posts.empty())
                     {
-                        it->second.set_value(message.b());
-                        break;
+                        executor.posts.emplace_back([&]() { graph_state.core->run(); });
                     }
-                    case nil::nedit::proto::ControlUpdate::ValueCase::kI:
-                    {
-                        it->second.set_value(message.i());
-                        break;
-                    }
-                    case nil::nedit::proto::ControlUpdate::ValueCase::kF:
-                    {
-                        it->second.set_value(message.f());
-                        break;
-                    }
-                    case nil::nedit::proto::ControlUpdate::ValueCase::kS:
-                    {
-                        it->second.set_value(message.s());
-                        break;
-                    }
-                    default:
-                        return;
                 }
-                graph_state.core->run();
             }
-        }
+        );
+        executor.context.post([&]() { executor.run(); });
+    };
+
+    service.on_message(
+        nil::nedit::proto::message_type::ControlUpdateB,
+        [&control_update](const std::string&, const nil::nedit::proto::ControlUpdateB& message)
+        { control_update(message); }
+    );
+
+    service.on_message(
+        nil::nedit::proto::message_type::ControlUpdateI,
+        [&control_update](const std::string&, const nil::nedit::proto::ControlUpdateI& message)
+        { control_update(message); }
+    );
+
+    service.on_message(
+        nil::nedit::proto::message_type::ControlUpdateF,
+        [&control_update](const std::string&, const nil::nedit::proto::ControlUpdateF& message)
+        { control_update(message); }
+    );
+
+    service.on_message(
+        nil::nedit::proto::message_type::ControlUpdateS,
+        [&control_update](const std::string&, const nil::nedit::proto::ControlUpdateS& message)
+        { control_update(message); }
     );
 
     const auto load_state                                 //
@@ -177,15 +226,23 @@ int EXT::run(const nil::cli::Options& options) const
         nil::nedit::proto::message_type::State,
         [&](const std::string& id, const nil::nedit::proto::State& info)
         {
-            if (load_state(info))
-            {
-                send_state(id);
-            }
-            else
-            {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cout << "state is not compatible to types" << std::endl;
-            }
+            const std::lock_guard _(executor.mutex);
+            executor.tasks.emplace_back(
+                [&, info]()
+                {
+                    if (load_state(info))
+                    {
+                        send_state(id);
+                    }
+                    else
+                    {
+                        std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__
+                                  << std::endl;
+                        std::cout << "state is not compatible to types" << std::endl;
+                    }
+                }
+            );
+            executor.context.post([&]() { executor.run(); });
         }
     );
 
@@ -193,17 +250,36 @@ int EXT::run(const nil::cli::Options& options) const
         nil::nedit::proto::message_type::Run,
         [&]()
         {
-            try
+            const std::lock_guard _(executor.mutex);
+            if (executor.posts.empty())
             {
-                graph_state.core->run();
-            }
-            catch (const std::exception& ex)
-            {
-                std::cout << ex.what() << std::endl;
+                executor.posts.emplace_back(
+                    [&]()
+                    {
+                        try
+                        {
+                            graph_state.core->run();
+                        }
+                        catch (const std::exception& ex)
+                        {
+                            std::cout << ex.what() << std::endl;
+                        }
+                    }
+                );
+                executor.context.post([&]() { executor.run(); });
             }
         }
     );
 
+    std::thread ex_thread(
+        [&executor]()
+        {
+            const auto guard = boost::asio::make_work_guard(executor.context);
+            executor.context.run();
+        }
+    );
+
     service.run();
+    ex_thread.join();
     return 0;
 }
