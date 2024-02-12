@@ -61,13 +61,26 @@ struct Service final: nil::cli::Command
 
     void add_handlers(nil::service::IService& service) const
     {
-        service.on_message(
-            [](const std::string& id, const void* data, std::uint64_t size)
-            {
-                const auto message = std::string_view(static_cast<const char*>(data), size);
-                std::cout << "from         : " << id << std::endl;
-                std::cout << "message      : " << message << std::endl;
-            }
+        service.on_message(                             //
+            nil::service::TypedHandler<std::uint32_t>() //
+                .add(
+                    0u,
+                    [](const std::string& id, const std::string& message)
+                    {
+                        std::cout << "from         : " << id << std::endl;
+                        std::cout << "type         : " << 0 << std::endl;
+                        std::cout << "message      : " << message << std::endl;
+                    }
+                )
+                .add(
+                    1u,
+                    [](const std::string& id, const std::string& message)
+                    {
+                        std::cout << "from         : " << id << std::endl;
+                        std::cout << "type         : " << 1 << std::endl;
+                        std::cout << "message      : " << message << std::endl;
+                    }
+                )
         );
         service.on_connect(             //
             [](const std::string& id) { //
@@ -88,6 +101,7 @@ struct Service final: nil::cli::Command
         {
             std::thread t1([&]() { service.run(); });
             std::string message;
+            std::uint32_t type = 0;
             while (std::getline(std::cin, message))
             {
                 if (message == "reconnect")
@@ -95,9 +109,9 @@ struct Service final: nil::cli::Command
                     break;
                 }
 
-                const auto tagged = "raw   > " + message;
-                service.publish_raw(tagged.data(), tagged.size());
-                service.publish("typed > " + message, " : "s, "secondary here"s);
+                service.publish(type, "typed > " + message, " : "s, "secondary here"s);
+
+                type = (type + 1) % 2;
             }
             service.stop();
             t1.join();
