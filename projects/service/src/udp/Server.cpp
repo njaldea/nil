@@ -32,14 +32,12 @@ namespace nil::service::udp
                 + std::to_string(socket.remote_endpoint().port());
         }
 
-        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
+        void send(const std::string& id, std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this,
-                 id,
-                 i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE),
-                 msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE), msg = std::move(data)](
+                )
                 {
                     const auto b = std::array<boost::asio::const_buffer, 2>{
                         boost::asio::buffer(i),
@@ -56,12 +54,11 @@ namespace nil::service::udp
             );
         }
 
-        void publish(const std::uint8_t* data, std::uint64_t size)
+        void publish(std::vector<std::uint8_t> data)
         {
-            auto msg = std::vector<std::uint8_t>(data, data + size);
             boost::asio::dispatch(
                 strand,
-                [this, i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE), msg = std::move(msg)]()
+                [this, i = utils::to_array(utils::UDP_EXTERNAL_MESSAGE), msg = std::move(data)]()
                 {
                     const auto b = std::array<boost::asio::const_buffer, 3>{
                         boost::asio::buffer(i),
@@ -235,13 +232,13 @@ namespace nil::service::udp
         storage.disconnect = std::move(handler);
     }
 
-    void Server::send(const std::string& id, const void* data, std::uint64_t size)
+    void Server::send(const std::string& id, std::vector<std::uint8_t> data)
     {
-        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, std::move(data));
     }
 
-    void Server::publish(const void* data, std::uint64_t size)
+    void Server::publish(std::vector<std::uint8_t> data)
     {
-        impl->publish(static_cast<const std::uint8_t*>(data), size);
+        impl->publish(std::move(data));
     }
 }

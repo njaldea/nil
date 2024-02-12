@@ -1,10 +1,17 @@
 #include "gui.hpp"
 #include "../codec.hpp"
-
 #include "app/App.hpp"
 #include "app/Control.hpp"
 
+#include <nil/dev.hpp>
+#include <nil/gate.hpp>
 #include <nil/service.hpp>
+
+#include <gen/nedit/messages/graph_update.pb.h>
+#include <gen/nedit/messages/metadata.pb.h>
+#include <gen/nedit/messages/node_state.pb.h>
+#include <gen/nedit/messages/state.pb.h>
+#include <gen/nedit/messages/type.pb.h>
 
 #include <imgui-node-editor/imgui_node_editor.h>
 #include <imgui.h>
@@ -23,12 +30,6 @@
 #include <string_view>
 #include <thread>
 #include <vector>
-
-#include <gen/nedit/messages/graph_update.pb.h>
-#include <gen/nedit/messages/metadata.pb.h>
-#include <gen/nedit/messages/node_state.pb.h>
-#include <gen/nedit/messages/state.pb.h>
-#include <gen/nedit/messages/type.pb.h>
 
 nil::cli::OptionInfo GUI::options() const
 {
@@ -53,7 +54,7 @@ constexpr auto draw = +[](GLFWwindow* w)
     glfwSwapBuffers(w);
 };
 
-void load(nil::service::TypedService& service, const gui::App& app, nil::nedit::proto::State& info)
+void load(const gui::App& app, nil::nedit::proto::State& info)
 {
     auto* graph = info.mutable_graph();
     graph->clear_nodes();
@@ -98,11 +99,10 @@ void load(nil::service::TypedService& service, const gui::App& app, nil::nedit::
         }
     }
     info.set_metadata(metadata.SerializeAsString());
-    service.publish(nil::nedit::proto::message_type::State, info);
 }
 
 auto process_state(
-    nil::service::TypedService& service,
+    nil::service::IService& service,
     gui::App& app,
     nil::nedit::proto::State& info,
     const nil::nedit::proto::State& new_info
@@ -290,11 +290,8 @@ int GUI::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    nil::service::TypedService service( //
-        nil::service::make_service<nil::service::tcp::Client>({
-            .host = "127.0.0.1",
-            .port = std::uint16_t(options.number("port")) //
-        })
+    nil::service::tcp::Client service(
+        {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
     );
 
     glfwSetErrorCallback(
@@ -338,31 +335,33 @@ int GUI::run(const nil::cli::Options& options) const
     gui::App app;
     nil::nedit::proto::State info;
 
-    service.on_message(
-        nil::nedit::proto::message_type::NodeState,
-        [&app](const std::string&, const nil::nedit::proto::NodeState& message)
-        {
-            const auto _ = std::unique_lock(app.mutex);
-            app.before_render.emplace_back( //
-                [&app, id = message.id(), activated = message.active()]()
-                { app.nodes.at(id)->activated = activated; }
-            );
-        }
-    );
+    service.on_message(                                                            //
+        nil::service::TypedHandler<nil::nedit::proto::message_type::MessageType>() //
+            .add(
+                nil::nedit::proto::message_type::State,
+                [&app, &service, &info](const std::string&, const nil::nedit::proto::State& message)
+                {
+                    auto tmp = process_state(service, app, info, message);
 
-    service.on_message(
-        nil::nedit::proto::message_type::State,
-        [&app, &service, &info](const std::string&, const nil::nedit::proto::State& message)
-        {
-            auto tmp = process_state(service, app, info, message);
-
-            // load the graph here if it is available;
-            const auto _ = std::unique_lock(app.mutex);
-            for (auto&& cb : tmp)
-            {
-                app.before_render.emplace_back(std::move(cb));
-            }
-        }
+                    // load the graph here if it is available;
+                    const auto _ = std::unique_lock(app.mutex);
+                    for (auto&& cb : tmp)
+                    {
+                        app.before_render.emplace_back(std::move(cb));
+                    }
+                }
+            )
+            .add(
+                nil::nedit::proto::message_type::NodeState,
+                [&app](const std::string&, const nil::nedit::proto::NodeState& message)
+                {
+                    const auto _ = std::unique_lock(app.mutex);
+                    app.before_render.emplace_back( //
+                        [&app, id = message.id(), activated = message.active()]()
+                        { app.nodes.at(id)->activated = activated; }
+                    );
+                }
+            )
     );
 
     std::thread comm([&service]() { service.run(); });
@@ -417,34 +416,54 @@ int GUI::run(const nil::cli::Options& options) const
             }
             catch (const std::exception& e)
             {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cerr << e.what() << '\n';
+                nil::log(e.what());
             }
         }
         ImGui::SameLine();
         if (ImGui::Button("save"))
         {
-            try
-            {
-                std::ofstream file(path);
-                // TODO: make sure that the path is valid:
-                //  -  not a directory
-                //  -  ---
-                info.SerializeToOstream(&file);
-            }
-            catch (const std::exception& e)
-            {
-                std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;
-                std::cerr << e.what() << '\n';
-            }
+            const auto _ = std::unique_lock(app.mutex);
+            app.before_render.emplace_back(
+                [&]()
+                {
+                    load(app, info);
+                    try
+                    {
+                        std::ofstream file(path);
+                        // TODO: make sure that the path is valid:
+                        //  -  not a directory
+                        //  -  ---
+                        info.SerializeToOstream(&file);
+                    }
+                    catch (const std::exception& e)
+                    {
+                        nil::log(e.what());
+                    }
+                }
+            );
         }
 
         if (ImGui::Checkbox("allow editing", &app.allow_editing))
         {
+            if (app.allow_editing)
+            {
+                service.publish(nil::nedit::proto::message_type::Pause);
+            }
+            else
+            {
+                service.publish(nil::nedit::proto::message_type::Play);
+            }
+
             if (!app.allow_editing && app.pop_diff())
             {
                 const auto _ = std::unique_lock(app.mutex);
-                app.after_render.emplace_back([&]() { load(service, app, info); });
+                app.after_render.emplace_back(
+                    [&]()
+                    {
+                        load(app, info);
+                        service.publish(nil::nedit::proto::message_type::State, info);
+                    }
+                );
             }
         }
 

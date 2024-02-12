@@ -1,7 +1,7 @@
 #include "Control.hpp"
 #include "../../codec.hpp"
 
-#include <nil/service/TypedService.hpp>
+#include <nil/service.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/type.pb.h>
@@ -12,17 +12,13 @@
 
 namespace gui
 {
-    Control::Control(nil::service::TypedService& init_service, ID init_id)
+    Control::Control(nil::service::IService& init_service, ID init_id)
         : service(init_service)
         , id(std::move(init_id))
     {
     }
 
-    ToggleControl::ToggleControl(
-        nil::service::TypedService& init_service,
-        ID init_id,
-        bool init_value
-    )
+    ToggleControl::ToggleControl(nil::service::IService& init_service, ID init_id, bool init_value)
         : Control(init_service, std::move(init_id))
         , value(init_value)
     {
@@ -46,7 +42,7 @@ namespace gui
     }
 
     SpinboxControl::SpinboxControl(
-        nil::service::TypedService& init_service,
+        nil::service::IService& init_service,
         ID init_id,
         std::int32_t init_value,
         std::int32_t init_min,
@@ -77,7 +73,7 @@ namespace gui
     }
 
     SliderControl::SliderControl(
-        nil::service::TypedService& init_service,
+        nil::service::IService& init_service,
         ID init_id,
         float init_value,
         float init_min,
@@ -109,7 +105,7 @@ namespace gui
     }
 
     TextControl::TextControl(
-        nil::service::TypedService& init_service,
+        nil::service::IService& init_service,
         ID init_id,
         std::string init_value
     )
@@ -137,7 +133,7 @@ namespace gui
     }
 
     ComboBoxControl::ComboBoxControl(
-        nil::service::TypedService& init_service,
+        nil::service::IService& init_service,
         ID init_id,
         std::string init_value,
         std::vector<std::string> init_selection

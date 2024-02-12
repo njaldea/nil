@@ -6,11 +6,12 @@ package nil.nedit.proto.message_type;
 
 enum MessageType {
     State = 0;
-    Load = 1;
-    Run = 2;
-    NodeState = 3;
-    ControlUpdateB = 4;
-    ControlUpdateI = 5;
-    ControlUpdateF = 6;
-    ControlUpdateS = 7;
+    NodeState = 1;
+    ControlUpdateB = 2;
+    ControlUpdateI = 3;
+    ControlUpdateF = 4;
+    ControlUpdateS = 5;
+    Play = 6;
+    Pause = 7;
+    Run = 8;
 }

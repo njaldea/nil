@@ -10,6 +10,7 @@ if(NOT ENABLE_SANDBOX)
     return()
 endif()
 
+add_subdirectory(dev)
 add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(pulse)

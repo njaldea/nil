@@ -1,7 +1,7 @@
 {
 	"nil: Log this line": {
 		"prefix": "nillog",
-		"body": [ "std::cout << __FILE__ << ':' << __LINE__ << ':' << __FUNCTION__ << std::endl;" ],
+		"body": [ "std::cout << __FILE__ << ':' << __LINE__ << ':' << __PRETTY_FUNCTION__ << std::endl;" ],
 		"description": "nillog"
 	}
 }

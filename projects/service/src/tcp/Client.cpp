@@ -25,11 +25,11 @@ namespace nil::service::tcp
         Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
-        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
+        void send(const std::string& id, std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, msg = std::move(data)]()
                 {
                     if (connection != nullptr && connection->id() == id)
                     {
@@ -39,11 +39,11 @@ namespace nil::service::tcp
             );
         }
 
-        void publish(const std::uint8_t* data, std::uint64_t size)
+        void publish(std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, msg = std::move(data)]()
                 {
                     if (connection != nullptr)
                     {
@@ -169,13 +169,13 @@ namespace nil::service::tcp
         storage.disconnect = std::move(handler);
     }
 
-    void Client::send(const std::string& id, const void* data, std::uint64_t size)
+    void Client::send(const std::string& id, std::vector<std::uint8_t> data)
     {
-        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, std::move(data));
     }
 
-    void Client::publish(const void* data, std::uint64_t size)
+    void Client::publish(std::vector<std::uint8_t> data)
     {
-        impl->publish(static_cast<const std::uint8_t*>(data), size);
+        impl->publish(std::move(data));
     }
 }

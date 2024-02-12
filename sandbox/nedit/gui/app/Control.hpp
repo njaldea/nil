@@ -9,7 +9,7 @@
 
 namespace nil::service
 {
-    class TypedService;
+    class IService;
 }
 
 namespace gui
@@ -17,12 +17,12 @@ namespace gui
     class Control
     {
     public:
-        Control(nil::service::TypedService& init_service, ID init_id);
+        Control(nil::service::IService& init_service, ID init_id);
         virtual ~Control() noexcept = default;
         virtual void render() = 0;
 
     protected:
-        nil::service::TypedService& service;
+        nil::service::IService& service;
 
     public:
         ID id;
@@ -31,7 +31,7 @@ namespace gui
     class ToggleControl final: public Control
     {
     public:
-        ToggleControl(nil::service::TypedService& init_service, ID init_id, bool init_value);
+        ToggleControl(nil::service::IService& init_service, ID init_id, bool init_value);
 
         void render() override;
 
@@ -43,7 +43,7 @@ namespace gui
     {
     public:
         SpinboxControl(
-            nil::service::TypedService& init_service,
+            nil::service::IService& init_service,
             ID init_id,
             std::int32_t init_value,
             std::int32_t init_min,
@@ -62,7 +62,7 @@ namespace gui
     {
     public:
         SliderControl(
-            nil::service::TypedService& init_service,
+            nil::service::IService& init_service,
             ID init_id,
             float init_value,
             float init_min,
@@ -80,7 +80,7 @@ namespace gui
     class TextControl final: public Control
     {
     public:
-        TextControl(nil::service::TypedService& init_service, ID init_id, std::string init_value);
+        TextControl(nil::service::IService& init_service, ID init_id, std::string init_value);
 
         void render() override;
 
@@ -92,7 +92,7 @@ namespace gui
     {
     public:
         ComboBoxControl(
-            nil::service::TypedService& init_service,
+            nil::service::IService& init_service,
             ID init_id,
             std::string init_value,
             std::vector<std::string> init_selection

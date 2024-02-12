@@ -31,12 +31,11 @@ struct Command final: nil::cli::Command
             options.help(std::cout);
             return 0;
         }
-        std::cout                                                              //
-            << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl //
-            << "flag   -s: " << options.flag("spawn") << std::endl             //
-            << "number -t: " << options.number("thread") << std::endl          //
-            << "number -j: " << options.number("job") << std::endl             //
-            << "param  -p: " << options.param("param") << std::endl            //
+        std::cout                                                     //
+            << "flag   -s: " << options.flag("spawn") << std::endl    //
+            << "number -t: " << options.number("thread") << std::endl //
+            << "number -j: " << options.number("job") << std::endl    //
+            << "param  -p: " << options.param("param") << std::endl   //
             << "params -m: " << std::endl;
         for (const auto& item : options.params("mparam"))
         {

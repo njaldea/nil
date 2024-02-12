@@ -15,7 +15,7 @@ namespace gui
 
     public:
         ~ID() noexcept;
-        ID(ID&& o);
+        ID(ID&& o) noexcept;
 
         ID(const ID&) = delete;
         ID& operator=(ID&&) = delete;

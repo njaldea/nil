@@ -29,11 +29,11 @@ namespace nil::service::udp
         Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
-        void publish(const std::uint8_t* data, std::uint64_t size)
+        void publish(std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, msg = std::move(data)]()
                 {
                     socket.send_to(
                         std::array<boost::asio::const_buffer, 2>{
@@ -195,16 +195,16 @@ namespace nil::service::udp
         storage.disconnect = std::move(handler);
     }
 
-    void Client::send(const std::string& id, const void* data, std::uint64_t size)
+    void Client::send(const std::string& id, std::vector<std::uint8_t> data)
     {
         if (impl->targetID == id)
         {
-            impl->publish(static_cast<const std::uint8_t*>(data), size);
+            impl->publish(std::move(data));
         }
     }
 
-    void Client::publish(const void* data, std::uint64_t size)
+    void Client::publish(std::vector<std::uint8_t> data)
     {
-        impl->publish(static_cast<const std::uint8_t*>(data), size);
+        impl->publish(std::move(data));
     }
 }

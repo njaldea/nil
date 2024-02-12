@@ -59,25 +59,28 @@ struct Service final: nil::cli::Command
             .build();
     }
 
-    void add_handlers(nil::service::TypedService& service) const
+    void add_handlers(nil::service::IService& service) const
     {
-        service.on_message(
-            0,
-            [](const std::string&, const std::string& message)
-            {
-                std::cout << "from         : hidden" << std::endl;
-                std::cout << "type         : " << 0 << std::endl;
-                std::cout << "message      : " << message << std::endl;
-            }
-        );
-        service.on_message(
-            1,
-            [](const std::string& id, const std::string& message)
-            {
-                std::cout << "from         : " << id << std::endl;
-                std::cout << "type         : " << 1 << std::endl;
-                std::cout << "message      : " << message << std::endl;
-            }
+        service.on_message(                             //
+            nil::service::TypedHandler<std::uint32_t>() //
+                .add(
+                    0u,
+                    [](const std::string& id, const std::string& message)
+                    {
+                        std::cout << "from         : " << id << std::endl;
+                        std::cout << "type         : " << 0 << std::endl;
+                        std::cout << "message      : " << message << std::endl;
+                    }
+                )
+                .add(
+                    1u,
+                    [](const std::string& id, const std::string& message)
+                    {
+                        std::cout << "from         : " << id << std::endl;
+                        std::cout << "type         : " << 1 << std::endl;
+                        std::cout << "message      : " << message << std::endl;
+                    }
+                )
         );
         service.on_connect(             //
             [](const std::string& id) { //
@@ -91,8 +94,9 @@ struct Service final: nil::cli::Command
         );
     }
 
-    void loop(nil::service::TypedService& service) const
+    void loop(nil::service::IService& service) const
     {
+        using namespace std::string_literals;
         while (true)
         {
             std::thread t1([&]() { service.run(); });
@@ -104,7 +108,9 @@ struct Service final: nil::cli::Command
                 {
                     break;
                 }
-                service.publish(type, message);
+
+                service.publish(type, "typed > " + message, " : "s, "secondary here"s);
+
                 type = (type + 1) % 2;
             }
             service.stop();
@@ -120,9 +126,9 @@ struct Service final: nil::cli::Command
             options.help(std::cout);
             return 0;
         }
-        nil::service::TypedService service(make_service<T>(options));
-        add_handlers(service);
-        loop(service);
+        const auto service = make_service<T>(options);
+        add_handlers(*service);
+        loop(*service);
         return 0;
     }
 };

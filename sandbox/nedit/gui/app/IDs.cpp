@@ -10,13 +10,13 @@ namespace gui
 
     ID::~ID() noexcept
     {
-        if (ids)
+        if (ids != nullptr)
         {
             ids->release(value);
         }
     }
 
-    ID::ID(ID&& o)
+    ID::ID(ID&& o) noexcept
         : ids(o.ids)
         , value(o.value)
     {
@@ -27,20 +27,20 @@ namespace gui
     {
         if (reuse_ids.empty())
         {
-            return ID(*this, ++current);
+            return {*this, ++current};
         }
         const auto v = reuse_ids.top();
         reuse_ids.pop();
-        return ID(*this, v);
+        return {*this, v};
     }
 
-    ID IDs::reserve(std::uint64_t value)
+    ID IDs::reserve(std::uint64_t id)
     {
-        if (value > current)
+        if (id > current)
         {
-            current = value + 1;
+            current = id + 1;
         }
-        return ID(*this, value);
+        return {*this, id};
     }
 
     void IDs::release(std::uint64_t id)

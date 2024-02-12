@@ -83,6 +83,7 @@ struct Service final: nil::cli::Command
 
     void loop(nil::service::IService& service) const
     {
+        using namespace std::string_literals;
         while (true)
         {
             std::thread t1([&]() { service.run(); });
@@ -93,7 +94,10 @@ struct Service final: nil::cli::Command
                 {
                     break;
                 }
-                service.publish(message.data(), message.size());
+
+                const auto tagged = "raw   > " + message;
+                service.publish_raw(tagged.data(), tagged.size());
+                service.publish("typed > " + message, " : "s, "secondary here"s);
             }
             service.stop();
             t1.join();

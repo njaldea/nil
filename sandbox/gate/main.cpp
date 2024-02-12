@@ -1,3 +1,4 @@
+#include <nil/dev.hpp>
 #include <nil/gate.hpp>
 
 #include <iostream>
@@ -62,11 +63,11 @@ int main()
     a3->set_value(1.0);
     a4->set_value("text");
 
-    std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
+    nil::log();
     core.run();
 
     a2->set_value(2);
 
-    std::cout << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__ << std::endl;
+    nil::log();
     core.run();
 }

@@ -10,7 +10,7 @@
 class InOne final: public nil::cli::Command
 {
 public:
-    nil::cli::OptionInfo options() const
+    nil::cli::OptionInfo options() const override
     {
         return nil::cli::Builder()
             .flag("help", {.skey = 'h', .msg = "this help"})

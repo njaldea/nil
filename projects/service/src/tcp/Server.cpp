@@ -28,11 +28,11 @@ namespace nil::service::tcp
         Impl& operator=(const Impl&) = delete;
         Impl& operator=(Impl&&) = delete;
 
-        void send(const std::string& id, const std::uint8_t* data, std::uint64_t size)
+        void send(const std::string& id, std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this, id, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, id, msg = std::move(data)]()
                 {
                     const auto it = connections.find(id);
                     if (it != connections.end())
@@ -43,11 +43,11 @@ namespace nil::service::tcp
             );
         }
 
-        void publish(const std::uint8_t* data, std::uint64_t size)
+        void publish(std::vector<std::uint8_t> data)
         {
             boost::asio::dispatch(
                 strand,
-                [this, msg = std::vector<std::uint8_t>(data, data + size)]()
+                [this, msg = std::move(data)]()
                 {
                     for (const auto& item : connections)
                     {
@@ -157,13 +157,13 @@ namespace nil::service::tcp
         storage.disconnect = std::move(handler);
     }
 
-    void Server::send(const std::string& id, const void* data, std::uint64_t size)
+    void Server::send(const std::string& id, std::vector<std::uint8_t> data)
     {
-        impl->send(id, static_cast<const std::uint8_t*>(data), size);
+        impl->send(id, std::move(data));
     }
 
-    void Server::publish(const void* data, std::uint64_t size)
+    void Server::publish(std::vector<std::uint8_t> data)
     {
-        impl->publish(static_cast<const std::uint8_t*>(data), size);
+        impl->publish(std::move(data));
     }
 }

@@ -24,8 +24,7 @@ Checks: >
   -misc-non-private-member-variables-in-classes,
   -bugprone-exception-escape,
   -hicpp-uppercase-literal-suffix,
-  -hicpp-signed-bitwise,
-  -bugprone-lambda-function-name
+  -hicpp-signed-bitwise
 WarningsAsErrors: >
   *,
   -bugprone-easily-swappable-parameters

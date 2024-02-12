@@ -31,22 +31,107 @@ The classes provided by this library conforms in similar API. available protocol
 
 ### methods
 
-| name                         | description                                |
-| ---------------------------- | ------------------------------------------ |
-| `run()`                      | runs the service                           |
-| `stop()`                     | signals to stop the service                |
-| `restart()`                  | restart service after stop                 |
-| `on(event, handler)`         | register connect/disconnect handler        |
-| `on(type, handler)`          | register message handler                   |
-| `send(id, type, data, size)` | send message to a specific id/connection   |
-| `publish(type, data, size)`  | sends message to all connection            |
+| name                             | description                                |
+| -------------------------------- | ------------------------------------------ |
+| `run()`                          | runs the service                           |
+| `stop()`                         | signals to stop the service                |
+| `restart()`                      | restart service after stop                 |
+| `on_connect(handler)`            | register connect handler                   |
+| `on_disconnect(handler)`         | register disconnect handler                |
+| `on_message(handler)`            | register message handler                   |
+| `send_raw(id, data, size)`       | send message to a specific id/connection   |
+| `publish_raw(type, data, size)`  | sends message to all connection            |
+| `send(id, message...)`           | send message to a specific id/connection   |
+| `publish(message...)`            | sends message to all connection            |
 
-for client, `publish` works the same as `send` to server.
+### `send`/`publish` arguments
 
-NOTE:
+- by default only accepts the buffer typed as `std::vector<std::uint8_t>`
+- if multiple messages are provided, the messages are serialized one after another
+    - the handler should be responsible in parsing these messages
+    - see codec for more details
+
+### `codec`
+
+to allow serialization of custom type (message for send/publish), `codec` is expected to be implemented by the user.
+
+the following codecs are already implemented:
+- `codec<std::string>`
+- `codec<std::uint32_t>`
+- `codec<std::int32_t>`
+
+a `codec` is expected to have `serialize` and `deserialize` method. see example below for more information.
+
+```cpp
+// codec definition (hpp)
+
+// Include this header for base template
+#include <nil/service/codec.hpp>
+
+#include <google/protobuf/message_lite.h>
+
+namespace nil::service
+{
+    template <typename Message>
+    struct codec<
+        Message,
+        std::enable_if_t<std::is_base_of_v<google::protobuf::MessageLite, Message>>>
+    {
+        static std::vector<std::uint8_t> serialize(const Message& message)
+        {
+            return codec<std::string>::serialize(message.SerializeAsString());
+        }
+
+        // size is the number of available bytes to read from data
+        // size must be adjusted to the right value after consuming portion of the data
+        // for example, if the data to deserialize is 100, 100 must be deducted from size
+        // > size -= 100;
+        static Message deserialize(const void* data, std::uint64_t& size)
+        {
+            Message m;
+            m.ParseFromArray(data, int(size));
+            size = 0;
+            return m;
+        }
+    };
+}
+
+// consuming cpp
+
+// Include your codec
+#include "my_codec.hpp"
+// Include service header below it
+#include <nil/service.hpp>
+
+template <typename ProtobufMessage>
+void foo(nil::service::IService& service, const ProtobufMessage& message)
+{
+    service.publish(message);
+}
+```
+
+### `TypedHandler`
+
+This utility handler is provided to identify the message type and trigger which handler to execute
+
+```cpp
+void add_handlers(nil::service::IService& service)
+{
+    service.on_message(                             //
+        nil::service::TypedHandler<std::uint32_t>() //
+            .add(0u, handler_for_0)
+            .add(1u,handler_for_1)
+    );
+}
+
+void send(nil::service::IService& service)
+{
+    service.publish(0u, "message for 0");
+    service.publish(1u, "message for 1");
+}
+```
+
+## NOTES:
 - `restart` is required to be called when `stop`-ed and `run` is about to be called.
 - due to the nature of UDP, if one side gets "destroyed" and is able to reconnect "immediately", disconnection will not be "detected".
-
-## NOTES: (will be fixed in the future)
-- host is not resolved. currently expects only IP.
-- requires [template class argument deduction](https://en.cppreference.com/w/cpp/language/class_template_argument_deduction)
+- (will be fixed in the future) - host is not resolved. currently expects only IP.

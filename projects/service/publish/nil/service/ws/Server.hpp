@@ -36,8 +36,13 @@ namespace nil::service::ws
         void on_connect(ConnectHandler handler) override;
         void on_disconnect(DisconnectHandler handler) override;
 
-        void send(const std::string& id, const void* data, std::uint64_t size) override;
-        void publish(const void* data, std::uint64_t size) override;
+        void publish(std::vector<std::uint8_t> data) override;
+        void send(const std::string& id, std::vector<std::uint8_t> data) override;
+
+        using IService::publish;
+        using IService::publish_raw;
+        using IService::send;
+        using IService::send_raw;
 
     private:
         detail::Storage<Options> storage;

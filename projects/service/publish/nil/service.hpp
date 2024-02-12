@@ -6,5 +6,3 @@
 #include "service/udp/Server.hpp"
 #include "service/ws/Client.hpp"
 #include "service/ws/Server.hpp"
-
-#include "service/TypedService.hpp"

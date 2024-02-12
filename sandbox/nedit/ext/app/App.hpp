@@ -227,38 +227,20 @@ namespace ext
                 const Args&... args
             )
             {
+                using RE = GraphState::RelaxedEdge;
+                using N = Activatable<T, typename nil::utils::traits::callable<T>::inputs>;
+                const auto i_edges = typename nil::gate::detail::traits<T>::i::readonly_edges{
+                    state.internal_edges[i[i_indices]]...,
+                    state.control_edges[c[c_indices]]...
+                };
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
-                    const auto result = state.core->node<
-                        Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
-                        {
-                            state.internal_edges[i[i_indices]]...,
-                            state.control_edges[c[c_indices]]... //
-                        },
-                        state,
-                        id,
-                        args...
-                    );
-                    (                                                            //
-                        state.internal_edges.emplace(                            //
-                            o[o_indices],                                        //
-                            GraphState::RelaxedEdge{std::get<o_indices>(result)} //
-                        ),                                                       //
-                        ...                                                      //
-                    );
+                    const auto r = state.core->node<N>(i_edges, state, id, args...);
+                    (state.internal_edges.emplace(o[o_indices], RE{std::get<o_indices>(r)}), ...);
                 }
                 else
                 {
-                    state.core
-                        ->node<Activatable<T, typename nil::utils::traits::callable<T>::inputs>>(
-                            {
-                                state.internal_edges[i[i_indices]]...,
-                                state.control_edges[c[c_indices]]... //
-                            },
-                            state,
-                            id,
-                            args...
-                        );
+                    state.core->node<N>(i_edges, state, id, args...);
                 }
             }
         }
@@ -367,10 +349,8 @@ namespace ext
         template <typename T>
         App& add_pin(const Pin<T>& pin)
         {
-            state.type_to_pin_index.emplace(
-                nil::utils::traits::identity_v<T>,
-                state.info.types().pins_size()
-            );
+            constexpr auto identity = nil::utils::traits::identity_v<T>;
+            state.type_to_pin_index.emplace(identity, state.info.types().pins_size());
             detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
             return *this;
         }
@@ -378,11 +358,8 @@ namespace ext
         template <typename T, typename... Controls, typename... Args>
         App& add_node(const Node<T, Controls...>& node, const Args&... args)
         {
-            detail::api::to_message(
-                *state.info.mutable_types()->add_nodes(),
-                node,
-                state.type_to_pin_index
-            );
+            auto& node_message = *state.info.mutable_types()->add_nodes();
+            detail::api::to_message(node_message, node, state.type_to_pin_index);
             state.node_factories.push_back(detail::api::factory(node, args...));
             return *this;
         }
