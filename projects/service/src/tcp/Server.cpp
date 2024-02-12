@@ -97,11 +97,11 @@ namespace nil::service::tcp
                             *this
                         );
                         const auto& id = connection->id();
+                        connections.emplace(id, std::move(connection));
                         if (storage.connect)
                         {
                             storage.connect(id);
                         }
-                        connections.emplace(id, std::move(connection));
                     }
                     accept();
                 }

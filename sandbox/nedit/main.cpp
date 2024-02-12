@@ -25,9 +25,9 @@ public:
             options.help(std::cout);
             return 0;
         }
-        static constexpr auto args = std::array<const char*, 1>({"app_name"});
+        const auto args = std::array<const char*, 1>({"app_name"});
         std::thread ext(
-            []()
+            [&]()
             {
                 auto root = nil::cli::Node::root<EXT>();
                 root.run(args.size(), args.data());

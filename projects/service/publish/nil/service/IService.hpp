@@ -6,6 +6,7 @@
 
 #include <array>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <string>
 #include <vector>

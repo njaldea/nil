@@ -122,11 +122,11 @@ namespace nil::service::ws
                                     *this
                                 );
                                 auto id = connection->id();
+                                connections.emplace(std::move(id), std::move(connection));
                                 if (storage.connect)
                                 {
                                     storage.connect(id);
                                 }
-                                connections.emplace(std::move(id), std::move(connection));
                             }
                         );
                     }
