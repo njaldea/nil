@@ -7,6 +7,9 @@
 
 #include <gen/nedit/messages/state.pb.h>
 
+#include <array>
+#include <functional>
+
 namespace ext
 {
     template <typename T>

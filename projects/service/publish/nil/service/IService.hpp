@@ -15,14 +15,22 @@ namespace nil::service
     namespace detail
     {
         template <typename T>
-        struct traits: traits<typename nil::utils::traits::callable<T>::type>
+        struct traits_impl
         {
+            // TODO:
+            // fix for msvc. error coming from if constexpr code below
+            // using type = char;
         };
 
         template <typename T>
-        struct traits<nil::utils::traits::types<>(const std::string&, T)>
+        struct traits_impl<nil::utils::traits::types<>(const std::string&, T)>
         {
             using type = std::decay_t<T>;
+        };
+
+        template <typename T>
+        struct traits: traits_impl<typename nil::utils::traits::callable<T>::type>
+        {
         };
 
         template <typename T>
@@ -199,7 +207,8 @@ namespace nil::service
                 {
                     if constexpr (nil::utils::traits::callable<Message>::inputs::size == 2)
                     {
-                        h(id, codec<detail::traits_t<Message>>::deserialize(data, size));
+                        using T = detail::traits_t<Message>;
+                        h(id, codec<T>::deserialize(data, size));
                     }
                     else if constexpr (nil::utils::traits::callable<Message>::inputs::size == 1)
                     {
