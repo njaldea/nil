@@ -23,7 +23,7 @@ namespace gui
         Node& operator=(Node&&) = default;
         Node& operator=(const Node&) = delete;
 
-        void render() const;
+        void render(bool interactive_controls) const;
 
         ID id;
         std::uint64_t type;

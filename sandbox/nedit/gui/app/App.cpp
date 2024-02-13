@@ -186,13 +186,13 @@ namespace gui
     {
         if (tmp)
         {
-            tmp->render();
+            tmp->render(!allow_editing);
             const auto pos = ImGui::GetIO().MousePos;
             ax::NodeEditor::SetNodePosition(tmp->id.value, ImVec2(pos.x - 20, pos.y - 20));
         }
         for (auto& node : nodes)
         {
-            node.second->render();
+            node.second->render(!allow_editing);
         }
         for (auto& link : links)
         {

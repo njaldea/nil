@@ -24,15 +24,17 @@ namespace gui
     {
     }
 
-    void ToggleControl::render()
+    void ToggleControl::render(bool interactive_controls)
     {
-        bool need_update = false;
         ImGui::PushID(int(id.value));
         ImGui::PushItemWidth(100.f);
-        need_update = ImGui::Checkbox("Checkbox", &value);
+        ImGui::BeginDisabled(!interactive_controls);
+        const auto need_update = ImGui::Checkbox("Checkbox", &value);
+        ImGui::EndDisabled();
         ImGui::PopItemWidth();
         ImGui::PopID();
-        if (need_update)
+
+        if (need_update && interactive_controls)
         {
             nil::nedit::proto::ControlUpdateB msg;
             msg.set_id(id.value);
@@ -55,15 +57,17 @@ namespace gui
     {
     }
 
-    void SpinboxControl::render()
+    void SpinboxControl::render(bool interactive_controls)
     {
-        bool need_update = false;
         ImGui::PushID(int(id.value));
         ImGui::PushItemWidth(100.f);
-        need_update = ImGui::SliderInt("Spinbox", &value, min, max);
+        ImGui::BeginDisabled(!interactive_controls);
+        const auto need_update = ImGui::SliderInt("Spinbox", &value, min, max);
+        ImGui::EndDisabled();
         ImGui::PopItemWidth();
         ImGui::PopID();
-        if (need_update)
+
+        if (need_update && interactive_controls)
         {
             nil::nedit::proto::ControlUpdateI msg;
             msg.set_id(id.value);
@@ -86,16 +90,17 @@ namespace gui
     {
     }
 
-    void SliderControl::render()
+    void SliderControl::render(bool interactive_controls)
     {
-        bool need_update = false;
         ImGui::PushID(int(id.value));
         ImGui::PushItemWidth(100.f);
-        need_update = ImGui::SliderFloat("Slider", &value, min, max) || need_update;
+        ImGui::BeginDisabled(!interactive_controls);
+        const auto need_update = ImGui::SliderFloat("Slider", &value, min, max);
+        ImGui::EndDisabled();
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update)
+        if (need_update && interactive_controls)
         {
             nil::nedit::proto::ControlUpdateF msg;
             msg.set_id(id.value);
@@ -114,16 +119,17 @@ namespace gui
     {
     }
 
-    void TextControl::render()
+    void TextControl::render(bool interactive_controls)
     {
-        bool need_update = false;
         ImGui::PushID(int(id.value));
         ImGui::PushItemWidth(100.f);
-        need_update = ImGui::InputText("Text", &value);
+        ImGui::BeginDisabled(!interactive_controls);
+        const auto need_update = ImGui::InputText("Text", &value);
+        ImGui::EndDisabled();
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update)
+        if (need_update && interactive_controls)
         {
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
@@ -144,12 +150,13 @@ namespace gui
     {
     }
 
-    void ComboBoxControl::render()
+    void ComboBoxControl::render(bool interactive_controls)
     {
         bool need_update = false;
         ImGui::PushID(int(id.value));
         ImGui::PushItemWidth(100.f);
 
+        ImGui::BeginDisabled(!interactive_controls);
         ax::NodeEditor::Suspend();
         if (ImGui::BeginCombo("ComboBox", value.c_str()))
         {
@@ -169,11 +176,12 @@ namespace gui
             ImGui::EndCombo();
         }
         ax::NodeEditor::Resume();
+        ImGui::EndDisabled();
 
         ImGui::PopItemWidth();
         ImGui::PopID();
 
-        if (need_update)
+        if (need_update && interactive_controls)
         {
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);

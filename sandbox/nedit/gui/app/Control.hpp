@@ -19,7 +19,7 @@ namespace gui
     public:
         Control(nil::service::IService& init_service, ID init_id);
         virtual ~Control() noexcept = default;
-        virtual void render() = 0;
+        virtual void render(bool interactive_controls) = 0;
 
     protected:
         nil::service::IService& service;
@@ -33,7 +33,7 @@ namespace gui
     public:
         ToggleControl(nil::service::IService& init_service, ID init_id, bool init_value);
 
-        void render() override;
+        void render(bool interactive_controls) override;
 
     private:
         bool value;
@@ -50,7 +50,7 @@ namespace gui
             std::int32_t init_max
         );
 
-        void render() override;
+        void render(bool interactive_controls) override;
 
     private:
         std::int32_t value;
@@ -69,7 +69,7 @@ namespace gui
             float init_max
         );
 
-        void render() override;
+        void render(bool interactive_controls) override;
 
     private:
         float value;
@@ -82,7 +82,7 @@ namespace gui
     public:
         TextControl(nil::service::IService& init_service, ID init_id, std::string init_value);
 
-        void render() override;
+        void render(bool interactive_controls) override;
 
     private:
         std::string value;
@@ -98,7 +98,7 @@ namespace gui
             std::vector<std::string> init_selection
         );
 
-        void render() override;
+        void render(bool interactive_controls) override;
 
     private:
         std::string value;

@@ -14,7 +14,7 @@ namespace gui
     {
     }
 
-    void Node::render() const
+    void Node::render(bool interactive_controls) const
     {
         if (activated)
         {
@@ -56,7 +56,7 @@ namespace gui
             {
                 for (const auto& control : controls)
                 {
-                    control->render();
+                    control->render(interactive_controls);
                 }
             }
             ImGui::EndGroup();
