@@ -5,7 +5,8 @@
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
-#include <nil/service.hpp>
+#include <nil/service/TypedHandler.hpp>
+#include <nil/service/tcp/Client.hpp>
 
 #include <gen/nedit/messages/graph_update.pb.h>
 #include <gen/nedit/messages/metadata.pb.h>

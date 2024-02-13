@@ -1,7 +1,7 @@
 #include "Control.hpp"
 #include "../../codec.hpp"
 
-#include <nil/service.hpp>
+#include <nil/service/IService.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/type.pb.h>

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <nil/service/codec.hpp>
-
 #include <string>
 #include <vector>
 
@@ -14,18 +12,22 @@ namespace nil::service
         static T deserialize(const void* data, std::uint64_t& size);
     };
 
-    template <>
-    std::vector<std::uint8_t> codec<std::string>::serialize(const std::string& message);
-    template <>
-    std::string codec<std::string>::deserialize(const void* data, std::uint64_t& size);
+#define NIL_CODEC_DECLARE(TYPE)                                                                    \
+    template <>                                                                                    \
+    std::vector<std::uint8_t> codec<TYPE>::serialize(const TYPE& message);                         \
+    template <>                                                                                    \
+    TYPE codec<TYPE>::deserialize(const void* data, std::uint64_t& size)
 
-    template <>
-    std::vector<std::uint8_t> codec<std::uint32_t>::serialize(const std::uint32_t& message);
-    template <>
-    std::uint32_t codec<std::uint32_t>::deserialize(const void* data, std::uint64_t& size);
+    NIL_CODEC_DECLARE(std::string);
 
-    template <>
-    std::vector<std::uint8_t> codec<std::int32_t>::serialize(const std::int32_t& message);
-    template <>
-    std::int32_t codec<std::int32_t>::deserialize(const void* data, std::uint64_t& size);
+    NIL_CODEC_DECLARE(std::uint8_t);
+    NIL_CODEC_DECLARE(std::uint16_t);
+    NIL_CODEC_DECLARE(std::uint32_t);
+    NIL_CODEC_DECLARE(std::uint64_t);
+
+    NIL_CODEC_DECLARE(std::int8_t);
+    NIL_CODEC_DECLARE(std::int16_t);
+    NIL_CODEC_DECLARE(std::int32_t);
+    NIL_CODEC_DECLARE(std::int64_t);
+#undef NIL_CODEC_DECLARE
 }

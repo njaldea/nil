@@ -11,11 +11,11 @@
 
 ## Projects (WIP)
 
-| name      | link                                |
-| --------- | ----------------------------------- |
-| cli       | [doc](projects/cli/README.md)       |
-| gate      | [doc](projects/gate/README.md)      |
-| utils     | [doc](projects/utils/README.md)     |
-| pulse     | [doc](projects/pulse/README.md)     |
-| service   | [doc](projects/service/README.md)   |
+| project                               | description                               |
+| ------------------------------------- | ----------------------------------------- |
+| [cli](projects/cli/README.md)         | Simplified argument parsing library       |
+| [gate](projects/gate/README.md)       | Node execution library                    |
+| [utils](projects/utils/README.md)     | Collection of common utility libraries    |
+| [pulse](projects/pulse/README.md)     | Reactive Variable (Observables)           |
+| [service](projects/service/README.md) | Communication library (udp/tcp/websocket) |
 

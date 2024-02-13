@@ -57,25 +57,35 @@ to allow serialization of custom type (message for send/publish), `codec` is exp
 
 the following codecs are already implemented:
 - `codec<std::string>`
+- `codec<std::uint8_t>`
+- `codec<std::uint16_t>`
 - `codec<std::uint32_t>`
+- `codec<std::uint64_t>`
+- `codec<std::int8_t>`
+- `codec<std::int16_t>`
 - `codec<std::int32_t>`
+- `codec<std::int64_t>`
 
 a `codec` is expected to have `serialize` and `deserialize` method. see example below for more information.
 
 ```cpp
 // codec definition (hpp)
 
-// Include this header for base template
+// include this header for base template
 #include <nil/service/codec.hpp>
+
+// or include service.hpp as a whole
+// #include <nil/service.hpp>
 
 #include <google/protobuf/message_lite.h>
 
 namespace nil::service
 {
     template <typename Message>
-    struct codec<
-        Message,
-        std::enable_if_t<std::is_base_of_v<google::protobuf::MessageLite, Message>>>
+    constexpr auto is_message_lite = std::is_base_of_v<google::protobuf::MessageLite, Message>;
+
+    template <typename Message>
+    struct codec<Message, std::enable_if_t<is_message_lite<Message>>>
     {
         static std::vector<std::uint8_t> serialize(const Message& message)
         {
@@ -100,7 +110,7 @@ namespace nil::service
 
 // Include your codec
 #include "my_codec.hpp"
-// Include service header below it
+// Include service header if `nil/service/codec.hpp` is included in your codec
 #include <nil/service.hpp>
 
 template <typename ProtobufMessage>
@@ -117,10 +127,10 @@ This utility handler is provided to identify the message type and trigger which 
 ```cpp
 void add_handlers(nil::service::IService& service)
 {
-    service.on_message(                             //
-        nil::service::TypedHandler<std::uint32_t>() //
+    service.on_message(
+        nil::service::TypedHandler<std::uint32_t>()
             .add(0u, handler_for_0)
-            .add(1u,handler_for_1)
+            .add(1u, handler_for_1)
     );
 }
 

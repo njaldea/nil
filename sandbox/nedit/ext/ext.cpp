@@ -3,7 +3,8 @@
 #include "app/install.hpp"
 
 #include <nil/dev.hpp>
-#include <nil/service.hpp>
+#include <nil/service/TypedHandler.hpp>
+#include <nil/service/tcp/Server.hpp>
 #include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
@@ -179,6 +180,8 @@ int EXT::run(const nil::cli::Options& options) const
                             if (info.types().SerializeAsString() != types)
                             {
                                 nil::log();
+                                // TODO: msvc seems to always fail for this.
+                                // probable issue in loading.
                                 std::cout << "state is not compatible to types" << std::endl;
                                 return;
                             }

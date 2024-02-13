@@ -4,6 +4,7 @@
 #include <nil/cli.hpp>
 #include <nil/cli/nodes/Help.hpp>
 
+#include <array>
 #include <iostream>
 #include <thread>
 

@@ -2,16 +2,17 @@
 
 #include <nil/service/codec.hpp>
 
-#include <google/protobuf/message_lite.h>
-
 #include <gen/nedit/messages/type.pb.h>
+
+#include <google/protobuf/message_lite.h>
 
 namespace nil::service
 {
     template <typename Message>
-    struct codec<
-        Message,
-        std::enable_if_t<std::is_base_of_v<google::protobuf::MessageLite, Message>>>
+    constexpr auto is_message_lite = std::is_base_of_v<google::protobuf::MessageLite, Message>;
+
+    template <typename Message>
+    struct codec<Message, std::enable_if_t<is_message_lite<Message>>>
     {
         static std::vector<std::uint8_t> serialize(const Message& message)
         {
@@ -30,21 +31,16 @@ namespace nil::service
     template <>
     struct codec<nil::nedit::proto::message_type::MessageType>
     {
-        static std::vector<std::uint8_t> serialize(
-            const nil::nedit::proto::message_type::MessageType& message
-        )
+        using type = nil::nedit::proto::message_type::MessageType;
+
+        static std::vector<std::uint8_t> serialize(const type& message)
         {
             return codec<std::uint32_t>::serialize(message);
         }
 
-        static nil::nedit::proto::message_type::MessageType deserialize(
-            const void* data,
-            std::uint64_t& size
-        )
+        static type deserialize(const void* data, std::uint64_t& size)
         {
-            return nil::nedit::proto::message_type::MessageType(
-                codec<std::uint32_t>::deserialize(data, size)
-            );
+            return type(codec<std::uint32_t>::deserialize(data, size));
         }
     };
 }

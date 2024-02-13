@@ -34,14 +34,15 @@ namespace nil::service::utils
     {
         if constexpr (sizeof(T) == 1)
         {
-            return {{value}};
+            return {{std::uint8_t(value)}};
         }
         else
         {
             std::array<std::uint8_t, sizeof(T)> retval;
             for (auto i = 0u; i < sizeof(T); ++i)
             {
-                retval[i] = std::uint8_t(value >> (i * TO_BITS));
+                const auto index = (sizeof(T) - i - 1);
+                retval[i] = std::uint8_t(value >> (index * TO_BITS));
             }
             return retval;
         }
@@ -59,7 +60,8 @@ namespace nil::service::utils
             auto t = T();
             for (auto i = 0u; i < sizeof(T); ++i)
             {
-                t |= T(data[i]) << (i * TO_BITS);
+                const auto index = (sizeof(T) - i - 1);
+                t |= T(data[i]) << (index * TO_BITS);
             }
             return t;
         }

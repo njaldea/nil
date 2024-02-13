@@ -14,6 +14,7 @@ set(
     HEADERS
         publish/nil/service.hpp
         publish/nil/service/codec.hpp
+        publish/nil/service/TypedHandler.hpp
         publish/nil/service/IService.hpp
         publish/nil/service/udp/Client.hpp
         publish/nil/service/udp/Server.hpp
@@ -61,4 +62,5 @@ target_include_directories(
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+add_test_subdirectory()
 install_for_package(${PROJECT_NAME})
