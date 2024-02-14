@@ -55,6 +55,15 @@ constexpr auto draw = +[](GLFWwindow* w)
     glfwSwapBuffers(w);
 };
 
+void update_metadata(nil::nedit::proto::Metadata& metadata, std::uint64_t id)
+{
+    auto* node = metadata.add_nodes();
+    const auto pos = ax::NodeEditor::GetNodePosition(id);
+    node->set_id(id);
+    node->set_x(pos.x);
+    node->set_y(pos.y);
+}
+
 void load(const gui::App& app, nil::nedit::proto::State& info)
 {
     auto* graph = info.mutable_graph();
@@ -90,14 +99,7 @@ void load(const gui::App& app, nil::nedit::proto::State& info)
                 node->add_controls(control->id.value);
             }
         }
-        // for metadata
-        {
-            auto* node = metadata.add_nodes();
-            const auto pos = ax::NodeEditor::GetNodePosition(id);
-            node->set_id(id);
-            node->set_x(pos.x);
-            node->set_y(pos.y);
-        }
+        update_metadata(metadata, id);
     }
     info.set_metadata(metadata.SerializeAsString());
 }
@@ -410,7 +412,7 @@ int GUI::run(const nil::cli::Options& options) const
         {
             try
             {
-                std::ifstream file(path);
+                std::ifstream file(path, std::ios::binary);
                 nil::nedit::proto::State tmp;
                 tmp.ParseFromIstream(&file);
                 service.publish(nil::nedit::proto::message_type::State, tmp);
@@ -427,10 +429,15 @@ int GUI::run(const nil::cli::Options& options) const
             app.before_render.emplace_back(
                 [&]()
                 {
-                    load(app, info);
+                    nil::nedit::proto::Metadata metadata;
+                    for (const auto& node : app.nodes)
+                    {
+                        update_metadata(metadata, node.first);
+                    }
+                    info.set_metadata(metadata.SerializeAsString());
                     try
                     {
-                        std::ofstream file(path);
+                        std::ofstream file(path, std::ios::binary);
                         // TODO: make sure that the path is valid:
                         //  -  not a directory
                         //  -  ---

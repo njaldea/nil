@@ -4,16 +4,16 @@
 
 namespace nil
 {
-    void log(const std::optional<std::string>& message, const std::source_location& location)
+    void log(const char* message, const std::source_location& location)
     {
-        std::cout << location.file_name() << ':';
-        std::cout << location.line() << ':';
-        std::cout << location.column() << ':';
-        std::cout << location.function_name();
+        std::cout                          //
+            << location.file_name() << ':' //
+            << location.line() << ':'      //
+            << location.column() << ':'    //
+            << location.function_name();
         if (message)
         {
-            std::cout << std::endl;
-            std::cout << message.value();
+            std::cout << '\n' << message;
         }
         std::cout << std::endl;
     }

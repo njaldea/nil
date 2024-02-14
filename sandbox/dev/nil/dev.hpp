@@ -5,7 +5,7 @@
 namespace nil
 {
     void log(
-        const std::optional<std::string>& message = std::nullopt,
+        const char* message = nullptr,
         const std::source_location& location = std::source_location::current()
     );
 }
