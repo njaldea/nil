@@ -6,7 +6,6 @@
 
 #include <array>
 #include <functional>
-#include <iterator>
 #include <memory>
 #include <string>
 #include <vector>
@@ -142,22 +141,25 @@ namespace nil::service
         {
             const std::array<std::vector<std::uint8_t>, sizeof...(T)> buffers
                 = {codec<T>::serialize(data)...};
-            const auto size = [&]()
-            {
-                auto c = 0ul;
-                for (const auto& b : buffers)
-                {
-                    c += b.size();
-                }
-                return c;
-            }();
 
             std::vector<std::uint8_t> message;
-            message.reserve(size);
-            auto inserter = std::back_inserter(message);
-            for (const auto& b : buffers)
+            message.reserve(
+                [&]()
+                {
+                    auto c = 0ul;
+                    for (const auto& b : buffers)
+                    {
+                        c += b.size();
+                    }
+                    return c;
+                }()
+            );
+            for (const auto& buffer : buffers)
             {
-                std::copy(std::begin(b), std::end(b), inserter);
+                for (const auto& item : buffer)
+                {
+                    message.push_back(item);
+                }
             }
             return message;
         }

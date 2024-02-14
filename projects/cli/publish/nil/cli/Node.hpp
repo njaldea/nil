@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Builder.hpp"
-#include "types.hpp"
 
 #include <memory>
 #include <string>
@@ -11,6 +10,8 @@
 
 namespace nil::cli
 {
+    class Command;
+
     class Node final
     {
     public:
@@ -19,10 +20,7 @@ namespace nil::cli
          *
          * @return `Node`
          */
-        static Node root()
-        {
-            return Node(std::make_unique<Command>());
-        }
+        static Node root();
 
         /**
          * @brief create a Node with custom Command
@@ -61,11 +59,7 @@ namespace nil::cli
          *
          * @return `Node&`      created Node
          */
-        Node& add(std::string key, std::string description)
-        {
-            auto instance = std::make_unique<Command>();
-            return add(std::move(key), std::move(description), std::move(instance));
-        }
+        Node& add(std::string key, std::string description);
 
         /**
          * @brief add a custom Command
@@ -98,6 +92,7 @@ namespace nil::cli
 
     private:
         std::unique_ptr<Command> command;
+
         SubNodes sub;
 
         Node& add(std::string key, std::string description, std::unique_ptr<Command> command);

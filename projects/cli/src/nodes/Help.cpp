@@ -1,6 +1,7 @@
 #include <nil/cli/nodes/Help.hpp>
 
 #include <nil/cli/Builder.hpp>
+#include <nil/cli/Options.hpp>
 
 namespace nil::cli::nodes
 {

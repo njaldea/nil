@@ -1,8 +1,12 @@
 #pragma once
 
 #include <nil/cli/Builder.hpp>
+#include <nil/cli/IOption.hpp>
 
-#include <boost/program_options/options_description.hpp>
+namespace boost::program_options
+{
+    class options_description_easy_init;
+}
 
 namespace nil::cli
 {

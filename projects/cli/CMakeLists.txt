@@ -12,8 +12,9 @@ set(
         publish/nil/cli/conf.hpp
         publish/nil/cli/Builder.hpp
         publish/nil/cli/Node.hpp
+        publish/nil/cli/Command.hpp
         publish/nil/cli/Options.hpp
-        publish/nil/cli/types.hpp
+        publish/nil/cli/IOption.hpp
         publish/nil/cli/nodes/Help.hpp
         src/common.hpp
 )

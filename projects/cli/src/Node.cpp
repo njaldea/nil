@@ -1,5 +1,6 @@
 #include <nil/cli/Node.hpp>
 
+#include <nil/cli/Command.hpp>
 #include <nil/cli/Options.hpp>
 #include <nil/cli/types.hpp>
 
@@ -7,6 +8,11 @@
 
 namespace nil::cli
 {
+    Node Node::root()
+    {
+        return Node(std::make_unique<Command>());
+    }
+
     Node::Node(std::unique_ptr<Command> init_command)
         : command(std::move(init_command))
     {
@@ -26,6 +32,12 @@ namespace nil::cli
 
         const Options options(command->options(), command->usage(), sub, argc, argv);
         return command->run(options);
+    }
+
+    Node& Node::add(std::string key, std::string description)
+    {
+        auto instance = std::make_unique<Command>();
+        return add(std::move(key), std::move(description), std::move(instance));
     }
 
     Node& Node::add(std::string key, std::string description, std::unique_ptr<Command> sub_command)

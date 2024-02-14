@@ -1,12 +1,14 @@
 #pragma once
 
-#include "../Options.hpp"
+#include "../Command.hpp"
 #include "../types.hpp"
 
 #include <ostream>
 
 namespace nil::cli::nodes
 {
+    class Options;
+
     class Help final: public nil::cli::Command
     {
     public:

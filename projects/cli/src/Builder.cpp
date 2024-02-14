@@ -3,6 +3,8 @@
 
 #include "common.hpp"
 
+#include <boost/program_options/options_description.hpp>
+
 namespace nil::cli
 {
     Builder& Builder::flag(std::string lkey, conf::Flag options)
