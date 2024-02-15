@@ -20,20 +20,6 @@ namespace nil::cli
 
     Node::~Node() noexcept = default;
 
-    int Node::run(int argc, const char* const* argv) const
-    {
-        if (argc > 1)
-        {
-            if (const auto* node = find(argv[1]); node != nullptr)
-            {
-                return node->run(argc - 1, std::next(argv));
-            }
-        }
-
-        const Options options(command->options(), command->usage(), sub, argc, argv);
-        return command->run(options);
-    }
-
     Node& Node::add(std::string key, std::string description)
     {
         auto instance = std::make_unique<Command>();
@@ -52,6 +38,20 @@ namespace nil::cli
             std::move(description),
             std::make_unique<Node>(std::move(sub_command))
         ));
+    }
+
+    int Node::run(int argc, const char* const* argv) const
+    {
+        if (argc > 1)
+        {
+            if (const auto* node = find(argv[1]); node != nullptr)
+            {
+                return node->run(argc - 1, std::next(argv));
+            }
+        }
+
+        const Options options(command->options(), command->usage(), sub, argc, argv);
+        return command->run(options);
     }
 
     const Node* Node::find(std::string_view name) const

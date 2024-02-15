@@ -15,7 +15,7 @@ find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 # glfw
 # sudo apt install libxinerama-dev libxcursor-dev xorg-dev libglu1-mesa-dev pkg-config
 
-add_library(${PROJECT_NAME}_lib STATIC ext/app/sort_nodes.cpp ext/app/sort_nodes.hpp)
+add_library(${PROJECT_NAME}_lib ext/app/sort_nodes.cpp ext/app/sort_nodes.hpp)
 
 set(
     SOURCES

@@ -9,12 +9,16 @@ find_package(Boost COMPONENTS program_options REQUIRED)
 set(
     HEADERS
         publish/nil/cli.hpp
-        publish/nil/cli/conf.hpp
         publish/nil/cli/Builder.hpp
         publish/nil/cli/Node.hpp
         publish/nil/cli/Command.hpp
         publish/nil/cli/Options.hpp
         publish/nil/cli/IOption.hpp
+        publish/nil/cli/types.hpp
+        publish/nil/cli/conf/Flag.hpp
+        publish/nil/cli/conf/Number.hpp
+        publish/nil/cli/conf/Param.hpp
+        publish/nil/cli/conf/Params.hpp
         publish/nil/cli/nodes/Help.hpp
         src/common.hpp
 )
@@ -27,7 +31,7 @@ set(
         src/nodes/Help.cpp
 )
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE Boost::program_options)
 

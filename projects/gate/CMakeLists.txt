@@ -15,6 +15,7 @@ set(
         publish/nil/gate/REdge.hpp
         publish/nil/gate/MEdge.hpp
         publish/nil/gate/IEdge.hpp
+        publish/nil/gate/detail/Deferrer.hpp
         publish/nil/gate/detail/Edge.hpp
         publish/nil/gate/detail/Node.hpp
         publish/nil/gate/detail/INode.hpp

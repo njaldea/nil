@@ -1,6 +1,10 @@
 #pragma once
 
-#include "conf.hpp"
+#include "conf/Flag.hpp"
+#include "conf/Number.hpp"
+#include "conf/Param.hpp"
+#include "conf/Params.hpp"
+
 #include "types.hpp"
 
 #include <memory>

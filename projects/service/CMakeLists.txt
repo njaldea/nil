@@ -40,7 +40,7 @@ set(
         src/ws/Connection.cpp
 )
 
-add_library(${PROJECT_NAME} STATIC ${SOURCES} ${HEADERS})
+add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
