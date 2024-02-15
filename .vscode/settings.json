@@ -28,5 +28,5 @@
   "C_Cpp.inlayHints.referenceOperator.showSpace": true,
   "C_Cpp.autoAddFileAssociations": false,
   "C_Cpp.errorSquiggles": "enabled",
-  "clang-format.executable": "clang-format-18",
+  "clang-format.executable": "clang-format-18"
 }

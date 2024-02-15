@@ -61,7 +61,7 @@ struct Executor
         const std::lock_guard _(mutex);
         if (!tasks.empty() || !posts.empty())
         {
-            context.post([this]() { run(); });
+            boost::asio::post(context, [this]() { run(); });
         }
     }
 };
@@ -131,7 +131,7 @@ int EXT::run(const nil::cli::Options& options) const
                 }
             }
         );
-        executor.context.post([&]() { executor.run(); });
+        boost::asio::post(executor.context, [&]() { executor.run(); });
     };
 
     service.on_message(                                                            //
@@ -238,7 +238,7 @@ int EXT::run(const nil::cli::Options& options) const
                                 .send(id, nil::nedit::proto::message_type::State, app_state.info);
                         }
                     );
-                    executor.context.post([&]() { executor.run(); });
+                    boost::asio::post(executor.context, [&]() { executor.run(); });
                 }
             )
             .add(
@@ -261,7 +261,7 @@ int EXT::run(const nil::cli::Options& options) const
                                 }
                             }
                         );
-                        executor.context.post([&]() { executor.run(); });
+                        boost::asio::post(executor.context, [&]() { executor.run(); });
                     }
                 }
             )

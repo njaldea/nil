@@ -11,7 +11,7 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH true)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(BUILD_SHARED_LIBS     OFF CACHE BOOL "[0 | OFF - 1 | ON]: Build using shared libraries?")
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "[0 | OFF - 1 | ON]: Build using shared libraries?")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-fno-rtti)

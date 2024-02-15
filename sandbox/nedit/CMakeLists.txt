@@ -62,5 +62,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::imgui-node-editor::imgui-node-editor)
+target_compile_definitions(${PROJECT_NAME} PRIVATE BOOST_ASIO_NO_DEPRECATED)
 
 add_test_subdirectory()

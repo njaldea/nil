@@ -83,23 +83,47 @@ namespace nil::gate
         }
 
         /**
+         * @brief create an edge
+         *
+         * @tparam T                    - edge type
+         * @return `MutableEdge<T>*`    - edge instance (still owned by core)
+         */
+        template <typename T>
+        std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(T&& value)
+        {
+            auto new_edge = std::make_unique<detail::Edge<T>>(std::forward<T>(value));
+            auto* e = required_edges.emplace_back(std::move(new_edge)).get();
+            static_cast<detail::Edge<T>*>(e)->attach_deferrer(&deferrer);
+            return static_cast<MutableEdge<T>*>(e);
+        }
+
+        /**
          * @brief run all pending nodes
          */
         void run()
         {
-            const auto tasks = [this]()
+            bool first = true;
+            while (true)
             {
-                std::lock_guard _(deferrer.mutex);
-                return std::exchange(deferrer.tasks, {});
-            }();
-            for (const auto& d : tasks)
-            {
-                d->call();
-            }
+                const auto tasks = [this]()
+                {
+                    std::lock_guard _(deferrer.mutex);
+                    return std::exchange(deferrer.tasks, {});
+                }();
+                if (!first && tasks.empty())
+                {
+                    return;
+                }
+                for (const auto& d : tasks)
+                {
+                    d->call();
+                }
 
-            for (const auto& node : owned_nodes)
-            {
-                node->exec();
+                for (const auto& node : owned_nodes)
+                {
+                    node->exec();
+                }
+                first = false;
             }
         }
 
