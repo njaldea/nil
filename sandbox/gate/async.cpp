@@ -9,17 +9,19 @@
 
 struct Deferred
 {
-    void operator()(bool a)
+    //  TODO: instead of std::tuple<MutableEdge<T>*, ...>
+    //      maybe create a gate type to make it `nil::gate::async<T>`
+    //  TODO: is async the right term? or deferred?
+    std::tuple<float> operator()(std::tuple<nil::gate::MutableEdge<int>*> z, bool a)
     {
         std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
         std::cout << a << std::endl;
         if (a)
         {
-            x->set_value(x->value() + 100);
+            get<0>(z)->set_value(get<0>(z)->value() + 100);
         }
+        return {a ? 321.0f : 432.0f};
     }
-
-    nil::gate::MutableEdge<int>* x;
 };
 
 template <typename T>
@@ -32,30 +34,27 @@ struct Printer
     }
 };
 
-//  TODO:
-//   -  Deferred should receive all of the inputs + a tuple of outputs (MutableEdge)
-//   -  Core should have that is different from node. node_async will be responsible in doing the
-//   following:
-//
 int main()
 {
     boost::asio::io_context context;
     auto g = boost::asio::make_work_guard(context);
 
     nil::gate::Core core;
+    const auto run = [&core]() { core.run(); };
 
     auto* a = core.edge(false);
-    auto* x = core.edge(200);
-    core.node<Deferred>({a}, x);
+    const auto [f, x] = core.node<Deferred>({9000}, {a});
     core.node<Printer<int>>({x});
+    core.node<Printer<float>>({f});
+
+    core.run();
 
     auto gate_thread = std::thread([&context]() { context.run(); });
-    boost::asio::post(context, [&core]() { core.run(); });
 
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
         a->set_value(!a->value());
-        boost::asio::post(context, [&core, a]() { core.run(); });
+        boost::asio::post(context, run);
     }
 }

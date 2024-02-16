@@ -6,25 +6,30 @@
 
 namespace nil::gate::detail
 {
-    template <typename T>
+    template <typename T, typename = void>
     class Node final: public INode
     {
         using input_t = typename detail::traits<T>::i;
         using output_t = typename detail::traits<T>::o;
+        using async_t = typename detail::traits<T>::a;
+        using real_out_t = typename detail::traits<T>::outs;
 
     public:
         template <typename... Args>
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
+            const typename async_t::initializer& init_asyncs,
             Args&&... args
         )
             : Node(
                   init_deferrer,
                   init_inputs,
+                  init_asyncs,
                   typename input_t::type(),
                   typename input_t::make_index_sequence(),
                   typename output_t::make_index_sequence(),
+                  typename async_t::make_index_sequence(),
                   std::forward<Args>(args)...
               )
         {
@@ -36,7 +41,8 @@ namespace nil::gate::detail
             {
                 exec(
                     typename input_t::make_index_sequence(),
-                    typename output_t::make_index_sequence()
+                    typename output_t::make_index_sequence(),
+                    typename async_t::make_index_sequence()
                 );
             }
         }
@@ -50,29 +56,29 @@ namespace nil::gate::detail
             }
         }
 
-        typename output_t::readonly_edges output_edges()
+        typename real_out_t::readonly_edges output_edges()
         {
-            return output_edges(typename output_t::make_index_sequence());
+            return output_edges(
+                typename output_t::make_index_sequence(),
+                typename async_t::make_index_sequence()
+            );
         }
 
     private:
-        template <std::size_t>
-        INode* spread_this()
-        {
-            return this;
-        }
-
         template <
             typename... I,
             std::size_t... i_indices,
             std::size_t... o_indices,
+            std::size_t... a_indices,
             typename... Args>
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
+            const typename async_t::initializer& init_asyncs,
             nil::utils::traits::types<I...>,
             std::index_sequence<i_indices...>,
             std::index_sequence<o_indices...>,
+            std::index_sequence<a_indices...>,
             Args&&... args
         )
             : deferrer(init_deferrer)
@@ -80,10 +86,13 @@ namespace nil::gate::detail
             , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
             , outputs()
+            , asyncs(std::get<a_indices>(init_asyncs)...)
         {
             (static_cast<Edge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
             (std::get<o_indices>(outputs).attach_output(this), ...);
             (std::get<o_indices>(outputs).attach_deferrer(deferrer), ...);
+            (std::get<a_indices>(asyncs).attach_output(this), ...);
+            (std::get<a_indices>(asyncs).attach_deferrer(deferrer), ...);
         }
 
         template <std::size_t... o_indices>
@@ -92,27 +101,53 @@ namespace nil::gate::detail
             (std::get<o_indices>(outputs).pend(), ...);
         }
 
-        template <std::size_t... i_indices, std::size_t... o_indices>
-        auto exec(std::index_sequence<i_indices...>, std::index_sequence<o_indices...>)
+        template <std::size_t... i_indices, std::size_t... o_indices, std::size_t... a_indices>
+        auto exec(
+            std::index_sequence<i_indices...>,
+            std::index_sequence<o_indices...>,
+            std::index_sequence<a_indices...> //
+        )
         {
-            if constexpr (sizeof...(o_indices) == 0)
+            constexpr auto has_output = sizeof...(o_indices) > 0;
+            constexpr auto has_async = sizeof...(a_indices) > 0;
+            if constexpr (has_output && has_async)
             {
-                instance(std::get<i_indices>(inputs)->value()...);
+                auto result = instance(
+                    typename async_t::mutable_edges(std::addressof(std::get<a_indices>(asyncs))...),
+                    std::get<i_indices>(inputs)->value()...
+                );
                 state = State::Done;
+                (std::get<o_indices>(outputs).exec(std::move(std::get<o_indices>(result))), ...);
             }
-            else
+            else if constexpr (has_output && !has_async)
             {
                 auto result = instance(std::get<i_indices>(inputs)->value()...);
                 state = State::Done;
                 (std::get<o_indices>(outputs).exec(std::move(std::get<o_indices>(result))), ...);
             }
+            else if constexpr (!has_output && has_async)
+            {
+                instance(
+                    typename async_t::mutable_edges(std::addressof(std::get<a_indices>(asyncs))...),
+                    std::get<i_indices>(inputs)->value()...
+                );
+                state = State::Done;
+            }
+            else if constexpr (!has_output && !has_async)
+            {
+                instance(std::get<i_indices>(inputs)->value()...);
+                state = State::Done;
+            }
         }
 
-        template <std::size_t... o_indices>
-        typename output_t::readonly_edges output_edges(std::index_sequence<o_indices...>)
+        template <std::size_t... o_indices, std::size_t... a_indices>
+        typename real_out_t::readonly_edges
+            output_edges(std::index_sequence<o_indices...>, std::index_sequence<a_indices...>)
         {
-            return
-                typename output_t::readonly_edges(std::addressof(std::get<o_indices>(outputs))...);
+            return typename real_out_t::readonly_edges(
+                std::addressof(std::get<o_indices>(outputs))...,
+                std::addressof(std::get<a_indices>(asyncs))...
+            );
         }
 
         Deferrer* deferrer;
@@ -121,5 +156,6 @@ namespace nil::gate::detail
         T instance;
         typename input_t::readonly_edges inputs;
         typename output_t::edges outputs;
+        typename async_t::edges asyncs;
     };
 }

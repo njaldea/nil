@@ -50,13 +50,43 @@ namespace nil::gate
          */
         template <typename T, typename... Args>
         std::enable_if_t<
-            detail::traits<T>::is_valid,
-            typename detail::traits<T>::o::readonly_edges> //
+            detail::traits<T>::is_valid && !detail::traits<T>::has_async,
+            typename detail::traits<T>::outs::readonly_edges> //
             node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
         {
             auto node = std::make_unique<detail::Node<T>>(
                 &deferrer,
                 input_edges,
+                std::tuple<>(),
+                std::forward<Args>(args)...
+            );
+            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
+                ->output_edges();
+        }
+
+        /**
+         * @brief create a node
+         *
+         * @tparam T                                node type
+         * @tparam Args
+         * @param edges                             ReadOnlyEdge/MutableEdge pointers
+         * @param args                              additional constructor arguments
+         * @return `std::tuple<ReadOnlyEdge*, ...>` output edges (still owned by core)
+         */
+        template <typename T, typename... Args>
+        std::enable_if_t<
+            detail::traits<T>::is_valid && detail::traits<T>::has_async,
+            typename detail::traits<T>::outs::readonly_edges> //
+            node(
+                typename detail::traits<T>::a::initializer async_initilizer,
+                typename detail::traits<T>::i::readonly_edges input_edges,
+                Args&&... args
+            )
+        {
+            auto node = std::make_unique<detail::Node<T>>(
+                &deferrer,
+                input_edges,
+                async_initilizer,
                 std::forward<Args>(args)...
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
@@ -76,10 +106,13 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(Args&&... args)
         {
-            auto new_edge = std::make_unique<detail::Edge<T>>(std::forward<Args>(args)...);
-            auto* e = required_edges.emplace_back(std::move(new_edge)).get();
-            static_cast<detail::Edge<T>*>(e)->attach_deferrer(&deferrer);
-            return static_cast<MutableEdge<T>*>(e);
+            auto* e = static_cast<detail::Edge<T>*>(
+                required_edges
+                    .emplace_back(std::make_unique<detail::Edge<T>>(std::forward<Args>(args)...))
+                    .get()
+            );
+            e->attach_deferrer(&deferrer);
+            return e;
         }
 
         /**
@@ -91,10 +124,13 @@ namespace nil::gate
         template <typename T>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(T&& value)
         {
-            auto new_edge = std::make_unique<detail::Edge<T>>(std::forward<T>(value));
-            auto* e = required_edges.emplace_back(std::move(new_edge)).get();
-            static_cast<detail::Edge<T>*>(e)->attach_deferrer(&deferrer);
-            return static_cast<MutableEdge<T>*>(e);
+            auto* e = static_cast<detail::Edge<T>*>(
+                required_edges
+                    .emplace_back(std::make_unique<detail::Edge<T>>(std::forward<T>(value)))
+                    .get()
+            );
+            e->attach_deferrer(&deferrer);
+            return e;
         }
 
         /**
@@ -102,28 +138,19 @@ namespace nil::gate
          */
         void run()
         {
-            bool first = true;
-            while (true)
+            const auto tasks = [this]()
             {
-                const auto tasks = [this]()
-                {
-                    std::lock_guard _(deferrer.mutex);
-                    return std::exchange(deferrer.tasks, {});
-                }();
-                if (!first && tasks.empty())
-                {
-                    return;
-                }
-                for (const auto& d : tasks)
-                {
-                    d->call();
-                }
+                std::lock_guard _(deferrer.mutex);
+                return std::exchange(deferrer.tasks, {});
+            }();
+            for (const auto& d : tasks)
+            {
+                d->call();
+            }
 
-                for (const auto& node : owned_nodes)
-                {
-                    node->exec();
-                }
-                first = false;
+            for (const auto& node : owned_nodes)
+            {
+                node->exec();
             }
         }
 
