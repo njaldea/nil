@@ -18,6 +18,7 @@ struct Deferred
         std::cout << a << std::endl;
         if (a)
         {
+            // this will be triggered on next core.run()
             get<0>(z)->set_value(get<0>(z)->value() + 100);
         }
         return {a ? 321.0f : 432.0f};
