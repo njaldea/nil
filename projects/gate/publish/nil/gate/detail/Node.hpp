@@ -19,7 +19,7 @@ namespace nil::gate::detail
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
-            typename async_t::initializer init_asyncs,
+            typename async_t::tuple init_asyncs,
             Args&&... args
         )
             : Node(
@@ -74,7 +74,7 @@ namespace nil::gate::detail
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
-            [[maybe_unused]] typename async_t::initializer init_asyncs,
+            [[maybe_unused]] typename async_t::tuple init_asyncs,
             nil::utils::traits::types<I...>,
             std::index_sequence<i_indices...>,
             std::index_sequence<o_indices...>,

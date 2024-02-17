@@ -14,7 +14,7 @@ namespace nil::gate::detail
     {
         static constexpr auto size = sizeof...(T);
         using type = nil::utils::traits::types<T...>;
-        using initializer = std::tuple<T...>;
+        using tuple = std::tuple<T...>;
         using edges = std::tuple<Edge<T>...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
         using mutable_edges = std::tuple<MutableEdge<T>*...>;
@@ -41,6 +41,12 @@ namespace nil::gate::detail
 
     template <typename... I, typename... O, typename... A>
     struct traits<nil::utils::traits::types<O...>(std::tuple<MutableEdge<A>*...>, I...)>
+        : traits<nil::utils::traits::types<O...>(const std::tuple<MutableEdge<A>*...>&, I...)>
+    {
+    };
+
+    template <typename... I, typename... O, typename... A>
+    struct traits<nil::utils::traits::types<O...>(const std::tuple<MutableEdge<A>*...>&, I...)>
     {
         using i = types<typename edge_validate<std::decay_t<I>>::type...>;
         using o = types<typename edge_validate<std::decay_t<O>>::type...>;

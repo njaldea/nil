@@ -78,7 +78,7 @@ namespace nil::gate
             detail::traits<T>::is_valid && detail::traits<T>::has_async,
             typename detail::traits<T>::outs::readonly_edges>
             node(
-                typename detail::traits<T>::a::initializer async_initilizer,
+                typename detail::traits<T>::a::tuple async_initilizer,
                 typename detail::traits<T>::i::readonly_edges input_edges,
                 Args&&... args
             )

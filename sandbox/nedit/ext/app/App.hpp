@@ -421,7 +421,7 @@ namespace ext
         template <typename T, typename... Controls, typename... A, typename... Args>
         std::enable_if_t<(nil::gate::detail::traits<T>::a::size > 0), App&> add_node(
             const Node<T, Controls...>& node,
-            nil::gate::detail::traits<T>::a::initializer a,
+            nil::gate::detail::traits<T>::a::tuple a,
             const Args&... args
         )
         {
