@@ -45,7 +45,11 @@ namespace nil::service
             handlers.emplace(
                 type,
                 [h = std::move(handler)] //
-                (const std::string& id, const void* data, std::uint64_t size)
+                (                        //
+                    [[maybe_unused]] const std::string& id,
+                    [[maybe_unused]] const void* data,
+                    [[maybe_unused]] std::uint64_t size
+                )
                 {
                     if constexpr (nil::utils::traits::callable<Message>::inputs::size == 2)
                     {
@@ -54,15 +58,10 @@ namespace nil::service
                     }
                     else if constexpr (nil::utils::traits::callable<Message>::inputs::size == 1)
                     {
-                        (void)data;
-                        (void)size;
                         h(id);
                     }
                     else
                     {
-                        (void)id;
-                        (void)data;
-                        (void)size;
                         h();
                     }
                 }

@@ -78,8 +78,6 @@ int EXT::run(const nil::cli::Options& options) const
 
     ext::AppState app_state;
     ext::App app(app_state);
-    ext::install(app);
-    const std::string types = app_state.info.types().SerializeAsString();
 
     nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
 
@@ -108,6 +106,29 @@ int EXT::run(const nil::cli::Options& options) const
         return state;
     };
     ext::GraphState graph_state = make_state();
+
+    ext::install(
+        app,
+        //  TODO:
+        //      this is not safe. if it is already running,
+        //      there will be issues with race condition
+        [&graph_state, &executor](std::function<void()> cb)
+        {
+            const std::lock_guard _(executor.mutex);
+            executor.tasks.emplace_back(
+                [&graph_state, &executor, cb]()
+                {
+                    cb();
+                    if (executor.posts.empty())
+                    {
+                        executor.posts.emplace_back([&]() { graph_state.core->run(); });
+                    }
+                }
+            );
+            boost::asio::post(executor.context, [&]() { executor.run(); });
+        }
+    );
+    const std::string types = app_state.info.types().SerializeAsString();
 
     service.on_connect( //
         [&service, &app_state](const std::string& id)

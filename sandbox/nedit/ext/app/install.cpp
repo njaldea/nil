@@ -2,6 +2,8 @@
 
 #include "Control.hpp"
 
+#include <thread>
+
 namespace ext
 {
     template <typename T>
@@ -18,7 +20,6 @@ namespace ext
 
     struct Add
     {
-        // .add_node<Add, MinMax<int>>({.label = "Add with value", .controls={{5, 0 ,10}}})
         std::tuple<int> operator()(int l, int r) const
         {
             std::cout << l << " + " << r << std::endl;
@@ -53,7 +54,23 @@ namespace ext
         }
     };
 
-    void install(ext::App& app)
+    struct DeferredAdd
+    {
+        void operator()(std::tuple<nil::gate::MutableEdge<int>*> a, int l, int r) const
+        {
+            rerun(
+                [a, l, r]()
+                {
+                    get<0>(a)->set_value(l + r);
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                }
+            );
+        }
+
+        std::function<void(std::function<void()>)> rerun;
+    };
+
+    void install(ext::App& app, std::function<void(std::function<void()>)> rerun)
     {
         using text = std::string;
         // clang-format off
@@ -76,13 +93,14 @@ namespace ext
         // .add_node<Input<text> , Enum         >({.label = "Input_c", .controls={{"1", {"1", "2", "3"}}}}   , "s")
         app.add_node<Inverter>        ({.label = "Inverter"});
         app.add_node<Add>             ({.label = "Add"});
-        app.add_node<Add, MinMax<int>>({.label = "Add with value", .controls={{5, 0 ,10}}});
+        app.add_node<Add, MinMax<int>>({.label = "Add with value", .controls={{5, 0, 10}}});
         app.add_node<Mul>             ({.label = "Mul"});
-        app.add_node<Mul, MinMax<int>>({.label = "Mul with value", .controls={{5, 0 ,10}}});
+        app.add_node<Mul, MinMax<int>>({.label = "Mul with value", .controls={{5, 0, 10}}});
         app.add_node<Consume<bool>>   ({.label = "Consume<b>"});
         app.add_node<Consume<int>>    ({.label = "Consume<i>"});
         app.add_node<Consume<float>>  ({.label = "Consume<f>"});
         app.add_node<Consume<text>>   ({.label = "Consume<s>"});
+        app.add_node<DeferredAdd>     ({.label = "DeferredAdd<i>"}, {0}, rerun);
         // clang-format on
 
         // for version 2. figure out if i can drag drop scripts(or c++?)

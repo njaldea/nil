@@ -51,7 +51,7 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<
             detail::traits<T>::is_valid && !detail::traits<T>::has_async,
-            typename detail::traits<T>::outs::readonly_edges> //
+            typename detail::traits<T>::outs::readonly_edges>
             node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
         {
             auto node = std::make_unique<detail::Node<T>>(
@@ -76,7 +76,7 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<
             detail::traits<T>::is_valid && detail::traits<T>::has_async,
-            typename detail::traits<T>::outs::readonly_edges> //
+            typename detail::traits<T>::outs::readonly_edges>
             node(
                 typename detail::traits<T>::a::initializer async_initilizer,
                 typename detail::traits<T>::i::readonly_edges input_edges,
@@ -86,7 +86,7 @@ namespace nil::gate
             auto node = std::make_unique<detail::Node<T>>(
                 &deferrer,
                 input_edges,
-                async_initilizer,
+                std::move(async_initilizer),
                 std::forward<Args>(args)...
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
@@ -138,12 +138,7 @@ namespace nil::gate
          */
         void run()
         {
-            const auto tasks = [this]()
-            {
-                std::lock_guard _(deferrer.mutex);
-                return std::exchange(deferrer.tasks, {});
-            }();
-            for (const auto& d : tasks)
+            for (const auto& d : deferrer.flush())
             {
                 d->call();
             }

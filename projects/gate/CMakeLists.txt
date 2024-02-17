@@ -11,6 +11,7 @@ endif()
 set(
     HEADERS
         publish/nil/gate.hpp
+        publish/nil/gate/traits.hpp
         publish/nil/gate/Core.hpp
         publish/nil/gate/REdge.hpp
         publish/nil/gate/MEdge.hpp

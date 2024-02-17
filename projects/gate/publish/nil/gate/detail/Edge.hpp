@@ -53,8 +53,7 @@ namespace nil::gate::detail
                 Edge<T>* parent;
             };
 
-            std::lock_guard _(deferrer->mutex);
-            deferrer->tasks.emplace_back(std::make_unique<Callable>(std::move(new_data), this));
+            deferrer->push(std::make_unique<Callable>(std::move(new_data), this));
         }
 
         void exec(T new_data)

@@ -19,13 +19,13 @@ namespace nil::gate::detail
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
-            const typename async_t::initializer& init_asyncs,
+            typename async_t::initializer init_asyncs,
             Args&&... args
         )
             : Node(
                   init_deferrer,
                   init_inputs,
-                  init_asyncs,
+                  std::move(init_asyncs),
                   typename input_t::type(),
                   typename input_t::make_index_sequence(),
                   typename output_t::make_index_sequence(),
@@ -74,7 +74,7 @@ namespace nil::gate::detail
         Node(
             Deferrer* init_deferrer,
             const typename input_t::readonly_edges& init_inputs,
-            const typename async_t::initializer& init_asyncs,
+            [[maybe_unused]] typename async_t::initializer init_asyncs,
             nil::utils::traits::types<I...>,
             std::index_sequence<i_indices...>,
             std::index_sequence<o_indices...>,
@@ -86,12 +86,12 @@ namespace nil::gate::detail
             , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
             , outputs()
-            , asyncs(std::get<a_indices>(init_asyncs)...)
+            , asyncs(std::move(std::get<a_indices>(init_asyncs))...)
         {
             (static_cast<Edge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
-            (std::get<o_indices>(outputs).attach_output(this), ...);
+            (std::get<o_indices>(outputs).attach_input(this), ...);
             (std::get<o_indices>(outputs).attach_deferrer(deferrer), ...);
-            (std::get<a_indices>(asyncs).attach_output(this), ...);
+            (std::get<a_indices>(asyncs).attach_input(this), ...);
             (std::get<a_indices>(asyncs).attach_deferrer(deferrer), ...);
         }
 

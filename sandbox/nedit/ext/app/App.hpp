@@ -67,11 +67,29 @@ namespace ext
         std::function<void(std::uint64_t)> deactivate;
     };
 
-    template <typename T, typename Inputs>
+    struct Scoped
+    {
+        Scoped(GraphState& init_state, std::uint64_t init_id)
+            : state(init_state)
+            , id(init_id)
+        {
+            state.activate(id);
+        }
+
+        ~Scoped()
+        {
+            state.deactivate(id);
+        }
+
+        GraphState& state;
+        std::uint64_t id;
+    };
+
+    template <typename T, typename Inputs, typename Asyncs>
     struct Activatable;
 
     template <typename T, typename... Inputs>
-    struct Activatable<T, nil::utils::traits::types<Inputs...>>
+    struct Activatable<T, nil::utils::traits::types<Inputs...>, nil::utils::traits::types<>>
     {
         template <typename... Args>
         Activatable(GraphState& init_state, std::uint64_t init_id, const Args&... args)
@@ -83,34 +101,36 @@ namespace ext
 
         auto operator()(const Inputs&... args) const
         {
-            struct Scoped
-            {
-                Scoped(GraphState& init_state, std::uint64_t init_id)
-                    : state(init_state)
-                    , id(init_id)
-                {
-                    state.activate(id);
-                }
+            Scoped _(state, id);
+            return object.operator()(args...);
+        }
 
-                ~Scoped()
-                {
-                    state.deactivate(id);
-                }
+        GraphState& state;
+        std::uint64_t id;
+        T object;
+    };
 
-                GraphState& state;
-                std::uint64_t id;
-            };
+    template <typename T, typename... Inputs, typename... Asyncs>
+    struct Activatable<
+        T,
+        nil::utils::traits::types<Inputs...>,
+        nil::utils::traits::types<Asyncs...>>
+    {
+        template <typename... Args>
+        Activatable(GraphState& init_state, std::uint64_t init_id, const Args&... args)
+            : state(init_state)
+            , id(init_id)
+            , object{args...}
+        {
+        }
 
-            if constexpr (sizeof...(Inputs) > 0)
-            {
-                Scoped _(state, id);
-                return object.operator()(args...);
-            }
-            else
-            {
-                Scoped _(state, id);
-                return object.operator()();
-            }
+        auto operator()(
+            std::tuple<nil::gate::MutableEdge<Asyncs>*...> asyncs,
+            const Inputs&... args
+        ) const
+        {
+            Scoped _(state, id);
+            return object.operator()(asyncs, args...);
         }
 
         GraphState& state;
@@ -214,6 +234,7 @@ namespace ext
 
             template <
                 typename T,
+                typename... A,
                 std::size_t... i_indices,
                 std::size_t... o_indices,
                 std::size_t... c_indices,
@@ -221,6 +242,7 @@ namespace ext
             void create_node(
                 GraphState& state,
                 std::uint64_t id,
+                std::tuple<A...> a,
                 const std::vector<std::uint64_t>& i,
                 const std::vector<std::uint64_t>& o,
                 const std::vector<std::uint64_t>& c,
@@ -231,19 +253,40 @@ namespace ext
             )
             {
                 using RE = GraphState::RelaxedEdge;
-                using N = Activatable<T, typename nil::utils::traits::callable<T>::inputs>;
+                using N = Activatable<
+                    T,
+                    typename nil::gate::detail::traits<T>::i::type,
+                    typename nil::gate::detail::traits<T>::a::type>;
                 const auto i_edges = typename nil::gate::detail::traits<T>::i::readonly_edges{
-                    state.internal_edges[i[i_indices]]...,
-                    state.control_edges[c[c_indices]]...
+                    state.internal_edges.at(i.at(i_indices))...,
+                    state.control_edges.at(c.at(c_indices))...
                 };
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
-                    const auto r = state.core->node<N>(i_edges, state, id, args...);
-                    (state.internal_edges.emplace(o[o_indices], RE{std::get<o_indices>(r)}), ...);
+                    if constexpr (sizeof...(A) == 0)
+                    {
+                        const auto r = state.core->node<N>(i_edges, state, id, args...);
+                        (state.internal_edges.emplace(o.at(o_indices), RE{std::get<o_indices>(r)}),
+                         ...);
+                    }
+                    else
+                    {
+                        const auto r
+                            = state.core->node<N>(std::move(a), i_edges, state, id, args...);
+                        (state.internal_edges.emplace(o.at(o_indices), RE{std::get<o_indices>(r)}),
+                         ...);
+                    }
                 }
                 else
                 {
-                    state.core->node<N>(i_edges, state, id, args...);
+                    if constexpr (sizeof...(A) == 0)
+                    {
+                        state.core->node<N>(i_edges, state, id, args...);
+                    }
+                    else
+                    {
+                        state.core->node<N>(std::move(a), i_edges, state, id, args...);
+                    }
                 }
             }
         }
@@ -268,7 +311,7 @@ namespace ext
             )
             {
                 using input_t = typename nil::gate::detail::traits<T>::i;
-                using output_t = typename nil::gate::detail::traits<T>::o;
+                using output_t = typename nil::gate::detail::traits<T>::outs;
 
                 detail::msg::add_inputs(
                     type_to_pin_index,
@@ -289,15 +332,19 @@ namespace ext
                 info.set_label(node.label);
             }
 
-            template <typename T, typename... Controls, typename... Args>
-            AppState::Factory factory(const Node<T, Controls...>& node, const Args&... args)
+            template <typename T, typename... Controls, typename... A, typename... Args>
+            AppState::Factory factory(
+                const Node<T, Controls...>& node,
+                std::tuple<A...> a,
+                const Args&... args
+            )
             {
                 using input_t = typename nil::gate::detail::traits<T>::i;
-                using output_t = typename nil::gate::detail::traits<T>::o;
+                using output_t = typename nil::gate::detail::traits<T>::outs;
 
                 const auto controls = get_controls(node);
-                return                           //
-                    [controls, ... args = args]( //
+                return                                             //
+                    [controls, a = std::move(a), ... args = args]( //
                         GraphState& state,
                         std::uint64_t id,
                         const std::vector<std::uint64_t>& input_ids,
@@ -318,6 +365,7 @@ namespace ext
                     detail::creation::create_node<T>(
                         state,
                         id,
+                        a,
                         input_ids,
                         output_ids,
                         control_ids,
@@ -359,11 +407,27 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... Args>
-        App& add_node(const Node<T, Controls...>& node, const Args&... args)
+        std::enable_if_t<(nil::gate::detail::traits<T>::a::size == 0), App&> add_node(
+            const Node<T, Controls...>& node,
+            const Args&... args
+        )
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
             detail::api::to_message(node_message, node, state.type_to_pin_index);
-            state.node_factories.push_back(detail::api::factory(node, args...));
+            state.node_factories.push_back(detail::api::factory(node, std::tuple<>(), args...));
+            return *this;
+        }
+
+        template <typename T, typename... Controls, typename... A, typename... Args>
+        std::enable_if_t<(nil::gate::detail::traits<T>::a::size > 0), App&> add_node(
+            const Node<T, Controls...>& node,
+            nil::gate::detail::traits<T>::a::initializer a,
+            const Args&... args
+        )
+        {
+            auto& node_message = *state.info.mutable_types()->add_nodes();
+            detail::api::to_message(node_message, node, state.type_to_pin_index);
+            state.node_factories.push_back(detail::api::factory(node, a, args...));
             return *this;
         }
 

@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace nil::gate::detail
@@ -19,8 +20,22 @@ namespace nil::gate::detail
         virtual void call() = 0;
     };
 
-    struct Deferrer
+    class Deferrer
     {
+    public:
+        void push(std::unique_ptr<ICallable> cb)
+        {
+            std::lock_guard g(mutex);
+            tasks.push_back(std::move(cb));
+        }
+
+        std::vector<std::unique_ptr<ICallable>> flush()
+        {
+            std::lock_guard g(mutex);
+            return std::exchange(tasks, {});
+        }
+
+    private:
         std::vector<std::unique_ptr<ICallable>> tasks;
         std::mutex mutex;
     };
