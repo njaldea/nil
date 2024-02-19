@@ -12,7 +12,7 @@ struct Deferred
     //  TODO: instead of std::tuple<MutableEdge<T>*, ...>
     //      maybe create a gate type to make it `nil::gate::async<T>`
     //  TODO: is async the right term? or deferred?
-    std::tuple<float> operator()(std::tuple<nil::gate::MutableEdge<int>*> z, bool a)
+    std::tuple<float> operator()(nil::gate::async_edges<int> z, bool a)
     {
         std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
         std::cout << a << std::endl;

@@ -17,12 +17,6 @@ namespace nil::gate
     class MutableEdge: public ReadOnlyEdge<T>
     {
     public:
-        template <typename... Args>
-        MutableEdge(Args&&... args)
-            : ReadOnlyEdge<T>(std::forward<Args>(args)...)
-        {
-        }
-
         MutableEdge() = default;
         ~MutableEdge() noexcept override = default;
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "detail/Edge.hpp"
 #include "detail/Node.hpp"
-
-#include <stdexcept>
+#include "detail/edge/Batch.hpp"
+#include "detail/edge/Data.hpp"
 
 namespace nil::gate
 {
@@ -25,6 +24,35 @@ namespace nil::gate
     {
     public:
         Core() = default;
+
+        template <typename CB>
+        Core(CB cb)
+            : commit_cb(
+                  [&]()
+                  {
+                      struct Callable: detail::ICallable
+                      {
+                          Callable(Core& init_self, CB init_callback)
+                              : self(init_self)
+                              , callback(std::move(init_callback))
+                          {
+                          }
+
+                          void call() override
+                          {
+                              callback(self);
+                          }
+
+                          Core& self;
+                          CB callback;
+                      };
+
+                      return std::make_unique<Callable>(*this, std::move(cb));
+                  }()
+              )
+        {
+        }
+
         ~Core() noexcept = default;
 
         Core(Core&&) = delete;
@@ -55,7 +83,8 @@ namespace nil::gate
             node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
         {
             auto node = std::make_unique<detail::Node<T>>(
-                &deferrer,
+                &tasks,
+                commit_cb.get(),
                 input_edges,
                 std::tuple<>(),
                 std::forward<Args>(args)...
@@ -84,7 +113,8 @@ namespace nil::gate
             )
         {
             auto node = std::make_unique<detail::Node<T>>(
-                &deferrer,
+                &tasks,
+                commit_cb.get(),
                 input_edges,
                 std::move(async_initilizer),
                 std::forward<Args>(args)...
@@ -106,13 +136,13 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(Args&&... args)
         {
-            auto* e = static_cast<detail::Edge<T>*>(
+            return static_cast<MutableEdge<T>*>(
                 required_edges
-                    .emplace_back(std::make_unique<detail::Edge<T>>(std::forward<Args>(args)...))
+                    .emplace_back(
+                        std::make_unique<detail::DataEdge<T>>(&tasks, std::forward<Args>(args)...)
+                    )
                     .get()
             );
-            e->attach_deferrer(&deferrer);
-            return e;
         }
 
         /**
@@ -124,13 +154,13 @@ namespace nil::gate
         template <typename T>
         std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge(T&& value)
         {
-            auto* e = static_cast<detail::Edge<T>*>(
+            return static_cast<MutableEdge<T>*>(
                 required_edges
-                    .emplace_back(std::make_unique<detail::Edge<T>>(std::forward<T>(value)))
+                    .emplace_back(
+                        std::make_unique<detail::DataEdge<T>>(&tasks, std::forward<T>(value))
+                    )
                     .get()
             );
-            e->attach_deferrer(&deferrer);
-            return e;
         }
 
         /**
@@ -138,7 +168,7 @@ namespace nil::gate
          */
         void run()
         {
-            for (const auto& d : deferrer.flush())
+            for (const auto& d : tasks.flush())
             {
                 d->call();
             }
@@ -149,8 +179,20 @@ namespace nil::gate
             }
         }
 
+        template <typename... T>
+        detail::Batch<T...> batch(MutableEdge<T>*... edges)
+        {
+            return detail::Batch<T...>(
+                &tasks,
+                commit_cb.get(),
+                std::tuple<detail::InternalEdge<T>*...>(static_cast<detail::InternalEdge<T>*>(edges
+                )...)
+            );
+        }
+
     private:
-        detail::Deferrer deferrer;
+        detail::Tasks tasks;
+        std::unique_ptr<detail::ICallable> commit_cb;
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
     };

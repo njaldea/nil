@@ -20,6 +20,7 @@ set(
         publish/nil/gate/detail/Edge.hpp
         publish/nil/gate/detail/Node.hpp
         publish/nil/gate/detail/INode.hpp
+        publish/nil/gate/detail/AsyncEdge.hpp
         publish/nil/gate/detail/types.hpp
         publish/nil/gate/detail/validation/edge.hpp
         publish/nil/gate/detail/validation/node.hpp

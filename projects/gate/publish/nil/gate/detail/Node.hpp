@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Deferrer.hpp"
 #include "INode.hpp"
+#include "Tasks.hpp"
 #include "types.hpp"
 
 namespace nil::gate::detail
@@ -17,13 +17,15 @@ namespace nil::gate::detail
     public:
         template <typename... Args>
         Node(
-            Deferrer* init_deferrer,
+            Tasks* init_tasks,
+            ICallable* init_commit,
             const typename input_t::readonly_edges& init_inputs,
             typename async_t::tuple init_asyncs,
             Args&&... args
         )
             : Node(
-                  init_deferrer,
+                  init_tasks,
+                  init_commit,
                   init_inputs,
                   std::move(init_asyncs),
                   typename input_t::type(),
@@ -72,7 +74,8 @@ namespace nil::gate::detail
             std::size_t... a_indices,
             typename... Args>
         Node(
-            Deferrer* init_deferrer,
+            Tasks* init_tasks,
+            ICallable* init_commit,
             const typename input_t::readonly_edges& init_inputs,
             [[maybe_unused]] typename async_t::tuple init_asyncs,
             nil::utils::traits::types<I...>,
@@ -81,18 +84,20 @@ namespace nil::gate::detail
             std::index_sequence<a_indices...>,
             Args&&... args
         )
-            : deferrer(init_deferrer)
+            : tasks(init_tasks)
+            , commit(init_commit)
             , state(State::Pending)
             , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
             , outputs()
-            , asyncs(std::move(std::get<a_indices>(init_asyncs))...)
+            , asyncs()
         {
-            (static_cast<Edge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
+            (static_cast<InternalEdge<I>*>(std::get<i_indices>(inputs))->attach_output(this), ...);
             (std::get<o_indices>(outputs).attach_input(this), ...);
-            (std::get<o_indices>(outputs).attach_deferrer(deferrer), ...);
+            (std::get<o_indices>(outputs).attach_tasks(tasks), ...);
             (std::get<a_indices>(asyncs).attach_input(this), ...);
-            (std::get<a_indices>(asyncs).attach_deferrer(deferrer), ...);
+            (std::get<a_indices>(asyncs).attach_tasks(tasks), ...);
+            (std::get<a_indices>(asyncs).exec(std::move(std::get<a_indices>(init_asyncs))), ...);
         }
 
         template <std::size_t... o_indices>
@@ -113,7 +118,11 @@ namespace nil::gate::detail
             if constexpr (has_output && has_async)
             {
                 auto result = instance(
-                    typename async_t::mutable_edges(std::addressof(std::get<a_indices>(asyncs))...),
+                    typename async_t::async_edges(
+                        tasks,
+                        commit,
+                        std::addressof(std::get<a_indices>(asyncs))...
+                    ),
                     std::get<i_indices>(inputs)->value()...
                 );
                 state = State::Done;
@@ -128,7 +137,11 @@ namespace nil::gate::detail
             else if constexpr (!has_output && has_async)
             {
                 instance(
-                    typename async_t::mutable_edges(std::addressof(std::get<a_indices>(asyncs))...),
+                    typename async_t::async_edges(
+                        tasks,
+                        commit,
+                        std::addressof(std::get<a_indices>(asyncs))...
+                    ),
                     std::get<i_indices>(inputs)->value()...
                 );
                 state = State::Done;
@@ -150,7 +163,8 @@ namespace nil::gate::detail
             );
         }
 
-        Deferrer* deferrer;
+        Tasks* tasks;
+        ICallable* commit;
         State state;
 
         T instance;

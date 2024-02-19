@@ -124,10 +124,7 @@ namespace ext
         {
         }
 
-        auto operator()(
-            std::tuple<nil::gate::MutableEdge<Asyncs>*...> asyncs,
-            const Inputs&... args
-        ) const
+        auto operator()(nil::gate::async_edges<Asyncs...> asyncs, const Inputs&... args) const
         {
             Scoped _(state, id);
             return object.operator()(asyncs, args...);

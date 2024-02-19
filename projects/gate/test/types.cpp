@@ -60,7 +60,7 @@ TEST(gate, traits_multiple_return)
     using type = traits<test::Output<int, bool, std::string>>::o;
     ASSERT_EQ(type::size, 3);
     // clang-format off
-    ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<Edge<int>, Edge<bool>, Edge<std::string>>>));
+    ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<DataEdge<int>, DataEdge<bool>, DataEdge<std::string>>>));
     ASSERT_TRUE((std::is_same_v<type::readonly_edges, std::tuple<ReadOnlyEdge<int>*, ReadOnlyEdge<bool>*, ReadOnlyEdge<std::string>*>>));
     ASSERT_TRUE((std::is_same_v<type::mutable_edges, std::tuple<MutableEdge<int>*, MutableEdge<bool>*, MutableEdge<std::string>*>>));
     // clang-format on
@@ -73,7 +73,7 @@ TEST(gate, traits_multiple_input)
     using type = traits<test::Input<int, const int&>>::i;
     ASSERT_EQ(type::size, 2);
     // clang-format off
-    ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<Edge<int>, Edge<int>>>));
+    ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<DataEdge<int>, DataEdge<int>>>));
     ASSERT_TRUE((std::is_same_v<type::readonly_edges, std::tuple<ReadOnlyEdge<int>*, ReadOnlyEdge<int>*>>));
     ASSERT_TRUE((std::is_same_v<type::mutable_edges, std::tuple<MutableEdge<int>*, MutableEdge<int>*>>));
     // clang-format on

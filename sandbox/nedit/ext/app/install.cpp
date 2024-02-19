@@ -56,21 +56,24 @@ namespace ext
 
     struct DeferredAdd
     {
-        void operator()(std::tuple<nil::gate::MutableEdge<int>*> a, int l, int r) const
+        void operator()(nil::gate::async_edges<int> async_inputs, int l, int r) const
         {
-            rerun(
-                [a, l, r]()
+            post(
+                [async_inputs = async_inputs, l, r]() mutable
                 {
-                    get<0>(a)->set_value(l + r);
+                    auto batch = async_inputs.batch();
+                    auto* a = batch.get<0>();
+                    // const auto [a] = batch;
+                    a->set_value(l + r);
                     std::this_thread::sleep_for(std::chrono::seconds(2));
                 }
             );
         }
 
-        std::function<void(std::function<void()>)> rerun;
+        std::function<void(std::function<void()>)> post;
     };
 
-    void install(ext::App& app, std::function<void(std::function<void()>)> rerun)
+    void install(ext::App& app, std::function<void(std::function<void()>)> post)
     {
         using text = std::string;
         // clang-format off
@@ -100,7 +103,7 @@ namespace ext
         app.add_node<Consume<int>>    ({.label = "Consume<i>"});
         app.add_node<Consume<float>>  ({.label = "Consume<f>"});
         app.add_node<Consume<text>>   ({.label = "Consume<s>"});
-        app.add_node<DeferredAdd>     ({.label = "DeferredAdd<i>"}, {0}, rerun);
+        app.add_node<DeferredAdd>     ({.label = "DeferredAdd<i>"}, {0}, post);
         // clang-format on
 
         // for version 2. figure out if i can drag drop scripts(or c++?)

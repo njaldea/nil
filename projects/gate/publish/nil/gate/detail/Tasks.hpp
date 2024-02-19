@@ -20,9 +20,18 @@ namespace nil::gate::detail
         virtual void call() = 0;
     };
 
-    class Deferrer
+    class Tasks
     {
     public:
+        void push(std::vector<std::unique_ptr<ICallable>> cbs)
+        {
+            std::lock_guard g(mutex);
+            for (auto&& cb : cbs)
+            {
+                tasks.push_back(std::move(cb));
+            }
+        }
+
         void push(std::unique_ptr<ICallable> cb)
         {
             std::lock_guard g(mutex);

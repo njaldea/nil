@@ -3,7 +3,8 @@
 #include "validation/edge.hpp"
 #include "validation/node.hpp"
 
-#include "Edge.hpp"
+#include "edge/Async.hpp"
+#include "edge/Data.hpp"
 
 #include <nil/utils/traits/callable.hpp>
 
@@ -15,9 +16,10 @@ namespace nil::gate::detail
         static constexpr auto size = sizeof...(T);
         using type = nil::utils::traits::types<T...>;
         using tuple = std::tuple<T...>;
-        using edges = std::tuple<Edge<T>...>;
+        using edges = std::tuple<DataEdge<T>...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
         using mutable_edges = std::tuple<MutableEdge<T>*...>;
+        using async_edges = nil::gate::detail::AsyncEdges<T...>;
         using make_index_sequence = std::make_index_sequence<size>;
     };
 
@@ -40,13 +42,13 @@ namespace nil::gate::detail
     };
 
     template <typename... I, typename... O, typename... A>
-    struct traits<nil::utils::traits::types<O...>(std::tuple<MutableEdge<A>*...>, I...)>
-        : traits<nil::utils::traits::types<O...>(const std::tuple<MutableEdge<A>*...>&, I...)>
+    struct traits<nil::utils::traits::types<O...>(async_edges<A...>, I...)>
+        : traits<nil::utils::traits::types<O...>(const async_edges<A...>&, I...)>
     {
     };
 
     template <typename... I, typename... O, typename... A>
-    struct traits<nil::utils::traits::types<O...>(const std::tuple<MutableEdge<A>*...>&, I...)>
+    struct traits<nil::utils::traits::types<O...>(const async_edges<A...>&, I...)>
     {
         using i = types<typename edge_validate<std::decay_t<I>>::type...>;
         using o = types<typename edge_validate<std::decay_t<O>>::type...>;

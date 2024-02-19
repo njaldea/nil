@@ -66,76 +66,37 @@ struct Executor
     }
 };
 
-int EXT::run(const nil::cli::Options& options) const
+ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
-    if (options.flag("help"))
+    ext::GraphState state;
+    state.core = std::make_unique<nil::gate::Core>(
+        [&executor](auto& core) { boost::asio::post(executor.context, [&]() { core.run(); }); }
+    );
+
+    state.activate = [&service](std::uint64_t id)
     {
-        options.help(std::cout);
-        return 0;
-    }
-
-    Executor executor;
-
-    ext::AppState app_state;
-    ext::App app(app_state);
-
-    nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
-
-    const auto make_state = [&service]()
-    {
-        ext::GraphState state;
-        state.core = std::make_unique<nil::gate::Core>();
-
-        state.activate = [&service](std::uint64_t id)
-        {
-            nil::nedit::proto::NodeState message;
-            message.set_id(id);
-            message.set_active(true);
-            service.publish(nil::nedit::proto::message_type::NodeState, message);
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        };
-
-        state.deactivate = [&service](std::uint64_t id)
-        {
-            nil::nedit::proto::NodeState message;
-            message.set_id(id);
-            message.set_active(false);
-            service.publish(nil::nedit::proto::message_type::NodeState, message);
-        };
-
-        return state;
+        nil::nedit::proto::NodeState message;
+        message.set_id(id);
+        message.set_active(true);
+        service.publish(nil::nedit::proto::message_type::NodeState, message);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     };
-    ext::GraphState graph_state = make_state();
 
-    ext::install(
-        app,
-        //  TODO:
-        //      this is not safe. if it is already running,
-        //      there will be issues with race condition
-        [&graph_state, &executor](std::function<void()> cb)
-        {
-            const std::lock_guard _(executor.mutex);
-            executor.tasks.emplace_back(
-                [&graph_state, &executor, cb]()
-                {
-                    cb();
-                    if (executor.posts.empty())
-                    {
-                        executor.posts.emplace_back([&]() { graph_state.core->run(); });
-                    }
-                }
-            );
-            boost::asio::post(executor.context, [&]() { executor.run(); });
-        }
-    );
-    const std::string types = app_state.info.types().SerializeAsString();
+    state.deactivate = [&service](std::uint64_t id)
+    {
+        nil::nedit::proto::NodeState message;
+        message.set_id(id);
+        message.set_active(false);
+        service.publish(nil::nedit::proto::message_type::NodeState, message);
+    };
 
-    service.on_connect( //
-        [&service, &app_state](const std::string& id)
-        { service.send(id, nil::nedit::proto::message_type::State, app_state.info); }
-    );
+    return state;
+}
 
-    const auto control_update = [&graph_state, &executor](const auto& message)
+template <typename T>
+auto make_control_update(ext::GraphState& graph_state, Executor& executor)
+{
+    return [&graph_state, &executor](const std::string&, const T& message)
     {
         const std::lock_guard _(executor.mutex);
         executor.tasks.emplace_back(
@@ -154,49 +115,68 @@ int EXT::run(const nil::cli::Options& options) const
         );
         boost::asio::post(executor.context, [&]() { executor.run(); });
     };
+}
 
-    service.on_message(                                                            //
-        nil::service::TypedHandler<nil::nedit::proto::message_type::MessageType>() //
+int EXT::run(const nil::cli::Options& options) const
+{
+    if (options.flag("help"))
+    {
+        options.help(std::cout);
+        return 0;
+    }
+
+    Executor executor;
+
+    ext::AppState app_state;
+    ext::App app(app_state);
+
+    nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
+
+    ext::GraphState graph_state = make_state(service, executor);
+
+    ext::install(
+        app,
+        [&graph_state, &executor](std::function<void()> cb)
+        { boost::asio::post(executor.context, [cb]() { cb(); }); }
+    );
+    const std::string types = app_state.info.types().SerializeAsString();
+
+    namespace proto = nil::nedit::proto;
+    service.on_connect( //
+        [&service, &app_state](const std::string& id)
+        { service.send(id, proto::message_type::State, app_state.info); }
+    );
+
+    service.on_message(                                                //
+        nil::service::TypedHandler<proto::message_type::MessageType>() //
             .add(
-                nil::nedit::proto::message_type::ControlUpdateB,
-                [&control_update](
-                    const std::string&,
-                    const nil::nedit::proto::ControlUpdateB& message
-                ) { control_update(message); }
+                proto::message_type::ControlUpdateB,
+                make_control_update<proto::ControlUpdateB>(graph_state, executor)
             )
             .add(
-                nil::nedit::proto::message_type::ControlUpdateI,
-                [&control_update](
-                    const std::string&,
-                    const nil::nedit::proto::ControlUpdateI& message
-                ) { control_update(message); }
+                proto::message_type::ControlUpdateI,
+                make_control_update<proto::ControlUpdateI>(graph_state, executor)
             )
             .add(
-                nil::nedit::proto::message_type::ControlUpdateF,
-                [&control_update](
-                    const std::string&,
-                    const nil::nedit::proto::ControlUpdateF& message
-                ) { control_update(message); }
+                proto::message_type::ControlUpdateF,
+                make_control_update<proto::ControlUpdateF>(graph_state, executor)
             )
             .add(
-                nil::nedit::proto::message_type::ControlUpdateS,
-                [&control_update](
-                    const std::string&,
-                    const nil::nedit::proto::ControlUpdateS& message
-                ) { control_update(message); }
+                proto::message_type::ControlUpdateS,
+                make_control_update<proto::ControlUpdateS>(graph_state, executor)
             )
-            .add(nil::nedit::proto::message_type::Play, []() { nil::log(); })
-            .add(nil::nedit::proto::message_type::Pause, []() { nil::log(); })
+            .add(proto::message_type::Play, []() { nil::log(); })
+            .add(proto::message_type::Pause, []() { nil::log(); })
             .add(
-                nil::nedit::proto::message_type::State,
-                [&graph_state, &app_state, &types, &make_state, &service, &executor](
+                proto::message_type::State,
+                [&graph_state, &app_state, &types, &service, &executor](
                     const std::string& id,
-                    const nil::nedit::proto::State& info
+                    const proto::State& info
                 )
                 {
                     const std::lock_guard _(executor.mutex);
                     executor.tasks.emplace_back(
-                        [&graph_state, &app_state, &types, &make_state, &service, id, info]()
+                        [&graph_state, &app_state, &types, &service, &executor, id, info]()
                         {
                             if (info.types().SerializeAsString() != types)
                             {
@@ -207,7 +187,7 @@ int EXT::run(const nil::cli::Options& options) const
 
                             app_state.info = info;
 
-                            graph_state = make_state();
+                            graph_state = make_state(service, executor);
 
                             std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
                             for (const auto& link : info.graph().links())
@@ -255,15 +235,14 @@ int EXT::run(const nil::cli::Options& options) const
                                 );
                             }
 
-                            service
-                                .send(id, nil::nedit::proto::message_type::State, app_state.info);
+                            service.send(id, proto::message_type::State, app_state.info);
                         }
                     );
                     boost::asio::post(executor.context, [&]() { executor.run(); });
                 }
             )
             .add(
-                nil::nedit::proto::message_type::Run,
+                proto::message_type::Run,
                 [&graph_state, &executor]()
                 {
                     const std::lock_guard _(executor.mutex);

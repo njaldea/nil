@@ -32,7 +32,12 @@ struct T<std::tuple<R...>(A...)>
 
 int main()
 {
-    nil::gate::Core core;
+    nil::gate::Core core(
+        [](nil::gate::Core&) {
+            std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__)
+                      << std::endl;
+        }
+    );
 
     // using A = T<std::tuple<bool, int, double, std::string>()>;
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;
@@ -58,10 +63,11 @@ int main()
     core.node<H>({f1, e1}, "h");
     core.node<I>({e1, d1}, "i");
 
-    a1->set_value({});
-    a2->set_value(1);
-    a3->set_value(1.0);
-    a4->set_value("text");
+    {
+        auto [b_a2, b_a3] = core.batch(a2, a3);
+        b_a2->set_value(1111);
+        b_a3->set_value(1332.0);
+    }
 
     nil::log();
     core.run();

@@ -2,9 +2,10 @@
 
 A node graph library that executes behavior represented by a node. As of the moment, only directed graph is supported (no feedback loop).
 
-## Classes
+---
+---
 
-### `nil::gate::Core`
+## `nil::gate::Core`
 
 An object that owns all of the nodes and edges, and handles the execution of nodes.
 
@@ -44,26 +45,34 @@ int main()
 }
 ```
 
-Life time of `Nodes` and `Edges` are all handled by `Core`.
+Lifetime of `Nodes` and `Edges` are all handled by `Core`.
 Passing an `Edge` from one `Core` to another `Core` is undefined behavior.
 
-### `nil::gate::ReadOnlyEdge<T>`
+## `nil::gate::ReadOnlyEdge<T>`
 
 This kind of edge is returned by `Core::node<T>(...)`.
+
 Provides an api, `const T& nil::gate::ReadOnlyEdge<T>::value()`, for getting the value owned by the edge.
 
-### `nil::gate::MutableEdge<T>`
+## `nil::gate::MutableEdge<T>`
 
 This kind of edge comes from the following:
 - returned by `Core::edge<T>`.
-- received by the Node if the first argument of the node is `std::tuple<MutableEdge<T>*, ...>`
+- returned by batch API.
+- accessible from `nil::gate::async_edges`.
 
 Provides an api, `void nil::gate::MutableEdge<T>::set_value(T value)`, for setting a new value for the edge.
+
 `set_value` will only take effect on next `Core::run()` and will not automatically rerun the `Core`.
 
-## Graph
+---
+---
 
-The graph suppored by the library is a directed graph. The Nodes are executed in proper order only if there is a change in the edge.
+## Directed Graph
+
+The graph suppored by the library is a directed graph.
+
+The Nodes are executed in proper order only if there is a change in the edge.
 
 See example below with the following Graph
 
@@ -104,90 +113,137 @@ int main()
 }
 ```
 
-## Node
+---
+---
 
-A functor that can be registered to `nil/gate` through `nil::gate::Core`.
-
-`Node::operator()` dictates the input/output edges of the node.
+## Node Signature
 
 ```cpp
 struct Node
 {
-    void operator()(bool, char) const;
+    std::tuple<short, long> operator()(bool, char) const;
 };
 
-struct Node_With_Return
-{
-    std::tuple<float, double> operator()(bool, char) const;
-};
+// or
 
-struct Node_With_Deferred_Output
-{
-    void operator()(
-        std::tuple<
-            nil::gate::MutableEdge<float>*,
-            nil::gate::MutableEdge<double>*
-        >,
-        bool,
-        char
-    ) const;
-};
-
-
-struct Node_With_Deferred_Output_And_Return
+struct Node
 {
     std::tuple<short, long> operator()(
-        std::tuple<
-            nil::gate::MutableEdge<float>*,
-            nil::gate::MutableEdge<double>*
-        >,
+        nil::gate::async_edges<float, double>,
         bool,
         char
     ) const;
 };
+```
 
+A node has the following types:
+- Inputs
+    - all of the arguments of call operator (minus the async_edges)
+    - in example above, `bool` and `char` are inputs of the node
+
+- Sync Outputs
+    - all of the types inside the `std::tuple` returned by the call operator
+    - if returned type is `void` it is implied to have no output types
+    - it is required to either be `void` or `std::tuple`
+        - for single return, `std::tuple<T>` is expected
+    - in exmaple above, `short` and `long` are the sync outputs of the node
+
+- Async Outputs
+    - all of the types inside the first `nil::gate::async_edges<T...>` of call operator
+    - if first argument is not `nil::gate::async::edges`, it is implied that there is no async outputs.
+    - in exmaple above, `float` and `double` are the sync outputs of the node
+
+## Rerunning from changes
+
+`MutableEdge<T>::set_value` does not trigger `Core::run`. This means that it is up to the user to schedule the rerun.
+
+```cpp
 int main()
 {
     nil::gate::Core core;
 
-    auto* edge_bool = core.edge(false); // MutableEdge<bool>*
-    auto* edge_char = core.edge('a');   // MutableEdge<char>*
+    auto [ e ] = core.edge<int>(100);
+    core.node<Node>({e});
 
-    core.node<Node>({edge_bool, edge_char});
+    // since this is the first time
+    // `Node` will be executed with 100 as value held by `e`
+    core.run();
+
+    // this will not rerun `Node`
+    core.run();
+
+    e->set_value(300);
+    
+    // `Node` will be executed with 300 as value held by `e`.
+    // manual call is required.
+    core.run();
+}
+```
+
+## Batching
+
+Calling multiple `MutableEdge<T>::set_value` for different edges might not result in all edges with the right value.
+
+To batch such changes, `Core::batch(...)` is available
+
+```cpp
+int main()
+{
+    nil::gate::Core core;
+
+    auto [ ei ] = core.edge<int>(100);
+    auto [ ef ] = core.edge<float>(200.0);
+    core.node<Node>({ei, ef});
+
+    // infinitely run core in another thread.
+    std::thread t([&core](){ while (true) { core.run(); }});
+
     {
-        const auto [
-            edge_float, // ReadOnlyEdge<float>*
-            edge_double // ReadOnlyEdge<double>*
-        ] = core.node<Node_With_Return>(
-            {edge_bool, edge_char}  // input edges
-        );
+        ei->set_value(101);
+        ef->set_value(201.0);
+        // depending on timing, it is possible that `core.run()`
+        // will run with `ei` having `101` and `ef` with `200.0` or `201.0`
     }
+    // to guarantee batches
     {
-        const auto [
-            edge_float, // ReadOnlyEdge<float>*
-            edge_double // ReadOnlyEdge<double>*
-        ] = core.node<Node_With_Deferred_Output>(
-            {10.0f, 20.0},          //  std::tuple<float, double>
-                                    //   -  these are initializers for the deferred/async edges
-            {edge_bool, edge_char}  // input edges
-        );
-    }
-    {
-        const auto [
-            // these are the return edges
-            edge_short, // ReadOnlyEdge<short>*
-            edge_long,  // ReadOnlyEdge<long>*
-            // these are the deferred/async edges
-            edge_float, // ReadOnlyEdge<float>*
-            edge_double // ReadOnlyEdge<double>*
-        ] = core.node<Node_With_Deferred_Output_And_Return>(
-            {10.0f, 20.0},          //  std::tuple<float, double>
-                                    //   -  these are initializers for the deferred/async edges
-            {edge_bool, edge_char}  // input edges
-        );
+        auto batch = core.batch(ei, ef);
+        auto [ bei, bef ] = batch;
+        bei->set_value(101);
+        bef->set_value(201.0);
+        // this will guarantee that `core.run()` will have
+        // ei have `101` and `ef` have `201.0`
     }
 }
 ```
 
-### TODO
-- include documentation about nodes with async/deferred edges.
+## Auto-Commit
+
+`nil::gate::Core` provides a constructor that receives a callback that will be automatically triggered when a batch is finished.
+
+```cpp
+
+// assume this will call the callable in another thread for scheduling
+void post(std::function<void()>);
+
+int main()
+{
+    nil::gate::Core core(
+        [](nil::gate::Core& self)
+        { post([&self](){ self.run(); }); }
+    );
+
+    auto [ ei ] = core.edge<int>(100);
+    auto [ ef ] = core.edge<float>(200.0);
+    core.node<Node>({ei, ef});
+
+    // to guarantee batches
+    {
+        auto [ bei, bef ] = core.batch(ei, ef);
+        bei->set_value(101);
+        bef->set_value(201.0);
+        // will call the callback when the batch goes out of scope.
+    }
+}
+```
+
+`Core` provides a constructor where you can provide a callback to schedule a rerun.
