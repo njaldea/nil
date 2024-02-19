@@ -27,15 +27,15 @@ namespace test
 TEST(gate, traits_zero_input)
 {
     using type = nil::gate::detail::traits<test::Input<>>;
-    ASSERT_EQ(type::i::size, 0);
-    ASSERT_TRUE((std::is_same_v<type::i::edges, std::tuple<>>));
-    ASSERT_TRUE((std::is_same_v<type::i::readonly_edges, std::tuple<>>));
-    ASSERT_TRUE((std::is_same_v<type::i::mutable_edges, std::tuple<>>));
+    ASSERT_EQ(type::inputs::size, 0);
+    ASSERT_TRUE((std::is_same_v<type::inputs::edges, std::tuple<>>));
+    ASSERT_TRUE((std::is_same_v<type::inputs::readonly_edges, std::tuple<>>));
+    ASSERT_TRUE((std::is_same_v<type::inputs::mutable_edges, std::tuple<>>));
 }
 
 TEST(gate, traits_zero_output)
 {
-    using type = nil::gate::detail::traits<test::Output<>>::o;
+    using type = nil::gate::detail::traits<test::Output<>>::all_outputs;
     ASSERT_EQ(type::size, 0);
     ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<>>));
     ASSERT_TRUE((std::is_same_v<type::readonly_edges, std::tuple<>>));
@@ -46,7 +46,7 @@ TEST(gate, traits_void_return)
 {
     using Callable = decltype([]() {});
 
-    using type = nil::gate::detail::traits<Callable>::o;
+    using type = nil::gate::detail::traits<Callable>::all_outputs;
     ASSERT_EQ(type::size, 0);
     ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<>>));
     ASSERT_TRUE((std::is_same_v<type::readonly_edges, std::tuple<>>));
@@ -57,7 +57,7 @@ TEST(gate, traits_multiple_return)
 {
     using namespace nil::gate::detail;
     using namespace nil::gate;
-    using type = traits<test::Output<int, bool, std::string>>::o;
+    using type = traits<test::Output<int, bool, std::string>>::all_outputs;
     ASSERT_EQ(type::size, 3);
     // clang-format off
     ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<DataEdge<int>, DataEdge<bool>, DataEdge<std::string>>>));
@@ -70,7 +70,7 @@ TEST(gate, traits_multiple_input)
 {
     using namespace nil::gate::detail;
     using namespace nil::gate;
-    using type = traits<test::Input<int, const int&>>::i;
+    using type = traits<test::Input<int, const int&>>::inputs;
     ASSERT_EQ(type::size, 2);
     // clang-format off
     ASSERT_TRUE((std::is_same_v<type::edges, std::tuple<DataEdge<int>, DataEdge<int>>>));

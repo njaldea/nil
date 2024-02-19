@@ -5,7 +5,7 @@ namespace nil::gate::detail
     class INode
     {
     public:
-        enum class State
+        enum class EState
         {
             Pending,
             Done

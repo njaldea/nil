@@ -199,11 +199,14 @@ int main()
     // to guarantee batches
     {
         auto batch = core.batch(ei, ef);
-        auto [ bei, bef ] = batch;
-        bei->set_value(101);
-        bef->set_value(201.0);
+        auto& [ bei, bef ] = batch;
+        // notice auto&. batch is non-copyable and non-movable.
+        // inlining like below should also work.
+        // auto [ bei, bef ] = core.batch(ei, ef);
+        bei->set_value(102);
+        bef->set_value(202.0);
         // this will guarantee that `core.run()`
-        // will run with ei having `101` and with `ef` having `201.0`
+        // will run with ei having `102` and with `ef` having `202.0`
     }
 }
 ```

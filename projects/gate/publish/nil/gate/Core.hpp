@@ -65,7 +65,7 @@ namespace nil::gate
         std::enable_if_t<
             !detail::traits<T>::is_valid,
             typename detail::traits<T>::o::readonly_edges> //
-            node(typename detail::traits<T>::i::readonly_edges edges, Args&&... args) = delete;
+            node(typename detail::traits<T>::inputs::readonly_edges edges, Args&&... args) = delete;
 
         /**
          * @brief create a node
@@ -79,8 +79,8 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<
             detail::traits<T>::is_valid && !detail::traits<T>::has_async,
-            typename detail::traits<T>::outs::readonly_edges>
-            node(typename detail::traits<T>::i::readonly_edges input_edges, Args&&... args)
+            typename detail::traits<T>::all_outputs::readonly_edges>
+            node(typename detail::traits<T>::inputs::readonly_edges input_edges, Args&&... args)
         {
             auto node = std::make_unique<detail::Node<T>>(
                 &tasks,
@@ -105,10 +105,10 @@ namespace nil::gate
         template <typename T, typename... Args>
         std::enable_if_t<
             detail::traits<T>::is_valid && detail::traits<T>::has_async,
-            typename detail::traits<T>::outs::readonly_edges>
+            typename detail::traits<T>::all_outputs::readonly_edges>
             node(
-                typename detail::traits<T>::a::tuple async_initilizer,
-                typename detail::traits<T>::i::readonly_edges input_edges,
+                typename detail::traits<T>::async_outputs::tuple async_initilizer,
+                typename detail::traits<T>::inputs::readonly_edges input_edges,
                 Args&&... args
             )
         {

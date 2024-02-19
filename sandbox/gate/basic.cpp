@@ -64,7 +64,8 @@ int main()
     core.node<I>({e1, d1}, "i");
 
     {
-        auto [b_a2, b_a3] = core.batch(a2, a3);
+        auto batch_o = core.batch(a2, a3);
+        auto& [b_a2, b_a3] = batch_o;
         b_a2->set_value(1111);
         b_a3->set_value(1332.0);
     }

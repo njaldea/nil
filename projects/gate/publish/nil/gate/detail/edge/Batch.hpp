@@ -11,11 +11,11 @@ namespace nil::gate::detail
         BatchEdge() = default;
         ~BatchEdge() noexcept = default;
 
-        BatchEdge(const BatchEdge&) = default;
-        BatchEdge(BatchEdge&&) = default;
+        BatchEdge(BatchEdge&&) = delete;
+        BatchEdge(const BatchEdge&) = delete;
 
-        BatchEdge& operator=(const BatchEdge&) = default;
-        BatchEdge& operator=(BatchEdge&&) = default;
+        BatchEdge& operator=(BatchEdge&&) = delete;
+        BatchEdge& operator=(const BatchEdge&) = delete;
 
         const T& value() const override
         {
@@ -91,10 +91,11 @@ namespace nil::gate::detail
             commit->call();
         }
 
-        Batch(const Batch&) = default;
-        Batch(Batch&&) = delete;
-        Batch& operator=(const Batch&) = default;
-        Batch& operator=(Batch&&) = delete;
+        Batch(const Batch&) = delete;
+        Batch(Batch&&) = default;
+
+        Batch& operator=(const Batch&) = delete;
+        Batch& operator=(Batch&&) = default;
 
         template <std::size_t index>
         auto* get() const

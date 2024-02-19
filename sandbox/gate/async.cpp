@@ -9,9 +9,6 @@
 
 struct Deferred
 {
-    //  TODO: instead of std::tuple<MutableEdge<T>*, ...>
-    //      maybe create a gate type to make it `nil::gate::async<T>`
-    //  TODO: is async the right term? or deferred?
     std::tuple<float> operator()(nil::gate::async_edges<int> z, bool a)
     {
         std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
@@ -38,7 +35,6 @@ struct Printer
 int main()
 {
     boost::asio::io_context context;
-    auto g = boost::asio::make_work_guard(context);
 
     nil::gate::Core core;
     const auto run = [&core]() { core.run(); };
@@ -50,7 +46,13 @@ int main()
 
     core.run();
 
-    auto gate_thread = std::thread([&context]() { context.run(); });
+    auto gate_thread = std::thread(
+        [&context]()
+        {
+            auto g = boost::asio::make_work_guard(context);
+            context.run();
+        }
+    );
 
     while (true)
     {

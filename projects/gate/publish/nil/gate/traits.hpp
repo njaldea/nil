@@ -10,7 +10,7 @@ namespace nil::gate
     template <typename T>
     struct node_traits
     {
-        using inputs = detail::traits<T>::i::type;
-        using outputs = detail::traits<T>::outs::type;
+        using inputs = detail::traits<T>::inputs::type;
+        using outputs = detail::traits<T>::all_outputs::type;
     };
 }

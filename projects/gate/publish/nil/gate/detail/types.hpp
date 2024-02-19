@@ -17,9 +17,10 @@ namespace nil::gate::detail
         using type = nil::utils::traits::types<T...>;
         using tuple = std::tuple<T...>;
         using edges = std::tuple<DataEdge<T>...>;
+        using async_edges = nil::gate::detail::AsyncEdges<T...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
         using mutable_edges = std::tuple<MutableEdge<T>*...>;
-        using async_edges = nil::gate::detail::AsyncEdges<T...>;
+        using internal_edges = std::tuple<InternalEdge<T>*...>;
         using make_index_sequence = std::make_index_sequence<size>;
     };
 
@@ -31,10 +32,10 @@ namespace nil::gate::detail
     template <typename... I, typename... O>
     struct traits<nil::utils::traits::types<O...>(I...)>
     {
-        using i = types<typename edge_validate<std::decay_t<I>>::type...>;
-        using o = types<typename edge_validate<std::decay_t<O>>::type...>;
-        using a = types<>;
-        using outs = o;
+        using inputs = types<typename edge_validate<std::decay_t<I>>::type...>;
+        using sync_outputs = types<typename edge_validate<std::decay_t<O>>::type...>;
+        using async_outputs = types<>;
+        using all_outputs = sync_outputs;
         static constexpr bool has_async = false;
         static constexpr bool is_valid                     //
             = (true && (... && node_validate_i<I>::value)) //
@@ -50,10 +51,10 @@ namespace nil::gate::detail
     template <typename... I, typename... O, typename... A>
     struct traits<nil::utils::traits::types<O...>(const async_edges<A...>&, I...)>
     {
-        using i = types<typename edge_validate<std::decay_t<I>>::type...>;
-        using o = types<typename edge_validate<std::decay_t<O>>::type...>;
-        using a = types<typename edge_validate<std::decay_t<A>>::type...>;
-        using outs = types<typename edge_validate<std::decay_t<O>>::type..., A...>;
+        using inputs = types<typename edge_validate<std::decay_t<I>>::type...>;
+        using sync_outputs = types<typename edge_validate<std::decay_t<O>>::type...>;
+        using async_outputs = types<typename edge_validate<std::decay_t<A>>::type...>;
+        using all_outputs = types<typename edge_validate<std::decay_t<O>>::type..., A...>;
         static constexpr bool has_async = true;
         static constexpr bool is_valid                      //
             = (true && (... && node_validate_i<I>::value))  //
