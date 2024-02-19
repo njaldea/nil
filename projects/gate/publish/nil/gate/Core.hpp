@@ -179,6 +179,14 @@ namespace nil::gate
             }
         }
 
+        void commit()
+        {
+            if (commit_cb)
+            {
+                commit_cb->call();
+            }
+        }
+
         template <typename... T>
         detail::Batch<T...> batch(MutableEdge<T>*... edges)
         {

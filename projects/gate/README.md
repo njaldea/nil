@@ -2,9 +2,6 @@
 
 A node graph library that executes behavior represented by a node. As of the moment, only directed graph is supported (no feedback loop).
 
----
----
-
 ## `nil::gate::Core`
 
 An object that owns all of the nodes and edges, and handles the execution of nodes.
@@ -48,13 +45,13 @@ int main()
 Lifetime of `Nodes` and `Edges` are all handled by `Core`.
 Passing an `Edge` from one `Core` to another `Core` is undefined behavior.
 
-## `nil::gate::ReadOnlyEdge<T>`
+### `nil::gate::ReadOnlyEdge<T>`
 
 This kind of edge is returned by `Core::node<T>(...)`.
 
 Provides an api, `const T& nil::gate::ReadOnlyEdge<T>::value()`, for getting the value owned by the edge.
 
-## `nil::gate::MutableEdge<T>`
+### `nil::gate::MutableEdge<T>`
 
 This kind of edge comes from the following:
 - returned by `Core::edge<T>`.
@@ -64,9 +61,6 @@ This kind of edge comes from the following:
 Provides an api, `void nil::gate::MutableEdge<T>::set_value(T value)`, for setting a new value for the edge.
 
 `set_value` will only take effect on next `Core::run()` and will not automatically rerun the `Core`.
-
----
----
 
 ## Directed Graph
 
@@ -113,9 +107,6 @@ int main()
 }
 ```
 
----
----
-
 ## Node Signature
 
 ```cpp
@@ -153,7 +144,7 @@ A node has the following types:
     - if first argument is not `nil::gate::async::edges`, it is implied that there is no async outputs.
     - in exmaple above, `float` and `double` are the sync outputs of the node
 
-## Rerunning from changes
+## Re-running from changes
 
 `MutableEdge<T>::set_value` does not trigger `Core::run`. This means that it is up to the user to schedule the rerun.
 
@@ -202,41 +193,43 @@ int main()
         ei->set_value(101);
         ef->set_value(201.0);
         // depending on timing, it is possible that `core.run()`
-        // will run with `ei` having `101` and `ef` with `200.0` or `201.0`
+        // will run with `ei` having `101` and with `ef` having either `200.0` or `201.0`
     }
+
     // to guarantee batches
     {
         auto batch = core.batch(ei, ef);
         auto [ bei, bef ] = batch;
         bei->set_value(101);
         bef->set_value(201.0);
-        // this will guarantee that `core.run()` will have
-        // ei have `101` and `ef` have `201.0`
+        // this will guarantee that `core.run()`
+        // will run with ei having `101` and with `ef` having `201.0`
     }
 }
 ```
 
-## Auto-Commit
+## Automatic Batch Commit
 
 `nil::gate::Core` provides a constructor that receives a callback that will be automatically triggered when a batch is finished.
 
 ```cpp
-
 // assume this will call the callable in another thread for scheduling
 void post(std::function<void()>);
 
 int main()
 {
-    nil::gate::Core core(
-        [](nil::gate::Core& self)
-        { post([&self](){ self.run(); }); }
-    );
+    nil::gate::Core core([](nil::gate::Core& self){ post([&self](){ self.run(); }); });
 
     auto [ ei ] = core.edge<int>(100);
     auto [ ef ] = core.edge<float>(200.0);
     core.node<Node>({ei, ef});
 
-    // to guarantee batches
+    {
+        ei->set_value(101);
+        ef->set_value(201.0);
+        core.commit();
+    }
+
     {
         auto [ bei, bef ] = core.batch(ei, ef);
         bei->set_value(101);
@@ -246,4 +239,6 @@ int main()
 }
 ```
 
-`Core` provides a constructor where you can provide a callback to schedule a rerun.
+This does not affect `set_value` but only batches.
+
+`nil::gate::Core::commit()` is provided to manually call it if there is no batch available (TODO: eval if can be removed).
