@@ -2,27 +2,10 @@
 
 #include "Internal.hpp"
 
+#include <functional>
+
 namespace nil::gate::detail
 {
-    template <typename T, typename = void>
-    struct compare_helpers: std::false_type
-    {
-        static bool is_not_equal(const std::optional<T>& /* l */, const T& /* r */)
-        {
-            return true;
-        }
-    };
-
-    template <typename T>
-    struct compare_helpers<T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>>
-        : std::true_type
-    {
-        static bool is_not_equal(const std::optional<T>& l, const T& r)
-        {
-            return !l.has_value() || !(l.value() == r);
-        }
-    };
-
     /**
      * @brief Edge type returned by Core::edge.
      *  For internal use.
@@ -72,7 +55,7 @@ namespace nil::gate::detail
 
                 void call() override
                 {
-                    if (compare_helpers<T>::is_not_equal(parent->data, data))
+                    if (!parent->data.has_value() || !std::equal_to()(parent->data.value(), data))
                     {
                         parent->exec(std::move(data));
                         parent->pend();
@@ -88,9 +71,9 @@ namespace nil::gate::detail
 
         bool exec(T new_data) override
         {
-            if (compare_helpers<T>::is_not_equal(data, new_data))
+            if (!data.has_value() || !std::equal_to<T>()(data.value(), new_data))
             {
-                data = std::move(new_data);
+                data.emplace(std::move(new_data));
                 return true;
             }
             return false;

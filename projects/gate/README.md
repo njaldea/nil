@@ -62,6 +62,16 @@ Provides an api, `void nil::gate::MutableEdge<T>::set_value(T value)`, for setti
 
 `set_value` will only take effect on next `Core::run()` and will not automatically rerun the `Core`.
 
+### Edge Type
+
+Requirements of edge types to be used are the following:
+- has valid `std::equal_to<T>` compatibility
+- non-pointer type and non-reference type (due to ownership)
+- any smart pointer to const
+- any optional to const
+
+TODO: figure out how to detect pointer like objects and support them too.
+
 ## Directed Graph
 
 The graph suppored by the library is a directed graph.

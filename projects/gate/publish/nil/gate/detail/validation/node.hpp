@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <type_traits>
 
 namespace nil::gate::detail
@@ -35,6 +36,11 @@ namespace nil::gate::detail
     };
 
     template <typename T>
+    struct node_validate<const std::unique_ptr<const T>&>: std::true_type
+    {
+    };
+
+    template <typename T>
     struct node_validate<std::shared_ptr<T>>: std::false_type
     {
     };
@@ -50,12 +56,27 @@ namespace nil::gate::detail
     };
 
     template <typename T>
-    struct node_validate<const std::unique_ptr<const T>&>: std::true_type
+    struct node_validate<const std::shared_ptr<const T>&>: std::true_type
     {
     };
 
     template <typename T>
-    struct node_validate<const std::shared_ptr<const T>&>: std::true_type
+    struct node_validate<std::optional<T>>: std::false_type
+    {
+    };
+
+    template <typename T>
+    struct node_validate<std::optional<const T>>: std::true_type
+    {
+    };
+
+    template <typename T>
+    struct node_validate<const std::optional<T>&>: std::false_type
+    {
+    };
+
+    template <typename T>
+    struct node_validate<const std::optional<const T>&>: std::true_type
     {
     };
 
