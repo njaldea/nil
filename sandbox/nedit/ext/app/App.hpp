@@ -252,12 +252,13 @@ namespace ext
                 using RE = GraphState::RelaxedEdge;
                 using N = Activatable<
                     T,
-                    typename nil::gate::detail::traits<T>::inputs::type,
-                    typename nil::gate::detail::traits<T>::async_outputs::type>;
-                const auto i_edges = typename nil::gate::detail::traits<T>::inputs::readonly_edges{
-                    state.internal_edges.at(i.at(i_indices))...,
-                    state.control_edges.at(c.at(c_indices))...
-                };
+                    typename nil::gate::detail::callable_traits<T>::inputs::type,
+                    typename nil::gate::detail::callable_traits<T>::async_outputs::type>;
+                const auto i_edges =
+                    typename nil::gate::detail::callable_traits<T>::inputs::readonly_edges{
+                        state.internal_edges.at(i.at(i_indices))...,
+                        state.control_edges.at(c.at(c_indices))...
+                    };
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
                     if constexpr (sizeof...(A) == 0)
@@ -307,8 +308,8 @@ namespace ext
                 std::unordered_map<const void*, std::uint64_t> type_to_pin_index
             )
             {
-                using input_t = typename nil::gate::detail::traits<T>::inputs;
-                using output_t = typename nil::gate::detail::traits<T>::all_outputs;
+                using input_t = typename nil::gate::detail::callable_traits<T>::inputs;
+                using output_t = typename nil::gate::detail::callable_traits<T>::outputs;
 
                 detail::msg::add_inputs(
                     type_to_pin_index,
@@ -336,8 +337,8 @@ namespace ext
                 const Args&... args
             )
             {
-                using input_t = typename nil::gate::detail::traits<T>::inputs;
-                using output_t = typename nil::gate::detail::traits<T>::all_outputs;
+                using input_t = typename nil::gate::detail::callable_traits<T>::inputs;
+                using output_t = typename nil::gate::detail::callable_traits<T>::outputs;
 
                 const auto controls = get_controls(node);
                 return                                             //
@@ -404,10 +405,8 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... Args>
-        std::enable_if_t<(nil::gate::detail::traits<T>::async_outputs::size == 0), App&> add_node(
-            const Node<T, Controls...>& node,
-            const Args&... args
-        )
+        std::enable_if_t<(nil::gate::detail::callable_traits<T>::async_outputs::size == 0), App&>
+            add_node(const Node<T, Controls...>& node, const Args&... args)
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
             detail::api::to_message(node_message, node, state.type_to_pin_index);
@@ -416,11 +415,12 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... A, typename... Args>
-        std::enable_if_t<(nil::gate::detail::traits<T>::async_outputs::size > 0), App&> add_node(
-            const Node<T, Controls...>& node,
-            nil::gate::detail::traits<T>::async_outputs::tuple a,
-            const Args&... args
-        )
+        std::enable_if_t<(nil::gate::detail::callable_traits<T>::async_outputs::size > 0), App&>
+            add_node(
+                const Node<T, Controls...>& node,
+                nil::gate::detail::callable_traits<T>::async_outputs::tuple a,
+                const Args&... args
+            )
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
             detail::api::to_message(node_message, node, state.type_to_pin_index);

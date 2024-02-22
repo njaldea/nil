@@ -1,6 +1,6 @@
 #pragma once
 
-#include "detail/types.hpp"
+#include "detail/callable_traits.hpp"
 
 namespace nil::gate
 {
@@ -10,7 +10,7 @@ namespace nil::gate
     template <typename T>
     struct node_traits
     {
-        using inputs = detail::traits<T>::inputs::type;
-        using outputs = detail::traits<T>::all_outputs::type;
+        using inputs = detail::callable_traits<T>::inputs::type;
+        using outputs = detail::callable_traits<T>::outputs::type;
     };
 }

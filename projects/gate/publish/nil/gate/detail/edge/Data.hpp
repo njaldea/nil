@@ -45,6 +45,11 @@ namespace nil::gate::detail
 
         void set_value(T new_data) override
         {
+            if (tasks != nullptr)
+            {
+                return;
+            }
+
             struct Callable: ICallable
             {
                 Callable(T init_data, DataEdge<T>* init_parent)
@@ -104,7 +109,7 @@ namespace nil::gate::detail
 
     private:
         std::optional<T> data;
-        Tasks* tasks;
+        Tasks* tasks = nullptr;
         INode* ins = nullptr;
         std::vector<detail::INode*> outs;
     };

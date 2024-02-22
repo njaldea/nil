@@ -2,17 +2,17 @@
 
 #include "INode.hpp"
 #include "Tasks.hpp"
-#include "types.hpp"
+#include "callable_traits.hpp"
 
 namespace nil::gate::detail
 {
     template <typename T, typename = void>
     class Node final: public INode
     {
-        using input_t = typename detail::traits<T>::inputs;
-        using sync_output_t = typename detail::traits<T>::sync_outputs;
-        using async_output_t = typename detail::traits<T>::async_outputs;
-        using output_t = typename detail::traits<T>::all_outputs;
+        using input_t = typename detail::callable_traits<T>::inputs;
+        using sync_output_t = typename detail::callable_traits<T>::sync_outputs;
+        using async_output_t = typename detail::callable_traits<T>::async_outputs;
+        using output_t = typename detail::callable_traits<T>::outputs;
 
     public:
         template <typename... Args>
@@ -41,11 +41,17 @@ namespace nil::gate::detail
         {
             if (state == EState::Pending)
             {
-                exec(
-                    typename input_t::make_index_sequence(),
-                    typename sync_output_t::make_index_sequence(),
-                    typename async_output_t::make_index_sequence()
-                );
+                if constexpr (callable_traits<T>::has_async)
+                {
+                    auto result = call();
+                    state = EState::Done;
+                    forward(result);
+                }
+                else
+                {
+                    call();
+                    state = EState::Done;
+                }
             }
         }
 
@@ -106,58 +112,63 @@ namespace nil::gate::detail
             (get<s_indices>(sync_outputs).pend(), ...);
         }
 
-        template <std::size_t... i_indices, std::size_t... s_indices, std::size_t... a_indices>
-        auto exec(
-            std::index_sequence<i_indices...>,
-            std::index_sequence<s_indices...>,
-            std::index_sequence<a_indices...> //
-        )
+        auto call()
         {
-            constexpr auto has_output = sizeof...(s_indices) > 0;
-            constexpr auto has_async = sizeof...(a_indices) > 0;
-            if constexpr (has_output && has_async)
+            constexpr auto is_void_return = std::is_same_v<
+                void,
+                decltype(std::declval<Node<T>>().call(typename input_t::make_index_sequence()))>;
+            if constexpr (is_void_return)
             {
-                auto result = instance(
-                    typename async_output_t::async_edges(
-                        tasks,
-                        commit,
-                        std::addressof(get<a_indices>(async_outputs))...
-                    ),
-                    get<i_indices>(inputs)->value()...
-                );
-                state = EState::Done;
-                (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
+                call(typename input_t::make_index_sequence());
+                return std::tuple<>();
             }
-            else if constexpr (has_output && !has_async)
+            else
             {
-                auto result = instance(get<i_indices>(inputs)->value()...);
-                state = EState::Done;
-                (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
-            }
-            else if constexpr (!has_output && has_async)
-            {
-                instance(
-                    typename async_output_t::async_edges(
-                        tasks,
-                        commit,
-                        std::addressof(get<a_indices>(async_outputs))...
-                    ),
-                    get<i_indices>(inputs)->value()...
-                );
-                state = EState::Done;
-            }
-            else if constexpr (!has_output && !has_async)
-            {
-                instance(get<i_indices>(inputs)->value()...);
-                state = EState::Done;
+                return call(typename input_t::make_index_sequence());
             }
         }
 
+        auto forward(sync_output_t::tuple& result)
+        {
+            forward(result, typename sync_output_t::make_index_sequence());
+        }
+
+        auto async_edges()
+        {
+            return async_edges(typename async_output_t::make_index_sequence());
+        }
+
+        template <std::size_t... i_indices>
+        auto call(std::index_sequence<i_indices...>)
+        {
+            if constexpr (callable_traits<T>::has_async)
+            {
+                return instance(async_edges(), get<i_indices>(inputs)->value()...);
+            }
+            else
+            {
+                return instance(get<i_indices>(inputs)->value()...);
+            }
+        }
+
+        template <std::size_t... s_indices>
+        auto forward(sync_output_t::tuple& result, std::index_sequence<s_indices...>)
+        {
+            (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
+        }
+
+        template <std::size_t... a_indices>
+        auto async_edges(std::index_sequence<a_indices...>)
+        {
+            return typename async_output_t::async_edges(
+                tasks,
+                commit,
+                std::addressof(get<a_indices>(async_outputs))...
+            );
+        }
+
         template <std::size_t... s_indices, std::size_t... a_indices>
-        typename output_t::readonly_edges output_edges(
-            std::index_sequence<s_indices...>,
-            std::index_sequence<a_indices...> //
-        )
+        auto output_edges(std::index_sequence<s_indices...>, std::index_sequence<a_indices...>)
         {
             return typename output_t::readonly_edges(
                 std::addressof(get<s_indices>(sync_outputs))...,

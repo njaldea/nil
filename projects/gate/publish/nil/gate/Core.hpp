@@ -63,9 +63,10 @@ namespace nil::gate
         // Invalid types for input/output detected
         template <typename T, typename... Args>
         std::enable_if_t<
-            !detail::traits<T>::is_valid,
-            typename detail::traits<T>::o::readonly_edges> //
-            node(typename detail::traits<T>::inputs::readonly_edges edges, Args&&... args) = delete;
+            !detail::callable_traits<T>::is_valid,
+            typename detail::callable_traits<T>::outputs::readonly_edges> //
+            node(typename detail::callable_traits<T>::inputs::readonly_edges edges, Args&&... args)
+            = delete;
 
         /**
          * @brief create a node
@@ -78,9 +79,12 @@ namespace nil::gate
          */
         template <typename T, typename... Args>
         std::enable_if_t<
-            detail::traits<T>::is_valid && !detail::traits<T>::has_async,
-            typename detail::traits<T>::all_outputs::readonly_edges>
-            node(typename detail::traits<T>::inputs::readonly_edges input_edges, Args&&... args)
+            detail::callable_traits<T>::is_valid && !detail::callable_traits<T>::has_async,
+            typename detail::callable_traits<T>::outputs::readonly_edges>
+            node(
+                typename detail::callable_traits<T>::inputs::readonly_edges input_edges,
+                Args&&... args
+            )
         {
             auto node = std::make_unique<detail::Node<T>>(
                 &tasks,
@@ -104,11 +108,11 @@ namespace nil::gate
          */
         template <typename T, typename... Args>
         std::enable_if_t<
-            detail::traits<T>::is_valid && detail::traits<T>::has_async,
-            typename detail::traits<T>::all_outputs::readonly_edges>
+            detail::callable_traits<T>::is_valid && detail::callable_traits<T>::has_async,
+            typename detail::callable_traits<T>::outputs::readonly_edges>
             node(
-                typename detail::traits<T>::async_outputs::tuple async_initilizer,
-                typename detail::traits<T>::inputs::readonly_edges input_edges,
+                typename detail::callable_traits<T>::async_outputs::tuple async_initilizer,
+                typename detail::callable_traits<T>::inputs::readonly_edges input_edges,
                 Args&&... args
             )
         {
@@ -193,8 +197,7 @@ namespace nil::gate
             return detail::Batch<T...>(
                 &tasks,
                 commit_cb.get(),
-                std::tuple<detail::InternalEdge<T>*...>(static_cast<detail::InternalEdge<T>*>(edges
-                )...)
+                {static_cast<detail::InternalEdge<T>*>(edges)...}
             );
         }
 

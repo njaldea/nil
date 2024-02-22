@@ -16,12 +16,14 @@ set(
         publish/nil/gate/REdge.hpp
         publish/nil/gate/MEdge.hpp
         publish/nil/gate/IEdge.hpp
-        publish/nil/gate/detail/Deferrer.hpp
-        publish/nil/gate/detail/Edge.hpp
+        publish/nil/gate/detail/edge/Data.hpp
+        publish/nil/gate/detail/edge/Async.hpp
+        publish/nil/gate/detail/edge/Batch.hpp
+        publish/nil/gate/detail/edge/Internal.hpp
         publish/nil/gate/detail/Node.hpp
+        publish/nil/gate/detail/Tasks.hpp
         publish/nil/gate/detail/INode.hpp
-        publish/nil/gate/detail/AsyncEdge.hpp
-        publish/nil/gate/detail/types.hpp
+        publish/nil/gate/detail/callable_traits.hpp
         publish/nil/gate/detail/validation/edge.hpp
         publish/nil/gate/detail/validation/node.hpp
 )
