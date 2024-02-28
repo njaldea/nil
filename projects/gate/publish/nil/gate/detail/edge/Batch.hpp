@@ -2,6 +2,8 @@
 
 #include "Internal.hpp"
 
+#include "../ICallable.hpp"
+
 namespace nil::gate::detail
 {
     template <typename T>
@@ -22,52 +24,60 @@ namespace nil::gate::detail
             return edge->value();
         }
 
+        bool has_value() const override
+        {
+            return edge->has_value();
+        }
+
         void set_value(T new_data) override
         {
-            struct Callable: ICallable
+            if (tasks)
             {
-                Callable(T init_data, InternalEdge<T>* init_parent)
-                    : data(std::move(init_data))
-                    , parent(init_parent)
+                struct Callable: ICallable
                 {
-                }
-
-                void call() override
-                {
-                    if (parent->exec(std::move(data)))
+                    Callable(T init_data, InternalEdge<T>* init_parent)
+                        : data(std::move(init_data))
+                        , parent(init_parent)
                     {
-                        parent->pend();
                     }
-                }
 
-                T data;
-                InternalEdge<T>* parent;
-            };
+                    void call() override
+                    {
+                        if (parent->exec(std::move(data)))
+                        {
+                            parent->pend();
+                        }
+                    }
 
-            this->tasks->push_back(std::make_unique<Callable>(std::move(new_data), this));
+                    T data;
+                    InternalEdge<T>* parent;
+                };
+
+                tasks->push_back(std::make_unique<Callable>(std::move(new_data), this));
+            }
         }
 
         bool exec(T new_data) override
         {
-            return static_cast<InternalEdge<T>*>(edge)->exec(std::move(new_data));
+            return edge->exec(std::move(new_data));
         }
 
         void pend() override
         {
-            return static_cast<InternalEdge<T>*>(edge)->pend();
-        }
-
-        void attach_input(INode* node) override
-        {
-            return static_cast<InternalEdge<T>*>(edge)->attach_input(node);
+            return edge->pend();
         }
 
         void attach_output(INode* node) override
         {
-            return static_cast<InternalEdge<T>*>(edge)->attach_output(node);
+            return edge->attach_output(node);
         }
 
-        MutableEdge<T>* edge = nullptr;
+        MutableEdge<T>* as_mutable() const
+        {
+            return edge;
+        }
+
+        InternalEdge<T>* edge = nullptr;
         std::vector<std::unique_ptr<ICallable>>* tasks = nullptr;
     };
 
@@ -87,8 +97,14 @@ namespace nil::gate::detail
 
         ~Batch() noexcept
         {
-            tasks->push(std::move(batch_tasks));
-            commit->call();
+            if (tasks)
+            {
+                tasks->push_batch(std::move(batch_tasks));
+            }
+            if (commit)
+            {
+                commit->call();
+            }
         }
 
         Batch(const Batch&) = delete;
@@ -100,7 +116,7 @@ namespace nil::gate::detail
         template <std::size_t index>
         auto* get() const
         {
-            return std::get<index>(edges).edge;
+            return std::get<index>(edges).as_mutable();
         }
 
     private:

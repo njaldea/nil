@@ -2,9 +2,6 @@
 
 #include "IEdge.hpp"
 
-#include <optional>
-#include <utility>
-
 namespace nil::gate
 {
     /**
@@ -27,5 +24,6 @@ namespace nil::gate
         // For edges created for a Node, make sure to call core.run() before accessing value.
         // For edges created on its own, it should always have a value due to Core's api.
         virtual const T& value() const = 0;
+        virtual bool has_value() const = 0;
     };
 }

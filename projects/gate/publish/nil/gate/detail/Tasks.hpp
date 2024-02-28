@@ -2,28 +2,16 @@
 
 #include <memory>
 #include <mutex>
-#include <utility>
 #include <vector>
+
+#include "ICallable.hpp"
 
 namespace nil::gate::detail
 {
-    struct ICallable
-    {
-        ICallable() = default;
-        virtual ~ICallable() = default;
-
-        ICallable(ICallable&&) = delete;
-        ICallable(const ICallable&) = delete;
-        ICallable& operator=(ICallable&&) = delete;
-        ICallable& operator=(const ICallable&) = delete;
-
-        virtual void call() = 0;
-    };
-
     class Tasks
     {
     public:
-        void push(std::vector<std::unique_ptr<ICallable>> cbs)
+        void push_batch(std::vector<std::unique_ptr<ICallable>> cbs)
         {
             std::lock_guard g(mutex);
             for (auto&& cb : cbs)

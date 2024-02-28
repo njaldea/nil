@@ -26,22 +26,78 @@ using SUT = nil::gate::detail::callable_traits<T>;
 
 TEST(gate, traits_all_empty)
 {
-    using type = SUT<TC<void()>>;
+    {
+        using type = SUT<TC<void()>>;
 
-    ASSERT_EQ(type::inputs::size, 0);
-    ASSERT_TRUE((std::is_same_v<type::inputs::type, nil::utils::traits::types<>>));
+        ASSERT_EQ(type::inputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::inputs::type, nil::utils::traits::types<>>));
 
-    ASSERT_EQ(type::sync_outputs::size, 0);
-    ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, nil::utils::traits::types<>>));
+        ASSERT_EQ(type::sync_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, nil::utils::traits::types<>>));
 
-    ASSERT_EQ(type::async_outputs::size, 0);
-    ASSERT_TRUE((std::is_same_v<type::async_outputs::type, nil::utils::traits::types<>>));
+        ASSERT_EQ(type::async_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::async_outputs::type, nil::utils::traits::types<>>));
 
-    ASSERT_EQ(type::outputs::size, 0);
-    ASSERT_TRUE((std::is_same_v<type::outputs::type, nil::utils::traits::types<>>));
+        ASSERT_EQ(type::outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, nil::utils::traits::types<>>));
 
-    ASSERT_TRUE(type::is_valid);
-    ASSERT_TRUE(!type::has_async);
+        ASSERT_TRUE(type::is_valid);
+        ASSERT_TRUE(!type::has_async);
+    }
+    {
+        using type = SUT<TC<void(nil::gate::async_edges<>)>>;
+
+        ASSERT_EQ(type::inputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::inputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::sync_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::async_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::async_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_TRUE(type::is_valid);
+        ASSERT_TRUE(type::has_async);
+    }
+    {
+        using type = SUT<TC<void(const nil::gate::async_edges<>&)>>;
+
+        ASSERT_EQ(type::inputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::inputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::sync_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::async_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::async_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_TRUE(type::is_valid);
+        ASSERT_TRUE(type::has_async);
+    }
+    {
+        using type = SUT<TC<void(nil::gate::async_edges<>&)>>;
+
+        ASSERT_EQ(type::inputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::inputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::sync_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::async_outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::async_outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_EQ(type::outputs::size, 0);
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, nil::utils::traits::types<>>));
+
+        ASSERT_TRUE(!type::is_valid);
+        ASSERT_TRUE(type::has_async);
+    }
 }
 
 TEST(gate, traits_input)
@@ -111,26 +167,15 @@ TEST(gate, traits_sync_output)
         using type = SUT<test_t>;
 
         ASSERT_EQ(type::sync_outputs::size, 4);
-        ASSERT_TRUE( //
-            (std::is_same_v<
-                type::sync_outputs::type,
-                nil::utils::traits::types<
-                    int,
-                    std::unique_ptr<const int>,
-                    std::shared_ptr<const int>,
-                    std::optional<const int>>>)
-        );
-
         ASSERT_EQ(type::outputs::size, 4);
-        ASSERT_TRUE( //
-            (std::is_same_v<
-                type::outputs::type,
-                nil::utils::traits::types<
-                    int,
-                    std::unique_ptr<const int>,
-                    std::shared_ptr<const int>,
-                    std::optional<const int>>>)
-        );
+
+        using expected_t = nil::utils::traits::types<
+            int,
+            std::unique_ptr<const int>,
+            std::shared_ptr<const int>,
+            std::optional<const int>>;
+        ASSERT_TRUE((std::is_same_v<type::sync_outputs::type, expected_t>));
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, expected_t>));
 
         ASSERT_TRUE(type::is_valid);
         ASSERT_TRUE(!type::has_async);
@@ -178,26 +223,15 @@ TEST(gate, traits_async_output)
         using type = SUT<test_t>;
 
         ASSERT_EQ(type::async_outputs::size, 4);
-        ASSERT_TRUE( //
-            (std::is_same_v<
-                type::async_outputs::type,
-                nil::utils::traits::types<
-                    int,
-                    std::unique_ptr<const int>,
-                    std::shared_ptr<const int>,
-                    std::optional<const int>>>)
-        );
-
         ASSERT_EQ(type::outputs::size, 4);
-        ASSERT_TRUE( //
-            (std::is_same_v<
-                type::outputs::type,
-                nil::utils::traits::types<
-                    int,
-                    std::unique_ptr<const int>,
-                    std::shared_ptr<const int>,
-                    std::optional<const int>>>)
-        );
+
+        using expected_t = nil::utils::traits::types<
+            int,
+            std::unique_ptr<const int>,
+            std::shared_ptr<const int>,
+            std::optional<const int>>;
+        ASSERT_TRUE((std::is_same_v<type::async_outputs::type, expected_t>));
+        ASSERT_TRUE((std::is_same_v<type::outputs::type, expected_t>));
 
         ASSERT_TRUE(type::is_valid);
         ASSERT_TRUE(type::has_async);
@@ -236,34 +270,102 @@ TEST(gate, traits_async_output)
 
 TEST(gate, traits_output)
 {
-    using sync_output_t = std::tuple<
-        int,
-        std::unique_ptr<const int>,
-        std::shared_ptr<const int>,
-        std::optional<const int>>;
-    using async_output_t = nil::gate::async_edges<
-        int,
-        std::unique_ptr<const int>,
-        std::shared_ptr<const int>,
-        std::optional<const int>>;
-    using test_t = TC<sync_output_t(async_output_t)>;
-    using type = SUT<test_t>;
-
-    ASSERT_EQ(type::outputs::size, 8);
-    ASSERT_TRUE( //
-        (std::is_same_v<
-            type::outputs::type,
-            nil::utils::traits::types<
+    { // ok cases
+        {
+            using sync_output_t = std::tuple<
                 int,
                 std::unique_ptr<const int>,
                 std::shared_ptr<const int>,
-                std::optional<const int>,
+                std::optional<const int>>;
+            using async_output_t = nil::gate::async_edges<
                 int,
                 std::unique_ptr<const int>,
                 std::shared_ptr<const int>,
-                std::optional<const int>>>)
-    );
+                std::optional<const int>>;
+            using test_t = TC<sync_output_t(async_output_t)>;
+            using type = SUT<test_t>;
 
-    ASSERT_TRUE(type::is_valid);
-    ASSERT_TRUE(type::has_async);
+            ASSERT_EQ(type::outputs::size, 8);
+            ASSERT_TRUE( //
+                (std::is_same_v<
+                    type::outputs::type,
+                    nil::utils::traits::types<
+                        int,
+                        std::unique_ptr<const int>,
+                        std::shared_ptr<const int>,
+                        std::optional<const int>,
+                        int,
+                        std::unique_ptr<const int>,
+                        std::shared_ptr<const int>,
+                        std::optional<const int>>>)
+            );
+
+            ASSERT_TRUE(type::is_valid);
+            ASSERT_TRUE(type::has_async);
+        }
+        {
+            using sync_output_t = std::tuple<
+                int,
+                std::unique_ptr<const int>,
+                std::shared_ptr<const int>,
+                std::optional<const int>>;
+            using async_output_t = nil::gate::async_edges<
+                int,
+                std::unique_ptr<const int>,
+                std::shared_ptr<const int>,
+                std::optional<const int>>;
+            using test_t = TC<sync_output_t(const async_output_t&)>;
+            using type = SUT<test_t>;
+
+            ASSERT_EQ(type::outputs::size, 8);
+            ASSERT_TRUE( //
+                (std::is_same_v<
+                    type::outputs::type,
+                    nil::utils::traits::types<
+                        int,
+                        std::unique_ptr<const int>,
+                        std::shared_ptr<const int>,
+                        std::optional<const int>,
+                        int,
+                        std::unique_ptr<const int>,
+                        std::shared_ptr<const int>,
+                        std::optional<const int>>>)
+            );
+
+            ASSERT_TRUE(type::is_valid);
+            ASSERT_TRUE(type::has_async);
+        }
+    }
+    { // invalid cases
+        using sync_output_t = std::tuple<
+            int,
+            std::unique_ptr<const int>,
+            std::shared_ptr<const int>,
+            std::optional<const int>>;
+        using async_output_t = nil::gate::async_edges<
+            char,
+            std::unique_ptr<const char>,
+            std::shared_ptr<const char>,
+            std::optional<const char>>;
+        using test_t = TC<sync_output_t(async_output_t&)>;
+        using type = SUT<test_t>;
+
+        ASSERT_EQ(type::outputs::size, 8);
+        ASSERT_TRUE( //
+            (std::is_same_v<
+                type::outputs::type,
+                nil::utils::traits::types<
+                    int,
+                    std::unique_ptr<const int>,
+                    std::shared_ptr<const int>,
+                    std::optional<const int>,
+                    char,
+                    std::unique_ptr<const char>,
+                    std::shared_ptr<const char>,
+                    std::optional<const char>>>)
+        );
+
+        ASSERT_TRUE(!type::is_valid);
+        ASSERT_TRUE(type::has_async);
+    }
 }

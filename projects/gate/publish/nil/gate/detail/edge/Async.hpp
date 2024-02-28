@@ -26,9 +26,9 @@ namespace nil::gate::detail
         AsyncEdges& operator=(AsyncEdges&&) = delete;
 
         template <std::size_t index>
-        auto get() const
+        auto* get() const
         {
-            return std::get<index>(edges);
+            return this->as_mutable(std::get<index>(edges));
         }
 
         Batch<T...> batch()
@@ -37,6 +37,12 @@ namespace nil::gate::detail
         }
 
     private:
+        template <typename U>
+        MutableEdge<U>* as_mutable(InternalEdge<U>* edge) const
+        {
+            return edge;
+        }
+
         Tasks* tasks;
         ICallable* commit_cb;
         std::tuple<InternalEdge<T>*...> edges;

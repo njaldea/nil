@@ -69,10 +69,10 @@ struct Executor
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
     ext::GraphState state;
-    state.core = std::make_unique<nil::gate::Core>(
+    state.core = std::make_unique<nil::gate::Core>();
+    state.core->set_commit( //
         [&executor](auto& core) { boost::asio::post(executor.context, [&]() { core.run(); }); }
     );
-
     state.activate = [&service](std::uint64_t id)
     {
         nil::nedit::proto::NodeState message;

@@ -59,13 +59,26 @@ namespace nil::gate::detail
         static constexpr bool has_async = false;
         static constexpr bool is_valid                   //
             = (true && ... && node_validate_i<I>::value) //
-            && (true && ... && node_validate_o<S>::value);
+            && (true && ... && node_validate_s<S>::value);
     };
 
     template <typename... I, typename... S, typename... A>
     struct traits<nil::utils::traits::types<S...>(async_edges<A...>, I...)>
         : traits<nil::utils::traits::types<S...>(const async_edges<A...>&, I...)>
     {
+    };
+
+    template <typename... I, typename... S, typename... A>
+    struct traits<nil::utils::traits::types<S...>(async_edges<A...>&, I...)>
+    {
+        using inputs = input_traits<typename edge_validate<std::decay_t<I>>::type...>;
+        using sync_outputs = sync_output_traits<typename edge_validate<std::decay_t<S>>::type...>;
+        using async_outputs = async_output_traits<typename edge_validate<std::decay_t<A>>::type...>;
+        using outputs = output_traits<
+            typename edge_validate<std::decay_t<S>>::type...,
+            typename edge_validate<std::decay_t<A>>::type...>;
+        static constexpr bool has_async = true;
+        static constexpr bool is_valid = false;
     };
 
     template <typename... I, typename... S, typename... A>
@@ -80,7 +93,7 @@ namespace nil::gate::detail
         static constexpr bool has_async = true;
         static constexpr bool is_valid                    //
             = (true && ... && node_validate_i<I>::value)  //
-            && (true && ... && node_validate_o<S>::value) //
+            && (true && ... && node_validate_s<S>::value) //
             && (true && ... && edge_validate<A>::value);
     };
 

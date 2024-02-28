@@ -2,8 +2,6 @@
 
 #include "Internal.hpp"
 
-#include <functional>
-
 namespace nil::gate::detail
 {
     /**
@@ -43,35 +41,40 @@ namespace nil::gate::detail
             return *data;
         }
 
+        bool has_value() const override
+        {
+            return data.has_value();
+        }
+
         void set_value(T new_data) override
         {
-            if (tasks != nullptr)
+            if (tasks)
             {
-                return;
-            }
-
-            struct Callable: ICallable
-            {
-                Callable(T init_data, DataEdge<T>* init_parent)
-                    : data(std::move(init_data))
-                    , parent(init_parent)
+                struct Callable: ICallable
                 {
-                }
-
-                void call() override
-                {
-                    if (!parent->data.has_value() || !std::equal_to()(parent->data.value(), data))
+                    Callable(T init_data, DataEdge<T>* init_parent)
+                        : data(std::move(init_data))
+                        , parent(init_parent)
                     {
-                        parent->exec(std::move(data));
-                        parent->pend();
                     }
-                }
 
-                T data;
-                DataEdge<T>* parent;
-            };
+                    void call() override
+                    {
+                        if (!parent->data.has_value() || !std::equal_to()(*parent->data, data))
+                        {
+                            if (parent->exec(std::move(data)))
+                            {
+                                parent->pend();
+                            }
+                        }
+                    }
 
-            this->tasks->push(std::make_unique<Callable>(std::move(new_data), this));
+                    T data;
+                    DataEdge<T>* parent;
+                };
+
+                tasks->push(std::make_unique<Callable>(std::move(new_data), this));
+            }
         }
 
         bool exec(T new_data) override
@@ -90,11 +93,6 @@ namespace nil::gate::detail
             {
                 out->pend();
             }
-        }
-
-        void attach_input(INode* node) override
-        {
-            ins = node;
         }
 
         void attach_output(INode* node) override

@@ -32,7 +32,8 @@ struct T<std::tuple<R...>(A...)>
 
 int main()
 {
-    nil::gate::Core core(
+    nil::gate::Core core;
+    core.set_commit(
         [](nil::gate::Core&) {
             std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__)
                       << std::endl;

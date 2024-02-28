@@ -18,14 +18,12 @@ namespace nil::gate::detail
         template <typename... Args>
         Node(
             Tasks* init_tasks,
-            ICallable* init_commit,
             const typename input_t::readonly_edges& init_inputs,
             typename async_output_t::tuple init_asyncs,
             Args&&... args
         )
             : Node(
                   init_tasks,
-                  init_commit,
                   init_inputs,
                   std::move(init_asyncs),
                   typename input_t::type(),
@@ -37,19 +35,19 @@ namespace nil::gate::detail
         {
         }
 
-        void exec() override
+        void exec(ICallable* callable) override
         {
             if (state == EState::Pending)
             {
                 if constexpr (callable_traits<T>::has_async)
                 {
-                    auto result = call();
+                    auto result = call(callable);
                     state = EState::Done;
                     forward(result);
                 }
                 else
                 {
-                    call();
+                    call(callable);
                     state = EState::Done;
                 }
             }
@@ -81,7 +79,6 @@ namespace nil::gate::detail
             typename... Args>
         Node(
             Tasks* init_tasks,
-            ICallable* init_commit,
             const typename input_t::readonly_edges& init_inputs,
             [[maybe_unused]] typename async_output_t::tuple init_asyncs,
             nil::utils::traits::types<I...>,
@@ -91,7 +88,6 @@ namespace nil::gate::detail
             Args&&... args
         )
             : tasks(init_tasks)
-            , commit(init_commit)
             , state(EState::Pending)
             , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
@@ -99,9 +95,7 @@ namespace nil::gate::detail
             , async_outputs()
         {
             (static_cast<InternalEdge<I>*>(get<i_indices>(inputs))->attach_output(this), ...);
-            (get<s_indices>(sync_outputs).attach_input(this), ...);
             (get<s_indices>(sync_outputs).attach_tasks(tasks), ...);
-            (get<a_indices>(async_outputs).attach_input(this), ...);
             (get<a_indices>(async_outputs).attach_tasks(tasks), ...);
             (get<a_indices>(async_outputs).exec(std::move(get<a_indices>(init_asyncs))), ...);
         }
@@ -112,19 +106,19 @@ namespace nil::gate::detail
             (get<s_indices>(sync_outputs).pend(), ...);
         }
 
-        auto call()
+        auto call(ICallable* commit)
         {
-            constexpr auto is_void_return = std::is_same_v<
-                void,
-                decltype(std::declval<Node<T>>().call(typename input_t::make_index_sequence()))>;
+            using return_t = decltype(std::declval<Node<T>>()
+                                          .call(nullptr, typename input_t::make_index_sequence()));
+            constexpr auto is_void_return = std::is_same_v<void, return_t>;
             if constexpr (is_void_return)
             {
-                call(typename input_t::make_index_sequence());
+                call(commit, typename input_t::make_index_sequence());
                 return std::tuple<>();
             }
             else
             {
-                return call(typename input_t::make_index_sequence());
+                return call(commit, typename input_t::make_index_sequence());
             }
         }
 
@@ -133,17 +127,17 @@ namespace nil::gate::detail
             forward(result, typename sync_output_t::make_index_sequence());
         }
 
-        auto async_edges()
+        auto async_edges(ICallable* commit)
         {
-            return async_edges(typename async_output_t::make_index_sequence());
+            return async_edges(commit, typename async_output_t::make_index_sequence());
         }
 
         template <std::size_t... i_indices>
-        auto call(std::index_sequence<i_indices...>)
+        auto call(ICallable* commit, std::index_sequence<i_indices...>)
         {
             if constexpr (callable_traits<T>::has_async)
             {
-                return instance(async_edges(), get<i_indices>(inputs)->value()...);
+                return instance(async_edges(commit), get<i_indices>(inputs)->value()...);
             }
             else
             {
@@ -158,7 +152,7 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... a_indices>
-        auto async_edges(std::index_sequence<a_indices...>)
+        auto async_edges(ICallable* commit, std::index_sequence<a_indices...>)
         {
             return typename async_output_t::async_edges(
                 tasks,
@@ -177,7 +171,6 @@ namespace nil::gate::detail
         }
 
         Tasks* tasks;
-        ICallable* commit;
         EState state;
 
         T instance;

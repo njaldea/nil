@@ -24,35 +24,6 @@ namespace nil::gate
     {
     public:
         Core() = default;
-
-        template <typename CB>
-        Core(CB cb)
-            : commit_cb(
-                  [&]()
-                  {
-                      struct Callable: detail::ICallable
-                      {
-                          Callable(Core& init_self, CB init_callback)
-                              : self(init_self)
-                              , callback(std::move(init_callback))
-                          {
-                          }
-
-                          void call() override
-                          {
-                              callback(self);
-                          }
-
-                          Core& self;
-                          CB callback;
-                      };
-
-                      return std::make_unique<Callable>(*this, std::move(cb));
-                  }()
-              )
-        {
-        }
-
         ~Core() noexcept = default;
 
         Core(Core&&) = delete;
@@ -86,9 +57,9 @@ namespace nil::gate
                 Args&&... args
             )
         {
+            // TODO: validate if input_edges is owned by this core.
             auto node = std::make_unique<detail::Node<T>>(
                 &tasks,
-                commit_cb.get(),
                 input_edges,
                 std::tuple<>(),
                 std::forward<Args>(args)...
@@ -116,9 +87,9 @@ namespace nil::gate
                 Args&&... args
             )
         {
+            // TODO: validate if input_edges is owned by this core.
             auto node = std::make_unique<detail::Node<T>>(
                 &tasks,
-                commit_cb.get(),
                 input_edges,
                 std::move(async_initilizer),
                 std::forward<Args>(args)...
@@ -179,15 +150,7 @@ namespace nil::gate
 
             for (const auto& node : owned_nodes)
             {
-                node->exec();
-            }
-        }
-
-        void commit()
-        {
-            if (commit_cb)
-            {
-                commit_cb->call();
+                node->exec(commit_cb.get());
             }
         }
 
@@ -199,6 +162,37 @@ namespace nil::gate
                 commit_cb.get(),
                 {static_cast<detail::InternalEdge<T>*>(edges)...}
             );
+        }
+
+        void commit()
+        {
+            if (commit_cb)
+            {
+                commit_cb->call();
+            }
+        }
+
+        template <typename CB>
+        void set_commit(CB cb)
+        {
+            struct Callable: detail::ICallable
+            {
+                Callable(Core& init_self, CB init_callback)
+                    : self(init_self)
+                    , callback(std::move(init_callback))
+                {
+                }
+
+                void call() override
+                {
+                    callback(self);
+                }
+
+                Core& self;
+                CB callback;
+            };
+
+            commit_cb = std::make_unique<Callable>(*this, std::move(cb));
         }
 
     private:

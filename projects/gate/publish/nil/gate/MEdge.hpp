@@ -3,9 +3,6 @@
 #include "REdge.hpp"
 #include "detail/INode.hpp"
 
-#include <utility>
-#include <vector>
-
 namespace nil::gate
 {
     /**

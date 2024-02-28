@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../../MEdge.hpp"
-#include "../Tasks.hpp"
 
 namespace nil::gate::detail
 {
@@ -25,7 +24,6 @@ namespace nil::gate::detail
 
         virtual bool exec(T new_data) = 0;
         virtual void pend() = 0;
-        virtual void attach_input(INode* node) = 0;
         virtual void attach_output(INode* node) = 0;
     };
 }

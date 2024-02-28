@@ -69,6 +69,8 @@ namespace nil::gate::detail
     static_assert(!edge_validate<bool*>::value);
 
     static_assert(!edge_validate<const bool>::value);
+    static_assert(!edge_validate<const bool* const>::value);
+    static_assert(!edge_validate<const bool* const&>::value);
     static_assert(!edge_validate<const bool&>::value);
 
     static_assert(!edge_validate<std::unique_ptr<bool>>::value);
