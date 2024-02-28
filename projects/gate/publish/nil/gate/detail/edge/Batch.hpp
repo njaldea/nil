@@ -64,12 +64,17 @@ namespace nil::gate::detail
 
         void pend() override
         {
-            return edge->pend();
+            edge->pend();
         }
 
         void attach_output(INode* node) override
         {
-            return edge->attach_output(node);
+            edge->attach_output(node);
+        }
+
+        std::uint64_t depth() const override
+        {
+            return edge->depth();
         }
 
         MutableEdge<T>* as_mutable() const

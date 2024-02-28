@@ -25,5 +25,6 @@ namespace nil::gate::detail
         virtual bool exec(T new_data) = 0;
         virtual void pend() = 0;
         virtual void attach_output(INode* node) = 0;
+        virtual std::uint64_t depth() const = 0;
     };
 }

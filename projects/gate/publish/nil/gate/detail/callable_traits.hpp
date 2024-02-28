@@ -28,7 +28,7 @@ namespace nil::gate::detail
     struct sync_output_traits final: common_traits<T...>
     {
         using tuple = std::tuple<T...>;
-        using edges = std::tuple<DataEdge<T>...>;
+        using data_edges = std::tuple<DataEdge<T>...>;
         using readonly_edges = std::tuple<ReadOnlyEdge<T>*...>;
     };
 
@@ -36,7 +36,7 @@ namespace nil::gate::detail
     struct async_output_traits final: common_traits<T...>
     {
         using tuple = std::tuple<T...>;
-        using edges = std::tuple<DataEdge<T>...>;
+        using data_edges = std::tuple<DataEdge<T>...>;
         using async_edges = nil::gate::detail::AsyncEdges<T...>;
     };
 

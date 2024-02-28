@@ -4,5 +4,5 @@
 
 namespace ext
 {
-    void install(App& app, std::function<void(std::function<void()>)> post);
+    void install(App& app, const std::function<void(std::function<void()>)>& post);
 }

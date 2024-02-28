@@ -15,7 +15,7 @@ struct Deferred
         std::cout << a << std::endl;
         if (a)
         {
-            auto zz = get<0>(z);
+            auto* zz = get<0>(z);
             // this will be triggered on next core.run()
             zz->set_value(zz->value() + 100);
         }
@@ -47,7 +47,7 @@ int main()
 
     core.run();
 
-    auto gate_thread = std::thread(
+    std::thread gate_thread(
         [&context]()
         {
             auto g = boost::asio::make_work_guard(context);
@@ -61,4 +61,6 @@ int main()
         a->set_value(!a->value());
         boost::asio::post(context, run);
     }
+
+    gate_thread.join();
 }

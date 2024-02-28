@@ -7,7 +7,7 @@ namespace nil::service
     template <>
     std::vector<std::uint8_t> codec<std::string>::serialize(const std::string& message)
     {
-        return std::vector<std::uint8_t>(message.begin(), message.end());
+        return {message.begin(), message.end()};
     }
 
     template <>
@@ -15,9 +15,10 @@ namespace nil::service
     {
         const auto o_size = size;
         size = 0;
-        return std::string(static_cast<const char*>(data), o_size);
+        return {static_cast<const char*>(data), o_size};
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define NIL_CODEC_DEFINE(TYPE)                                                                     \
     template <>                                                                                    \
     std::vector<std::uint8_t> codec<TYPE>::serialize(const TYPE& message)                          \

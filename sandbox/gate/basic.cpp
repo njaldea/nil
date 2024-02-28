@@ -33,12 +33,7 @@ struct T<std::tuple<R...>(A...)>
 int main()
 {
     nil::gate::Core core;
-    core.set_commit(
-        [](nil::gate::Core&) {
-            std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__)
-                      << std::endl;
-        }
-    );
+    core.set_commit([](nil::gate::Core&) { nil::log(); });
 
     // using A = T<std::tuple<bool, int, double, std::string>()>;
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;

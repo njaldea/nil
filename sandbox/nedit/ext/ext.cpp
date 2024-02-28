@@ -137,7 +137,7 @@ int EXT::run(const nil::cli::Options& options) const
     ext::install(
         app,
         [&graph_state, &executor](std::function<void()> cb)
-        { boost::asio::post(executor.context, [cb]() { cb(); }); }
+        { boost::asio::post(executor.context, [cb = std::move(cb)]() { cb(); }); }
     );
     const std::string types = app_state.info.types().SerializeAsString();
 

@@ -2,6 +2,8 @@
 
 #include "ICallable.hpp"
 
+#include <cstdint>
+
 namespace nil::gate::detail
 {
     class INode
@@ -11,6 +13,7 @@ namespace nil::gate::detail
 
         virtual void exec(ICallable* callable) = 0;
         virtual void pend() = 0;
+        virtual std::uint64_t depth() const = 0;
 
     protected:
         enum class EState

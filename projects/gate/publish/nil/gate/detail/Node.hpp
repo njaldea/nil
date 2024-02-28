@@ -39,17 +39,9 @@ namespace nil::gate::detail
         {
             if (state == EState::Pending)
             {
-                if constexpr (callable_traits<T>::has_async)
-                {
-                    auto result = call(callable);
-                    state = EState::Done;
-                    forward(result);
-                }
-                else
-                {
-                    call(callable);
-                    state = EState::Done;
-                }
+                auto result = call(callable);
+                state = EState::Done;
+                forward_to_output(result, typename sync_output_t::make_index_sequence());
             }
         }
 
@@ -60,6 +52,11 @@ namespace nil::gate::detail
                 state = EState::Pending;
                 pend(typename sync_output_t::make_index_sequence());
             }
+        }
+
+        std::uint64_t depth() const override
+        {
+            return cached_depth;
         }
 
         typename output_t::readonly_edges output_edges()
@@ -94,9 +91,14 @@ namespace nil::gate::detail
             , sync_outputs()
             , async_outputs()
         {
-            (static_cast<InternalEdge<I>*>(get<i_indices>(inputs))->attach_output(this), ...);
+            (..., initialize_input(static_cast<InternalEdge<I>*>(get<i_indices>(inputs))));
+
+            (get<s_indices>(sync_outputs).set_depth(cached_depth), ...);
+            (get<a_indices>(async_outputs).set_depth(0u), ...);
+
             (get<s_indices>(sync_outputs).attach_tasks(tasks), ...);
             (get<a_indices>(async_outputs).attach_tasks(tasks), ...);
+
             (get<a_indices>(async_outputs).exec(std::move(get<a_indices>(init_asyncs))), ...);
         }
 
@@ -108,10 +110,11 @@ namespace nil::gate::detail
 
         auto call(ICallable* commit)
         {
-            using return_t = decltype(std::declval<Node<T>>()
-                                          .call(nullptr, typename input_t::make_index_sequence()));
-            constexpr auto is_void_return = std::is_same_v<void, return_t>;
-            if constexpr (is_void_return)
+            using return_t = decltype(  //
+                std::declval<Node<T>>() //
+                    .call(nullptr, typename input_t::make_index_sequence())
+            );
+            if constexpr (std::is_same_v<void, return_t>)
             {
                 call(commit, typename input_t::make_index_sequence());
                 return std::tuple<>();
@@ -122,22 +125,15 @@ namespace nil::gate::detail
             }
         }
 
-        auto forward(sync_output_t::tuple& result)
-        {
-            forward(result, typename sync_output_t::make_index_sequence());
-        }
-
-        auto async_edges(ICallable* commit)
-        {
-            return async_edges(commit, typename async_output_t::make_index_sequence());
-        }
-
         template <std::size_t... i_indices>
         auto call(ICallable* commit, std::index_sequence<i_indices...>)
         {
             if constexpr (callable_traits<T>::has_async)
             {
-                return instance(async_edges(commit), get<i_indices>(inputs)->value()...);
+                return instance(
+                    async_edges(commit, typename async_output_t::make_index_sequence()),
+                    get<i_indices>(inputs)->value()...
+                );
             }
             else
             {
@@ -146,7 +142,7 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... s_indices>
-        auto forward(sync_output_t::tuple& result, std::index_sequence<s_indices...>)
+        auto forward_to_output(sync_output_t::tuple& result, std::index_sequence<s_indices...>)
         {
             (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
         }
@@ -170,12 +166,21 @@ namespace nil::gate::detail
             );
         }
 
+        template <typename U>
+        void initialize_input(InternalEdge<U>* edge)
+        {
+            edge->attach_output(this);
+            cached_depth = std::max(cached_depth, edge->depth());
+        }
+
         Tasks* tasks;
         EState state;
 
         T instance;
         typename input_t::readonly_edges inputs;
-        typename sync_output_t::edges sync_outputs;
-        typename async_output_t::edges async_outputs;
+        typename sync_output_t::data_edges sync_outputs;
+        typename async_output_t::data_edges async_outputs;
+
+        std::uint64_t cached_depth = 0u;
     };
 }

@@ -11,7 +11,7 @@ namespace nil
             << location.line() << ':'      //
             << location.column() << ':'    //
             << location.function_name();
-        if (message)
+        if (nullptr != message)
         {
             std::cout << '\n' << message;
         }

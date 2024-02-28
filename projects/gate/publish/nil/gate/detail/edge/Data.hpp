@@ -87,7 +87,7 @@ namespace nil::gate::detail
             return false;
         }
 
-        void pend() override
+        void pend()
         {
             for (auto* out : this->outs)
             {
@@ -105,10 +105,20 @@ namespace nil::gate::detail
             tasks = new_tasks;
         }
 
+        void set_depth(std::uint64_t value)
+        {
+            depth_value = value;
+        }
+
+        std::uint64_t depth() const override
+        {
+            return depth_value;
+        }
+
     private:
         std::optional<T> data;
         Tasks* tasks = nullptr;
-        INode* ins = nullptr;
+        std::uint64_t depth_value = 0u;
         std::vector<detail::INode*> outs;
     };
 }

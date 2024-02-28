@@ -73,7 +73,7 @@ namespace ext
         std::function<void(std::function<void()>)> post;
     };
 
-    void install(ext::App& app, std::function<void(std::function<void()>)> post)
+    void install(ext::App& app, const std::function<void(std::function<void()>)>& post)
     {
         using text = std::string;
         // clang-format off
