@@ -80,4 +80,7 @@ namespace nil::gate::detail
     static_assert(edge_validate<std::unique_ptr<const bool>>::value);
     static_assert(edge_validate<std::shared_ptr<const bool>>::value);
     static_assert(edge_validate<std::optional<const bool>>::value);
+
+    template <typename T>
+    using edgify_t = typename edge_validate<std::decay_t<T>>::type;
 }

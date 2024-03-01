@@ -11,26 +11,33 @@ endif()
 set(
     HEADERS
         publish/nil/gate.hpp
-        publish/nil/gate/traits.hpp
+        publish/nil/gate/Batch.hpp
         publish/nil/gate/Core.hpp
-        publish/nil/gate/REdge.hpp
-        publish/nil/gate/MEdge.hpp
         publish/nil/gate/IEdge.hpp
-        publish/nil/gate/detail/edge/Data.hpp
-        publish/nil/gate/detail/edge/Async.hpp
-        publish/nil/gate/detail/edge/Batch.hpp
-        publish/nil/gate/detail/edge/Internal.hpp
+        publish/nil/gate/MEdge.hpp
+        publish/nil/gate/REdge.hpp
+        publish/nil/gate/traits.hpp
+        publish/nil/gate/tuples/async_outputs.hpp
+        publish/nil/gate/tuples/edges.hpp
+        publish/nil/gate/tuples/inputs.hpp
+        publish/nil/gate/tuples/outputs.hpp
+        publish/nil/gate/tuples/sync_outputs.hpputs.hpp
+        publish/nil/gate/nodes/Asynctify.hpp
+        publish/nil/gate/nodes/Scoped.hpp
+        publish/nil/gate/detail/BatchEdge.hpp
+        publish/nil/gate/detail/DataEdge.hpp
+        publish/nil/gate/detail/ICallable.hpp
+        publish/nil/gate/detail/INode.hpp
         publish/nil/gate/detail/Node.hpp
         publish/nil/gate/detail/Tasks.hpp
-        publish/nil/gate/detail/INode.hpp
-        publish/nil/gate/detail/callable_traits.hpp
+        publish/nil/gate/detail/traits/callable.hpp
+        publish/nil/gate/detail/traits/node.hpp
+        publish/nil/gate/detail/traits/types.hpp
         publish/nil/gate/detail/validation/edge.hpp
         publish/nil/gate/detail/validation/node.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${HEADERS})
-
-target_link_libraries(${PROJECT_NAME} INTERFACE utils)
 
 target_include_directories(
     ${PROJECT_NAME}

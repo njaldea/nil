@@ -56,13 +56,12 @@ namespace ext
 
     struct DeferredAdd
     {
-        void operator()(nil::gate::async_edges<int> async_inputs, int l, int r) const
+        void operator()(nil::gate::async_outputs<int> async_outputs, int l, int r) const
         {
             post(
-                [async_inputs = async_inputs, l, r]() mutable
+                [async_outputs, l, r]() mutable
                 {
-                    auto batch = async_inputs.batch();
-                    auto* a = batch.get<0>();
+                    auto* a = async_outputs.get<0>();
                     // const auto [a] = batch;
                     a->set_value(l + r);
                     std::this_thread::sleep_for(std::chrono::seconds(2));

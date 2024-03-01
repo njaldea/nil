@@ -1,6 +1,11 @@
 #pragma once
 
-#include "Internal.hpp"
+#include "../MEdge.hpp"
+#include "INode.hpp"
+#include "Tasks.hpp"
+
+#include <optional>
+#include <vector>
 
 namespace nil::gate::detail
 {
@@ -11,21 +16,25 @@ namespace nil::gate::detail
      * @tparam T
      */
     template <typename T>
-    class DataEdge final: public InternalEdge<T>
+    class DataEdge final: public MutableEdge<T>
     {
     public:
+        // this is called when instantiated from Node
         DataEdge()
-            : InternalEdge<T>()
+            : MutableEdge<T>()
             , data(std::nullopt)
             , tasks(nullptr)
+            , depth_value(0u)
         {
         }
 
+        // this is called when instantiated from Core
         template <typename... Args>
         DataEdge(Tasks* init_tasks, Args&&... args)
-            : InternalEdge<T>()
+            : MutableEdge<T>()
             , data(std::forward<Args>(args)...)
             , tasks(init_tasks)
+            , depth_value(0u)
         {
         }
 
@@ -41,43 +50,29 @@ namespace nil::gate::detail
             return *data;
         }
 
-        bool has_value() const override
-        {
-            return data.has_value();
-        }
-
         void set_value(T new_data) override
         {
-            if (tasks)
+#ifdef NIL_GATE_CHECKS
+            if (!tasks)
             {
-                struct Callable: ICallable
+                return;
+            }
+#endif
+            tasks->push(make_callable(
+                [this, new_data = std::move(new_data)]() mutable
                 {
-                    Callable(T init_data, DataEdge<T>* init_parent)
-                        : data(std::move(init_data))
-                        , parent(init_parent)
+                    if (!data.has_value() || !std::equal_to()(*data, new_data))
                     {
-                    }
-
-                    void call() override
-                    {
-                        if (!parent->data.has_value() || !std::equal_to()(*parent->data, data))
+                        if (exec(std::move(new_data)))
                         {
-                            if (parent->exec(std::move(data)))
-                            {
-                                parent->pend();
-                            }
+                            pend();
                         }
                     }
-
-                    T data;
-                    DataEdge<T>* parent;
-                };
-
-                tasks->push(std::make_unique<Callable>(std::move(new_data), this));
-            }
+                }
+            ));
         }
 
-        bool exec(T new_data) override
+        bool exec(T new_data)
         {
             if (!data.has_value() || !std::equal_to<T>()(data.value(), new_data))
             {
@@ -95,7 +90,7 @@ namespace nil::gate::detail
             }
         }
 
-        void attach_output(INode* node) override
+        void attach_output(INode* node)
         {
             outs.push_back(node);
         }
@@ -110,15 +105,21 @@ namespace nil::gate::detail
             depth_value = value;
         }
 
-        std::uint64_t depth() const override
+        std::uint64_t depth() const
         {
             return depth_value;
         }
 
     private:
         std::optional<T> data;
-        Tasks* tasks = nullptr;
-        std::uint64_t depth_value = 0u;
+        Tasks* tasks;
+        std::uint64_t depth_value;
         std::vector<detail::INode*> outs;
     };
+
+    template <typename U>
+    MutableEdge<U>* as_mutable(DataEdge<U>* edge)
+    {
+        return edge;
+    }
 }

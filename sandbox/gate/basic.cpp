@@ -35,6 +35,23 @@ int main()
     nil::gate::Core core;
     core.set_commit([](nil::gate::Core&) { nil::log(); });
 
+    {
+        using TestNode = T<void(const nil::gate::Core&)>;
+        using cccc = nil::gate::detail::traits::callable<TestNode>::type;
+        using tttt = nil::gate::detail::traits::node<TestNode>;
+        const auto a1 = tttt::has_async;
+        const auto a2 = tttt::has_core;
+        const auto a3 = tttt::is_valid;
+        const auto a4 = tttt::is_input_valid;
+        using ia = tttt::inputs::type;
+        using sa = tttt::sync_outputs::type;
+        using aa = tttt::async_outputs::type;
+        (void)a1;
+        (void)a2;
+        (void)a3;
+        (void)a4;
+    }
+
     // using A = T<std::tuple<bool, int, double, std::string>()>;
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;
     using C = T<std::tuple<double>(int)>;
@@ -45,7 +62,6 @@ int main()
     using H = T<void(bool, char)>;
     using I = T<void(char, float)>;
 
-    // const auto [a1, a2, a3, a4] = core.node<A>({}, "a");
     auto* a1 = core.edge<std::unique_ptr<const bool>>();
     auto* a2 = core.edge<int>();
     auto* a3 = core.edge<double>();

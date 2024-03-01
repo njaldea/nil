@@ -1,7 +1,6 @@
 #pragma once
 
 #include "REdge.hpp"
-#include "detail/INode.hpp"
 
 namespace nil::gate
 {

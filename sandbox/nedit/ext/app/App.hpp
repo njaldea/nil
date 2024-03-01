@@ -60,79 +60,11 @@ namespace ext
             }
         };
 
-        std::unique_ptr<nil::gate::Core> core;
+        nil::gate::Core core;
         std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
         std::function<void(std::uint64_t)> activate;
         std::function<void(std::uint64_t)> deactivate;
-    };
-
-    struct Scoped
-    {
-        Scoped(GraphState& init_state, std::uint64_t init_id)
-            : state(init_state)
-            , id(init_id)
-        {
-            state.activate(id);
-        }
-
-        ~Scoped()
-        {
-            state.deactivate(id);
-        }
-
-        GraphState& state;
-        std::uint64_t id;
-    };
-
-    template <typename T, typename Inputs, typename Asyncs>
-    struct Activatable;
-
-    template <typename T, typename... Inputs>
-    struct Activatable<T, nil::utils::traits::types<Inputs...>, nil::utils::traits::types<>>
-    {
-        template <typename... Args>
-        Activatable(GraphState& init_state, std::uint64_t init_id, const Args&... args)
-            : state(init_state)
-            , id(init_id)
-            , object{args...}
-        {
-        }
-
-        auto operator()(const Inputs&... args) const
-        {
-            Scoped _(state, id);
-            return object.operator()(args...);
-        }
-
-        GraphState& state;
-        std::uint64_t id;
-        T object;
-    };
-
-    template <typename T, typename... Inputs, typename... Asyncs>
-    struct Activatable<
-        T,
-        nil::utils::traits::types<Inputs...>,
-        nil::utils::traits::types<Asyncs...>>
-    {
-        template <typename... Args>
-        Activatable(GraphState& init_state, std::uint64_t init_id, const Args&... args)
-            : state(init_state)
-            , id(init_id)
-            , object{args...}
-        {
-        }
-
-        auto operator()(nil::gate::async_edges<Asyncs...> asyncs, const Inputs&... args) const
-        {
-            Scoped _(state, id);
-            return object.operator()(asyncs, args...);
-        }
-
-        GraphState& state;
-        std::uint64_t id;
-        T object;
     };
 
     struct AppState
@@ -166,7 +98,7 @@ namespace ext
             void add_inputs(
                 const std::unordered_map<const void*, std::uint64_t>& type_to_pin_index,
                 nil::nedit::proto::State::Types::Node& info,
-                nil::utils::traits::types<Inputs...> /* unused */,
+                nil::gate::detail::traits::types<Inputs...> /* unused */,
                 std::index_sequence<indices...> /* unused */
             )
             {
@@ -183,7 +115,7 @@ namespace ext
             void add_outputs(
                 const std::unordered_map<const void*, std::uint64_t>& type_to_pin_index,
                 nil::nedit::proto::State::Types::Node& info,
-                nil::utils::traits::types<Outputs...> /* unused */
+                nil::gate::detail::traits::types<Outputs...> /* unused */
             )
             {
                 (info.add_outputs(type_to_pin_index.at(nil::utils::traits::identity_v<Outputs>)),
@@ -209,7 +141,7 @@ namespace ext
                 state.control_edges.emplace(
                     id,
                     GraphState::RelaxedEdge{
-                        state.core->edge<decltype(std::declval<C>().value)>(control.value)
+                        state.core.edge<decltype(std::declval<C>().value)>(control.value)
                     }
                 );
             }
@@ -250,40 +182,39 @@ namespace ext
             )
             {
                 using RE = GraphState::RelaxedEdge;
-                using N = Activatable<
-                    T,
-                    typename nil::gate::detail::callable_traits<T>::inputs::type,
-                    typename nil::gate::detail::callable_traits<T>::async_outputs::type>;
-                const auto i_edges =
-                    typename nil::gate::detail::callable_traits<T>::inputs::readonly_edges{
-                        state.internal_edges.at(i.at(i_indices))...,
-                        state.control_edges.at(c.at(c_indices))...
-                    };
+                using N = nil::gate::nodes::Scoped<T>;
+                const auto i_edges = typename nil::gate::detail::traits::node<T>::inputs::edges{
+                    state.internal_edges.at(i.at(i_indices))...,
+                    state.control_edges.at(c.at(c_indices))...
+                };
+
+                auto activate = [&state, id]() { state.activate(id); };
+                auto deactivate = [&state, id]() { state.deactivate(id); };
+
                 if constexpr (sizeof...(o_indices) > 0u)
                 {
                     if constexpr (sizeof...(A) == 0)
                     {
-                        const auto r = state.core->node<N>(i_edges, state, id, args...);
-                        (state.internal_edges.emplace(o.at(o_indices), RE{std::get<o_indices>(r)}),
-                         ...);
+                        const auto r = state.core.node<N>(i_edges, activate, deactivate, args...);
+                        (state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(r)}), ...);
                     }
                     else
                     {
                         const auto r
-                            = state.core->node<N>(std::move(a), i_edges, state, id, args...);
-                        (state.internal_edges.emplace(o.at(o_indices), RE{std::get<o_indices>(r)}),
-                         ...);
+                            = state.core
+                                  .node<N>(std::move(a), i_edges, activate, deactivate, args...);
+                        (state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(r)}), ...);
                     }
                 }
                 else
                 {
                     if constexpr (sizeof...(A) == 0)
                     {
-                        state.core->node<N>(i_edges, state, id, args...);
+                        state.core.node<N>(i_edges, activate, deactivate, args...);
                     }
                     else
                     {
-                        state.core->node<N>(std::move(a), i_edges, state, id, args...);
+                        state.core.node<N>(std::move(a), i_edges, activate, deactivate, args...);
                     }
                 }
             }
@@ -308,8 +239,8 @@ namespace ext
                 std::unordered_map<const void*, std::uint64_t> type_to_pin_index
             )
             {
-                using input_t = typename nil::gate::detail::callable_traits<T>::inputs;
-                using output_t = typename nil::gate::detail::callable_traits<T>::outputs;
+                using input_t = typename nil::gate::detail::traits::node<T>::inputs;
+                using output_t = typename nil::gate::detail::traits::node<T>::outputs;
 
                 detail::msg::add_inputs(
                     type_to_pin_index,
@@ -337,8 +268,8 @@ namespace ext
                 const Args&... args
             )
             {
-                using input_t = typename nil::gate::detail::callable_traits<T>::inputs;
-                using output_t = typename nil::gate::detail::callable_traits<T>::outputs;
+                using input_t = typename nil::gate::detail::traits::node<T>::inputs;
+                using output_t = typename nil::gate::detail::traits::node<T>::outputs;
 
                 const auto controls = get_controls(node);
                 return                                             //
@@ -405,7 +336,7 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... Args>
-        std::enable_if_t<(nil::gate::detail::callable_traits<T>::async_outputs::size == 0), App&>
+        std::enable_if_t<(nil::gate::detail::traits::node<T>::async_outputs::size == 0), App&>
             add_node(const Node<T, Controls...>& node, const Args&... args)
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
@@ -415,10 +346,10 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... A, typename... Args>
-        std::enable_if_t<(nil::gate::detail::callable_traits<T>::async_outputs::size > 0), App&>
+        std::enable_if_t<(nil::gate::detail::traits::node<T>::async_outputs::size > 0), App&>
             add_node(
                 const Node<T, Controls...>& node,
-                nil::gate::detail::callable_traits<T>::async_outputs::tuple a,
+                nil::gate::detail::traits::node<T>::async_outputs::tuple a,
                 const Args&... args
             )
         {

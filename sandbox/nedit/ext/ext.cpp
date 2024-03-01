@@ -69,8 +69,8 @@ struct Executor
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
     ext::GraphState state;
-    state.core = std::make_unique<nil::gate::Core>();
-    state.core->set_commit( //
+    state.core = {};
+    state.core.set_commit( //
         [&executor](auto& core) { boost::asio::post(executor.context, [&]() { core.run(); }); }
     );
     state.activate = [&service](std::uint64_t id)
@@ -108,7 +108,7 @@ auto make_control_update(ext::GraphState& graph_state, Executor& executor)
                     it->second.set_value(message.value());
                     if (executor.posts.empty())
                     {
-                        executor.posts.emplace_back([&]() { graph_state.core->run(); });
+                        executor.posts.emplace_back([&]() { graph_state.core.run(); });
                     }
                 }
             }
@@ -253,7 +253,7 @@ int EXT::run(const nil::cli::Options& options) const
                             {
                                 try
                                 {
-                                    graph_state.core->run();
+                                    graph_state.core.run();
                                 }
                                 catch (const std::exception& ex)
                                 {

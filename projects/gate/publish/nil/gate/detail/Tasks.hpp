@@ -8,7 +8,7 @@
 
 namespace nil::gate::detail
 {
-    class Tasks
+    class Tasks final
     {
     public:
         void push_batch(std::vector<std::unique_ptr<ICallable>> cbs)
