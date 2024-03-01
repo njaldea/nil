@@ -21,7 +21,7 @@ set(
         publish/nil/gate/tuples/edges.hpp
         publish/nil/gate/tuples/inputs.hpp
         publish/nil/gate/tuples/outputs.hpp
-        publish/nil/gate/tuples/sync_outputs.hpputs.hpp
+        publish/nil/gate/tuples/sync_outputs.hpp
         publish/nil/gate/nodes/Asynctify.hpp
         publish/nil/gate/nodes/Scoped.hpp
         publish/nil/gate/detail/BatchEdge.hpp

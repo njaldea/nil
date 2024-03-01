@@ -72,9 +72,9 @@ Requirements of edge types to be used are the following:
 
 TODO: figure out how to detect pointer like objects and support them too.
 
-## Directed Graph
+## Directed Acyclic Graph
 
-The graph suppored by the library is a directed graph.
+The graph suppored by the library is a directed acyclic graph.
 
 The Nodes are executed in proper order only if there is a change in the edge.
 
@@ -93,13 +93,13 @@ int main()
     /**
      *  N1 and N2 are chained
      *  | ---------------------------------- |
-     *  |                        ----        |
-     *  | I2 =================> |    | => I5 |
-     *  |        ----           | N2 | => I6 |
-     *  | I1 => |    | => I3 => |    |       |
-     *  |       | N1 |           ----        |
-     *  | I1 => |    |                       |
      *  |        ----                        |
+     *  | I1 => |    |                       |
+     *  |       | N1 |           ----        |
+     *  | I1 => |    | => I3 => |    |       |
+     *  |        ----           | N2 | => I5 |
+     *  | I2 =================> |    | => I6 |
+     *  |                        ----        |
      *  | ---------------------------------- |
      */
     auto* edge_i1 = core.edge<int>(10);

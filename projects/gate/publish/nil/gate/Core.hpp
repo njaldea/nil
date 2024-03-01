@@ -1,8 +1,12 @@
 #pragma once
 
 #include "Batch.hpp"
+#include "MEdge.hpp"
 #include "detail/DataEdge.hpp"
 #include "detail/Node.hpp"
+
+#include "detail/traits/node.hpp"
+#include "detail/validation/edge.hpp"
 
 namespace nil::gate
 {

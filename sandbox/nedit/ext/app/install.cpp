@@ -61,7 +61,7 @@ namespace ext
             post(
                 [async_outputs, l, r]() mutable
                 {
-                    auto* a = async_outputs.get<0>();
+                    auto* a = get<0>(async_outputs);
                     // const auto [a] = batch;
                     a->set_value(l + r);
                     std::this_thread::sleep_for(std::chrono::seconds(2));

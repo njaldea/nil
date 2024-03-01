@@ -5,10 +5,7 @@
 
 #include "../DataEdge.hpp"
 
-#include "../../tuples/async_outputs.hpp"
-#include "../../tuples/inputs.hpp"
-#include "../../tuples/outputs.hpp"
-#include "../../tuples/sync_outputs.hpp"
+#include "../../types.hpp"
 
 #include "callable.hpp"
 
@@ -36,7 +33,7 @@ namespace nil::gate::detail::traits
         };
 
         static constexpr bool has_core = false;
-        static constexpr bool is_input_valid = true;
+        static constexpr bool is_input_valid = (true && ... && node_validate_i<T>::value);
     };
 
     template <typename... T>
@@ -118,7 +115,7 @@ namespace nil::gate::detail::traits
         , node_outputs_async<>
         , node_outputs<S...>
     {
-        using self_t = node<types<O...>(I...)>;
+        using self_t = node<types<S...>(I...)>;
         static constexpr bool has_async = false;
         static constexpr bool is_valid //
             = self_t::is_input_valid   //
