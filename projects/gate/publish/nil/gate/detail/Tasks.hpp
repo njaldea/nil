@@ -11,6 +11,14 @@ namespace nil::gate::detail
     class Tasks final
     {
     public:
+        Tasks() = default;
+        ~Tasks() noexcept = default;
+
+        Tasks(Tasks&&) = default;
+        Tasks(const Tasks&) = default;
+        Tasks& operator=(Tasks&&) = default;
+        Tasks& operator=(const Tasks&) = default;
+
         void push_batch(std::vector<std::unique_ptr<ICallable>> cbs)
         {
             std::lock_guard g(mutex);

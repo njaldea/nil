@@ -7,6 +7,13 @@
 
 namespace nil::gate::detail::traits
 {
+    enum class EReturnType
+    {
+        Void,
+        Tuple,
+        Mono
+    };
+
     /**
      * @brief default/fallback type.
      *  tries to move forward by checking the singature of call operator.
@@ -55,6 +62,7 @@ namespace nil::gate::detail::traits
     template <typename... I, typename... O>
     struct callable<std::tuple<O...>(I...)>: callable<types<O...>(I...)>
     {
+        static constexpr auto tag = EReturnType::Tuple;
     };
 
     /**
@@ -66,6 +74,7 @@ namespace nil::gate::detail::traits
     template <typename... I>
     struct callable<void(I...)>: callable<types<>(I...)>
     {
+        static constexpr auto tag = EReturnType::Void;
     };
 
     /**
@@ -78,6 +87,7 @@ namespace nil::gate::detail::traits
     template <typename... I, typename O>
     struct callable<O(I...)>: callable<types<O>(I...)>
     {
+        static constexpr auto tag = EReturnType::Mono;
     };
 
     /**

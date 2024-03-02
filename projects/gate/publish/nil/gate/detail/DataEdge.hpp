@@ -32,18 +32,13 @@ namespace nil::gate::detail
         template <typename... Args>
         DataEdge(Tasks* init_tasks, Args&&... args)
             : MutableEdge<T>()
-            , data(std::forward<Args>(args)...)
+            , data(std::make_optional<Args>(args)...)
             , tasks(init_tasks)
             , depth_value(0u)
         {
         }
 
-        ~DataEdge() noexcept = default;
-
-        DataEdge(DataEdge&&) = delete;
-        DataEdge(const DataEdge&) = delete;
-        DataEdge& operator=(DataEdge&&) = delete;
-        DataEdge& operator=(const DataEdge&) = delete;
+        ~DataEdge() noexcept override = default;
 
         const T& value() const override
         {
@@ -118,8 +113,8 @@ namespace nil::gate::detail
     };
 
     template <typename U>
-    MutableEdge<U>* as_mutable(DataEdge<U>* edge)
+    DataEdge<U>* as_data(MutableEdge<U>* edge)
     {
-        return edge;
+        return static_cast<DataEdge<U>*>(edge);
     }
 }

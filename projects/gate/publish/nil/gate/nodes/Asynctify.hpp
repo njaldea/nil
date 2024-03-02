@@ -1,6 +1,5 @@
 #pragma once
 
-#include "../Async.hpp"
 #include "../detail/ICallable.hpp"
 #include "../detail/traits/node.hpp"
 

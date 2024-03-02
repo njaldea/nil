@@ -1,12 +1,12 @@
 #pragma once
 
-#include "DataEdge.hpp"
-#include "ICallable.hpp"
+#include "detail/DataEdge.hpp"
+#include "detail/ICallable.hpp"
 
-namespace nil::gate::detail
+namespace nil::gate
 {
     template <typename T>
-    class BatchEdge final: public MutableEdge<T>
+    class BatchEdge final
     {
     public:
         BatchEdge() = default;
@@ -14,16 +14,15 @@ namespace nil::gate::detail
 
         BatchEdge(BatchEdge&&) = delete;
         BatchEdge(const BatchEdge&) = delete;
-
         BatchEdge& operator=(BatchEdge&&) = delete;
         BatchEdge& operator=(const BatchEdge&) = delete;
 
-        const T& value() const override
+        const T& value() const
         {
             return edge->value();
         }
 
-        void set_value(T new_data) override
+        void set_value(T new_data)
         {
 #ifdef NIL_GATE_CHECKS
             if (!tasks)
@@ -31,7 +30,7 @@ namespace nil::gate::detail
                 return;
             }
 #endif
-            tasks->push_back(make_callable(
+            tasks->push_back(detail::make_callable(
                 [this, new_data = std::move(new_data)]()
                 {
                     if (edge->exec(std::move(new_data)))
@@ -42,7 +41,7 @@ namespace nil::gate::detail
             ));
         }
 
-        DataEdge<T>* edge = nullptr;
-        std::vector<std::unique_ptr<ICallable>>* tasks = nullptr;
+        detail::DataEdge<T>* edge = nullptr;
+        std::vector<std::unique_ptr<detail::ICallable>>* tasks = nullptr;
     };
 }

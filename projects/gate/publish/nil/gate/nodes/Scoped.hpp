@@ -12,16 +12,16 @@ namespace nil::gate::nodes
     struct Scoped<T, nil::gate::detail::traits::types<Inputs...>> final
     {
         template <typename Pre, typename Post, typename... Args>
-        Scoped(Pre init_pre, Post init_post, Args&&... args)
-            : pre(detail::make_callable(std::move(init_pre)))
-            , post(detail::make_callable(std::move(init_post)))
+        Scoped(Pre&& init_pre, Post&& init_post, Args&&... args)
+            : pre(detail::make_callable(std::forward<Pre>(init_pre)))
+            , post(detail::make_callable(std::forward<Post>(init_post)))
             , node(std::forward<Args>(args)...)
         {
         }
 
-        auto operator()(const Inputs&... args) const
+        auto operator()(const Inputs&... args)
         {
-            struct OnDestroy
+            struct OnDestroy final
             {
                 OnDestroy(detail::ICallable& init_post)
                     : post(init_post)

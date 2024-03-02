@@ -19,7 +19,7 @@ struct Deferred
         std::cout << a << std::endl;
         if (a)
         {
-            const auto [zz] = core.batch(get<0>(z));
+            auto [zz] = core.batch(z);
             // this will be triggered on next core.run()
             zz->set_value(zz->value() + 100);
         }

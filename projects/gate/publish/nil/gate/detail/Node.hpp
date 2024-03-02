@@ -40,24 +40,36 @@ namespace nil::gate::detail
         {
         }
 
+        ~Node() noexcept = default;
+
+        Node(Node&&) = delete;
+        Node(const Node&) = delete;
+        Node& operator=(Node&&) = delete;
+        Node& operator=(const Node&) = delete;
+
         void exec(Core* core) override
         {
             if (state == EState::Pending)
             {
-                using return_t = decltype(  //
-                    std::declval<Node<T>>() //
-                        .call(core, typename input_t::make_index_sequence())
-                );
-                if constexpr (std::is_same_v<void, return_t>)
+                if constexpr (traits::callable<T>::tag == traits::EReturnType::Void)
                 {
                     call(core, typename input_t::make_index_sequence());
                     state = EState::Done;
                 }
-                else
+                else if constexpr (traits::callable<T>::tag == traits::EReturnType::Tuple)
                 {
                     auto result = call(core, typename input_t::make_index_sequence());
                     state = EState::Done;
                     forward_to_output(result, typename sync_output_t::make_index_sequence());
+                }
+                else if constexpr (traits::callable<T>::tag == traits::EReturnType::Mono)
+                {
+                    auto result = call(core, typename input_t::make_index_sequence());
+                    state = EState::Done;
+                    if constexpr (sync_output_t::size == 1)
+                    {
+                        get<0>(sync_outputs).exec(std::move(result));
+                    }
                 }
             }
         }
@@ -92,7 +104,7 @@ namespace nil::gate::detail
             std::size_t... a_indices,
             typename... Args>
         Node(
-            Tasks* init_tasks,
+            [[maybe_unused]] Tasks* tasks,
             const typename input_t::edges& init_inputs,
             [[maybe_unused]] typename async_output_t::tuple init_asyncs,
             traits::types<I...>,
@@ -101,8 +113,7 @@ namespace nil::gate::detail
             std::index_sequence<a_indices...>,
             Args&&... args
         )
-            : tasks(init_tasks)
-            , state(EState::Pending)
+            : state(EState::Pending)
             , instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
             , sync_outputs()
@@ -169,10 +180,13 @@ namespace nil::gate::detail
         template <std::size_t... s_indices, std::size_t... a_indices>
         auto output_edges(std::index_sequence<s_indices...>, std::index_sequence<a_indices...>)
         {
-            return typename output_t::edges(
-                std::addressof(get<s_indices>(sync_outputs))...,
-                std::addressof(get<a_indices>(async_outputs))...
-            );
+            if constexpr (sizeof...(s_indices) > 0 || sizeof...(a_indices) > 0)
+            {
+                return typename output_t::edges(
+                    std::addressof(get<s_indices>(sync_outputs))...,
+                    std::addressof(get<a_indices>(async_outputs))...
+                );
+            }
         }
 
         template <typename U>
@@ -182,7 +196,6 @@ namespace nil::gate::detail
             cached_depth = std::max(cached_depth, edge->depth());
         }
 
-        Tasks* tasks;
         EState state;
 
         T instance;

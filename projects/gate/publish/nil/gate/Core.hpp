@@ -56,14 +56,33 @@ namespace nil::gate
          */
         template <typename T, typename... Args>
         std::enable_if_t<
-            node_traits<T>::is_valid && !node_traits<T>::has_async,
+            node_traits<T>::is_valid          //
+                && !node_traits<T>::has_async //
+                && (node_traits<T>::inputs::size > 0),
             typename node_traits<T>::outputs::edges>
             node(typename node_traits<T>::inputs::edges input_edges, Args&&... args)
         {
-            // TODO: validate if input_edges is owned by this core.
             auto node = std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
+                std::tuple<>(),
+                std::forward<Args>(args)...
+            );
+            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
+                ->output_edges();
+        }
+
+        template <typename T, typename... Args>
+        std::enable_if_t<
+            node_traits<T>::is_valid          //
+                && !node_traits<T>::has_async //
+                && (node_traits<T>::inputs::size == 0),
+            typename node_traits<T>::outputs::edges>
+            node(Args&&... args)
+        {
+            auto node = std::make_unique<detail::Node<T>>(
+                tasks.get(),
+                typename node_traits<T>::inputs::edges(),
                 std::tuple<>(),
                 std::forward<Args>(args)...
             );
@@ -82,7 +101,9 @@ namespace nil::gate
          */
         template <typename T, typename... Args>
         std::enable_if_t<
-            node_traits<T>::is_valid && node_traits<T>::has_async,
+            node_traits<T>::is_valid         //
+                && node_traits<T>::has_async //
+                && (node_traits<T>::inputs::size > 0),
             typename node_traits<T>::outputs::edges>
             node(
                 typename node_traits<T>::async_outputs::tuple async_initilizer,
@@ -94,6 +115,25 @@ namespace nil::gate
             auto node = std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
+                std::move(async_initilizer),
+                std::forward<Args>(args)...
+            );
+            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(node)).get())
+                ->output_edges();
+        }
+
+        template <typename T, typename... Args>
+        std::enable_if_t<
+            node_traits<T>::is_valid         //
+                && node_traits<T>::has_async //
+                && (node_traits<T>::inputs::size == 0),
+            typename node_traits<T>::outputs::edges>
+            node(typename node_traits<T>::async_outputs::tuple async_initilizer, Args&&... args)
+        {
+            // TODO: validate if input_edges is owned by this core.
+            auto node = std::make_unique<detail::Node<T>>(
+                tasks.get(),
+                typename node_traits<T>::inputs::edges(),
                 std::move(async_initilizer),
                 std::forward<Args>(args)...
             );
@@ -176,11 +216,19 @@ namespace nil::gate
             // and make sure that all edges received by Batch
             // is a DataEdge.
 #endif
-            return Batch<T...>(
-                tasks.get(),
-                commit_cb.get(),
-                {static_cast<detail::DataEdge<T>*>(edges)...}
-            );
+            return Batch<T...>(tasks.get(), commit_cb.get(), {edges...});
+        }
+
+        template <typename... T>
+        Batch<T...> batch(std::tuple<MutableEdge<T>*...> edges) const
+        {
+#ifdef NIL_GATE_CHECKS
+            // TODO: edges should be in required_edges.
+            // by doing this i should be able to simplify BatchEdge
+            // and make sure that all edges received by Batch
+            // is a DataEdge.
+#endif
+            return Batch<T...>(tasks.get(), commit_cb.get(), edges);
         }
 
         void commit() const

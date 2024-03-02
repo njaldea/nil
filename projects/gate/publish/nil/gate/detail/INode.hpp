@@ -14,7 +14,13 @@ namespace nil::gate::detail
     class INode
     {
     public:
+        INode() = default;
         virtual ~INode() noexcept = default;
+
+        INode(INode&&) = delete;
+        INode(const INode&) = delete;
+        INode& operator=(INode&&) = delete;
+        INode& operator=(const INode&) = delete;
 
         virtual void exec(Core* core) = 0;
         virtual void pend() = 0;

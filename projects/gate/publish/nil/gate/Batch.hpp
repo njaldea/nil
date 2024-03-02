@@ -1,10 +1,12 @@
 #pragma once
 
-#include "./detail/BatchEdge.hpp"
+#include "./BEdge.hpp"
 #include "./detail/DataEdge.hpp"
 
 #include "detail/ICallable.hpp"
 #include "detail/Tasks.hpp"
+
+#include <tuple>
 
 namespace nil::gate
 {
@@ -15,7 +17,7 @@ namespace nil::gate
         Batch(
             detail::Tasks* init_tasks,
             detail::ICallable* init_commit,
-            std::tuple<detail::DataEdge<T>*...> init_edges
+            std::tuple<MutableEdge<T>*...> init_edges
         )
             : Batch(
                   init_tasks,
@@ -38,16 +40,15 @@ namespace nil::gate
             }
         }
 
+        Batch(Batch&&) = delete;
         Batch(const Batch&) = delete;
-        Batch(Batch&&) = default;
-
+        Batch& operator=(Batch&&) = delete;
         Batch& operator=(const Batch&) = delete;
-        Batch& operator=(Batch&&) = default;
 
         template <std::size_t index>
-        auto* get() const
+        auto* get()
         {
-            return as_mutable(std::get<index>(edges).edge);
+            return std::addressof(std::get<index>(edges));
         }
 
     private:
@@ -55,7 +56,7 @@ namespace nil::gate
         Batch(
             detail::Tasks* init_tasks,
             detail::ICallable* init_commit,
-            std::tuple<detail::DataEdge<T>*...> init_edges,
+            std::tuple<MutableEdge<T>*...> init_edges,
             std::index_sequence<I...> //
         )
             : tasks(init_tasks)
@@ -66,20 +67,20 @@ namespace nil::gate
         }
 
         template <typename U>
-        void initialize_edge(detail::BatchEdge<U>& e, detail::DataEdge<U>* data_edge)
+        void initialize_edge(BatchEdge<U>& e, MutableEdge<U>* data_edge)
         {
-            e.edge = data_edge;
+            e.edge = static_cast<detail::DataEdge<U>*>(data_edge);
             e.tasks = &batch_tasks;
         }
 
         std::vector<std::unique_ptr<detail::ICallable>> batch_tasks;
         detail::Tasks* tasks;
         detail::ICallable* commit;
-        std::tuple<detail::BatchEdge<T>...> edges;
+        std::tuple<BatchEdge<T>...> edges;
     };
 
     template <std::size_t index, typename... T>
-    auto get(const Batch<T...>& batch)
+    auto get(Batch<T...>& batch)
     {
         return batch.template get<index>();
     }
@@ -93,5 +94,5 @@ struct std::tuple_size<nil::gate::Batch<T...>>: std::integral_constant<std::size
 template <std::size_t I, typename... T>
 struct std::tuple_element<I, nil::gate::Batch<T...>>
 {
-    using type = decltype(get<I>(std::declval<nil::gate::Batch<T...>>()));
+    using type = decltype(get<I>(std::declval<nil::gate::Batch<T...>&>()));
 };

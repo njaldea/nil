@@ -103,6 +103,15 @@ namespace nil::gate::detail::traits
         };
     };
 
+    template <>
+    struct node_outputs<>
+    {
+        struct outputs final: node_common<>
+        {
+            using edges = void;
+        };
+    };
+
     template <typename T>
     struct node: node<typename callable<T>::type>
     {
