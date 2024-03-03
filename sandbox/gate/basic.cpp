@@ -33,7 +33,7 @@ struct T<R(A...)>
 int main()
 {
     nil::gate::Core core;
-    core.set_commit([](nil::gate::Core&) { nil::log(); });
+    core.set_commit([](const nil::gate::Core&) { nil::log(); });
 
     using A = T<void()>;
     using B = T<std::tuple<std::string>(const std::unique_ptr<const bool>&)>;

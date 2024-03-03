@@ -10,16 +10,20 @@
 
 namespace nil::gate
 {
+    class Core;
+
     template <typename... T>
     class Batch final
     {
     public:
         Batch(
+            const Core* init_core,
             detail::Tasks* init_tasks,
-            detail::ICallable* init_commit,
+            detail::ICallable<void(const Core*)>* init_commit,
             std::tuple<MutableEdge<T>*...> init_edges
         )
             : Batch(
+                  init_core,
                   init_tasks,
                   init_commit,
                   std::move(init_edges),
@@ -36,7 +40,7 @@ namespace nil::gate
             }
             if (commit)
             {
-                commit->call();
+                commit->call(core);
             }
         }
 
@@ -54,12 +58,14 @@ namespace nil::gate
     private:
         template <std::size_t... I>
         Batch(
+            const Core* init_core,
             detail::Tasks* init_tasks,
-            detail::ICallable* init_commit,
+            detail::ICallable<void(const Core*)>* init_commit,
             std::tuple<MutableEdge<T>*...> init_edges,
             std::index_sequence<I...> //
         )
-            : tasks(init_tasks)
+            : core(init_core)
+            , tasks(init_tasks)
             , commit(init_commit)
             , edges()
         {
@@ -73,9 +79,10 @@ namespace nil::gate
             e.tasks = &batch_tasks;
         }
 
-        std::vector<std::unique_ptr<detail::ICallable>> batch_tasks;
+        std::vector<std::unique_ptr<detail::ICallable<void()>>> batch_tasks;
+        const Core* core;
         detail::Tasks* tasks;
-        detail::ICallable* commit;
+        detail::ICallable<void(const Core*)>* commit;
         std::tuple<BatchEdge<T>...> edges;
     };
 

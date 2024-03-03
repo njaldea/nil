@@ -47,7 +47,7 @@ namespace nil::gate::detail
         Node& operator=(Node&&) = delete;
         Node& operator=(const Node&) = delete;
 
-        void exec(Core* core) override
+        void exec(const Core* core) override
         {
             if (state == EState::Pending)
             {
@@ -137,7 +137,7 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... i_indices>
-        auto call(Core* core, std::index_sequence<i_indices...>)
+        auto call(const Core* core, std::index_sequence<i_indices...>)
         {
             if constexpr (traits::node<T>::has_async)
             {

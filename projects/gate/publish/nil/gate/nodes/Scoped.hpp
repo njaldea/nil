@@ -12,18 +12,26 @@ namespace nil::gate::nodes
     struct Scoped<T, nil::gate::detail::traits::types<Inputs...>> final
     {
         template <typename Pre, typename Post, typename... Args>
-        Scoped(Pre&& init_pre, Post&& init_post, Args&&... args)
-            : pre(detail::make_callable(std::forward<Pre>(init_pre)))
-            , post(detail::make_callable(std::forward<Post>(init_post)))
+        Scoped(Pre init_pre, Post init_post, Args&&... args)
+            : pre(detail::make_callable(std::move(init_pre)))
+            , post(detail::make_callable(std::move(init_post)))
             , node(std::forward<Args>(args)...)
         {
         }
+
+        Scoped() = delete;
+        ~Scoped() = default;
+
+        Scoped(Scoped&&) = delete;
+        Scoped(const Scoped&) = delete;
+        Scoped& operator=(Scoped&&) = delete;
+        Scoped& operator=(const Scoped&) = delete;
 
         auto operator()(const Inputs&... args)
         {
             struct OnDestroy final
             {
-                OnDestroy(detail::ICallable& init_post)
+                OnDestroy(detail::ICallable<void()>& init_post)
                     : post(init_post)
                 {
                 }
@@ -33,7 +41,7 @@ namespace nil::gate::nodes
                     post.call();
                 }
 
-                detail::ICallable& post;
+                detail::ICallable<void()>& post;
             };
 
             pre->call();
@@ -42,8 +50,8 @@ namespace nil::gate::nodes
             return node.operator()(args...);
         }
 
-        std::unique_ptr<detail::ICallable> pre;
-        std::unique_ptr<detail::ICallable> post;
+        std::unique_ptr<detail::ICallable<void()>> pre;
+        std::unique_ptr<detail::ICallable<void()>> post;
         T node;
     };
 }

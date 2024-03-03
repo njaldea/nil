@@ -188,7 +188,7 @@ namespace nil::gate
         /**
          * @brief run all pending nodes
          */
-        void run()
+        void run() const
         {
 #ifdef NIL_GATE_CHECKS
             if (!tasks)
@@ -216,7 +216,7 @@ namespace nil::gate
             // and make sure that all edges received by Batch
             // is a DataEdge.
 #endif
-            return Batch<T...>(tasks.get(), commit_cb.get(), {edges...});
+            return Batch<T...>(this, tasks.get(), commit_cb.get(), {edges...});
         }
 
         template <typename... T>
@@ -228,26 +228,41 @@ namespace nil::gate
             // and make sure that all edges received by Batch
             // is a DataEdge.
 #endif
-            return Batch<T...>(tasks.get(), commit_cb.get(), edges);
+            return Batch<T...>(this, tasks.get(), commit_cb.get(), edges);
         }
 
         void commit() const
         {
             if (commit_cb)
             {
-                commit_cb->call();
+                commit_cb->call(this);
             }
         }
 
         template <typename CB>
         void set_commit(CB cb) noexcept
         {
-            commit_cb = detail::make_callable([this, cb = std::move(cb)]() { cb(*this); });
+            struct Callable: detail::ICallable<void(const Core*)>
+            {
+                Callable(CB&& init_cb)
+                    : cb(std::forward<CB>(init_cb))
+                {
+                }
+
+                void call(const Core* core) override
+                {
+                    cb(*core);
+                }
+
+                CB cb;
+            };
+
+            commit_cb = std::make_unique<Callable>(std::move(cb));
         }
 
     private:
         std::unique_ptr<detail::Tasks> tasks = std::make_unique<detail::Tasks>();
-        std::unique_ptr<detail::ICallable> commit_cb;
+        std::unique_ptr<detail::ICallable<void(const Core*)>> commit_cb;
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
     };

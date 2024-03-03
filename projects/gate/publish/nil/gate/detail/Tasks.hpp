@@ -19,7 +19,7 @@ namespace nil::gate::detail
         Tasks& operator=(Tasks&&) = default;
         Tasks& operator=(const Tasks&) = default;
 
-        void push_batch(std::vector<std::unique_ptr<ICallable>> cbs)
+        void push_batch(std::vector<std::unique_ptr<ICallable<void()>>> cbs)
         {
             std::lock_guard g(mutex);
             for (auto&& cb : cbs)
@@ -28,20 +28,20 @@ namespace nil::gate::detail
             }
         }
 
-        void push(std::unique_ptr<ICallable> cb)
+        void push(std::unique_ptr<ICallable<void()>> cb)
         {
             std::lock_guard g(mutex);
             tasks.push_back(std::move(cb));
         }
 
-        std::vector<std::unique_ptr<ICallable>> flush()
+        std::vector<std::unique_ptr<ICallable<void()>>> flush()
         {
             std::lock_guard g(mutex);
             return std::exchange(tasks, {});
         }
 
     private:
-        std::vector<std::unique_ptr<ICallable>> tasks;
+        std::vector<std::unique_ptr<ICallable<void()>>> tasks;
         std::mutex mutex;
     };
 }

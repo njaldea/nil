@@ -28,6 +28,16 @@ nil::cli::OptionInfo EXT::options() const
         .build();
 }
 
+enum class EPriority
+{
+    State,
+    ControlUpdateB,
+    ControlUpdateI,
+    ControlUpdateF,
+    ControlUpdateS,
+    Run
+};
+
 //  TODO:
 //      Create a better "priority" executor/debouncer. right now, i have to push everything in.
 //  ideally:
@@ -37,33 +47,55 @@ nil::cli::OptionInfo EXT::options() const
 //      Maybe possible to add this to service library
 struct Executor
 {
-    std::vector<std::function<void()>> tasks;
-    std::vector<std::function<void()>> posts;
-
-    std::mutex mutex;
-    boost::asio::io_context context;
+    void push(std::tuple<EPriority, std::uint64_t> key, std::function<void()> exec)
+    {
+        {
+            std::lock_guard _(mutex);
+            execs[key] = std::move(exec);
+        }
+        boost::asio::post(context, [this]() { flush(); });
+    }
 
     void run()
     {
-        const auto [t, p] = [this]()
+        const auto guard = boost::asio::make_work_guard(context);
+        context.run();
+    }
+
+    void flush()
+    {
+        const auto [es, ps] = [this]()
         {
-            const std::lock_guard _(mutex);
-            return std::make_tuple(std::exchange(tasks, {}), std::exchange(posts, {}));
+            std::lock_guard _(mutex);
+            return std::make_tuple(std::exchange(execs, {}), std::exchange(posts, {}));
         }();
-        for (const auto& tt : t)
+        for (const auto& [key, value] : es)
         {
-            tt();
+            if (value)
+            {
+                value();
+            }
         }
-        for (const auto& pp : p)
+        for (const auto& p : ps)
         {
-            pp();
-        }
-        const std::lock_guard _(mutex);
-        if (!tasks.empty() || !posts.empty())
-        {
-            boost::asio::post(context, [this]() { run(); });
+            p();
         }
     }
+
+    void post(std::function<void()> cb)
+    {
+        {
+            std::lock_guard _(mutex);
+            posts.push_back(std::move(cb));
+        }
+        boost::asio::post(context, [this]() { flush(); });
+    }
+
+    std::mutex mutex;
+    std::map<std::tuple<EPriority, std::uint64_t>, std::function<void()>> execs;
+    boost::asio::io_context context;
+
+    std::vector<std::function<void()>> posts; //
 };
 
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
@@ -71,8 +103,25 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
     ext::GraphState state;
     state.core = {};
     state.core.set_commit( //
-        [&executor](auto& core) { boost::asio::post(executor.context, [&]() { core.run(); }); }
+        [&executor](auto& core)
+        {
+            executor.push(
+                {EPriority::Run, 0},
+                [&]()
+                {
+                    try
+                    {
+                        core.run();
+                    }
+                    catch (const std::exception& ex)
+                    {
+                        std::cout << ex.what() << std::endl;
+                    }
+                }
+            );
+        }
     );
+
     state.activate = [&service](std::uint64_t id)
     {
         nil::nedit::proto::NodeState message;
@@ -94,26 +143,22 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 }
 
 template <typename T>
-auto make_control_update(ext::GraphState& graph_state, Executor& executor)
+auto make_control_update(ext::GraphState& graph_state, Executor& executor, EPriority priority)
 {
-    return [&graph_state, &executor](const std::string&, const T& message)
+    return [&graph_state, &executor, priority](const std::string&, const T& message)
     {
-        const std::lock_guard _(executor.mutex);
-        executor.tasks.emplace_back(
-            [&graph_state, &executor, message]()
+        executor.push(
+            {priority, message.id()},
+            [&graph_state, message]()
             {
                 const auto it = graph_state.control_edges.find(message.id());
                 if (it != graph_state.control_edges.end())
                 {
                     it->second.set_value(message.value());
-                    if (executor.posts.empty())
-                    {
-                        executor.posts.emplace_back([&]() { graph_state.core.run(); });
-                    }
+                    graph_state.core.commit();
                 }
             }
         );
-        boost::asio::post(executor.context, [&]() { executor.run(); });
     };
 }
 
@@ -125,19 +170,22 @@ int EXT::run(const nil::cli::Options& options) const
         return 0;
     }
 
-    Executor executor;
-
     ext::AppState app_state;
     ext::App app(app_state);
 
     nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
 
+    Executor executor;
     ext::GraphState graph_state = make_state(service, executor);
 
     ext::install(
         app,
-        [&graph_state, &executor](std::function<void()> cb)
-        { boost::asio::post(executor.context, [cb = std::move(cb)]() { cb(); }); }
+        [&executor](std::function<void()> cb)
+        {
+            // 1. This should be cancelled when Core is refreshed.
+            // 2. Add timer and postpone call to cb.
+            executor.post([cb]() { cb(); });
+        }
     );
     const std::string types = app_state.info.types().SerializeAsString();
 
@@ -151,19 +199,35 @@ int EXT::run(const nil::cli::Options& options) const
         nil::service::TypedHandler<proto::message_type::MessageType>() //
             .add(
                 proto::message_type::ControlUpdateB,
-                make_control_update<proto::ControlUpdateB>(graph_state, executor)
+                make_control_update<proto::ControlUpdateB>(
+                    graph_state,
+                    executor,
+                    EPriority::ControlUpdateB
+                )
             )
             .add(
                 proto::message_type::ControlUpdateI,
-                make_control_update<proto::ControlUpdateI>(graph_state, executor)
+                make_control_update<proto::ControlUpdateI>(
+                    graph_state,
+                    executor,
+                    EPriority::ControlUpdateI
+                )
             )
             .add(
                 proto::message_type::ControlUpdateF,
-                make_control_update<proto::ControlUpdateF>(graph_state, executor)
+                make_control_update<proto::ControlUpdateF>(
+                    graph_state,
+                    executor,
+                    EPriority::ControlUpdateF
+                )
             )
             .add(
                 proto::message_type::ControlUpdateS,
-                make_control_update<proto::ControlUpdateS>(graph_state, executor)
+                make_control_update<proto::ControlUpdateS>(
+                    graph_state,
+                    executor,
+                    EPriority::ControlUpdateS
+                )
             )
             .add(proto::message_type::Play, []() { nil::log(); })
             .add(proto::message_type::Pause, []() { nil::log(); })
@@ -174,8 +238,8 @@ int EXT::run(const nil::cli::Options& options) const
                     const proto::State& info
                 )
                 {
-                    const std::lock_guard _(executor.mutex);
-                    executor.tasks.emplace_back(
+                    executor.push(
+                        {EPriority::State, 0u},
                         [&graph_state, &app_state, &types, &service, &executor, id, info]()
                         {
                             if (info.types().SerializeAsString() != types)
@@ -238,42 +302,20 @@ int EXT::run(const nil::cli::Options& options) const
                             service.send(id, proto::message_type::State, app_state.info);
                         }
                     );
-                    boost::asio::post(executor.context, [&]() { executor.run(); });
                 }
             )
             .add(
                 proto::message_type::Run,
-                [&graph_state, &executor]()
-                {
-                    const std::lock_guard _(executor.mutex);
-                    if (executor.posts.empty())
-                    {
-                        executor.posts.emplace_back(
-                            [&]()
-                            {
-                                try
-                                {
-                                    graph_state.core.run();
-                                }
-                                catch (const std::exception& ex)
-                                {
-                                    std::cout << ex.what() << std::endl;
-                                }
-                            }
-                        );
-                        boost::asio::post(executor.context, [&]() { executor.run(); });
-                    }
+                [&graph_state, &executor]() {
+                    executor.push(
+                        {EPriority::Run, 0},
+                        [&graph_state]() { graph_state.core.commit(); }
+                    );
                 }
             )
     );
 
-    std::thread ex_thread(
-        [&executor]()
-        {
-            const auto guard = boost::asio::make_work_guard(executor.context);
-            executor.context.run();
-        }
-    );
+    std::thread ex_thread([&executor]() { executor.run(); });
 
     service.run();
     ex_thread.join();

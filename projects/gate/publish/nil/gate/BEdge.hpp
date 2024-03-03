@@ -42,6 +42,6 @@ namespace nil::gate
         }
 
         detail::DataEdge<T>* edge = nullptr;
-        std::vector<std::unique_ptr<detail::ICallable>>* tasks = nullptr;
+        std::vector<std::unique_ptr<detail::ICallable<void()>>>* tasks = nullptr;
     };
 }

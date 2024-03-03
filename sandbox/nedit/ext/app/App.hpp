@@ -3,6 +3,7 @@
 #include "sort_nodes.hpp"
 
 #include <nil/gate.hpp>
+#include <nil/gate/api/uniform.hpp>
 #include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/state.pb.h>
@@ -170,7 +171,6 @@ namespace ext
                 typename... Args>
             void create_node(
                 GraphState& state,
-                std::uint64_t id,
                 std::tuple<A...> a,
                 const std::vector<std::uint64_t>& i,
                 const std::vector<std::uint64_t>& o,
@@ -182,41 +182,20 @@ namespace ext
             )
             {
                 using RE = GraphState::RelaxedEdge;
-                using N = nil::gate::nodes::Scoped<T>;
-                const auto i_edges = typename nil::gate::detail::traits::node<T>::inputs::edges{
-                    state.internal_edges.at(i.at(i_indices))...,
-                    state.control_edges.at(c.at(c_indices))...
-                };
 
-                auto activate = [&state, id]() { state.activate(id); };
-                auto deactivate = [&state, id]() { state.deactivate(id); };
-
-                if constexpr (sizeof...(o_indices) > 0u)
-                {
-                    if constexpr (sizeof...(A) == 0)
-                    {
-                        const auto r = state.core.node<N>(i_edges, activate, deactivate, args...);
-                        (state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(r)}), ...);
-                    }
-                    else
-                    {
-                        const auto r
-                            = state.core
-                                  .node<N>(std::move(a), i_edges, activate, deactivate, args...);
-                        (state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(r)}), ...);
-                    }
-                }
-                else
-                {
-                    if constexpr (sizeof...(A) == 0)
-                    {
-                        state.core.node<N>(i_edges, activate, deactivate, args...);
-                    }
-                    else
-                    {
-                        state.core.node<N>(std::move(a), i_edges, activate, deactivate, args...);
-                    }
-                }
+                [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node<T>(
+                    state.core,
+                    std::move(a),
+                    typename nil::gate::detail::traits::node<T>::inputs::edges(
+                        state.internal_edges.at(i.at(i_indices))...,
+                        state.control_edges.at(c.at(c_indices))...
+                    ),
+                    args...
+                );
+                ( //
+                    state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(output_edges)}),
+                    ...
+                );
             }
         }
 
@@ -291,9 +270,8 @@ namespace ext
                         );
                     }
                     constexpr auto input_count = input_t::size - sizeof...(Controls);
-                    detail::creation::create_node<T>(
+                    detail::creation::create_node<nil::gate::nodes::Scoped<T>>(
                         state,
-                        id,
                         a,
                         input_ids,
                         output_ids,
@@ -301,6 +279,8 @@ namespace ext
                         std::make_index_sequence<input_count>(),
                         std::make_index_sequence<output_t::size>(),
                         std::make_index_sequence<sizeof...(Controls)>(),
+                        [&state, id]() { state.activate(id); },
+                        [&state, id]() { state.deactivate(id); },
                         args...
                     );
                 };
@@ -336,8 +316,10 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... Args>
-        std::enable_if_t<(nil::gate::detail::traits::node<T>::async_outputs::size == 0), App&>
-            add_node(const Node<T, Controls...>& node, const Args&... args)
+        std::enable_if_t<!nil::gate::detail::traits::node<T>::has_async, App&> add_node(
+            const Node<T, Controls...>& node,
+            const Args&... args
+        )
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
             detail::api::to_message(node_message, node, state.type_to_pin_index);
@@ -346,12 +328,11 @@ namespace ext
         }
 
         template <typename T, typename... Controls, typename... A, typename... Args>
-        std::enable_if_t<(nil::gate::detail::traits::node<T>::async_outputs::size > 0), App&>
-            add_node(
-                const Node<T, Controls...>& node,
-                nil::gate::detail::traits::node<T>::async_outputs::tuple a,
-                const Args&... args
-            )
+        std::enable_if_t<nil::gate::detail::traits::node<T>::has_async, App&> add_node(
+            const Node<T, Controls...>& node,
+            nil::gate::detail::traits::node<T>::async_outputs::tuple a,
+            const Args&... args
+        )
         {
             auto& node_message = *state.info.mutable_types()->add_nodes();
             detail::api::to_message(node_message, node, state.type_to_pin_index);

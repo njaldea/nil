@@ -1,7 +1,5 @@
 #pragma once
 
-#include "ICallable.hpp"
-
 #include <cstdint>
 
 namespace nil::gate
@@ -22,7 +20,7 @@ namespace nil::gate::detail
         INode& operator=(INode&&) = delete;
         INode& operator=(const INode&) = delete;
 
-        virtual void exec(Core* core) = 0;
+        virtual void exec(const Core* core) = 0;
         virtual void pend() = 0;
         virtual std::uint64_t depth() const = 0;
 

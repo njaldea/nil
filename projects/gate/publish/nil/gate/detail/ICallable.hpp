@@ -4,7 +4,12 @@
 
 namespace nil::gate::detail
 {
-    struct ICallable
+    template <typename CB>
+    struct ICallable;
+
+    template <typename R, typename... A>
+    struct ICallable<R(A...)>
+
     {
         ICallable() = default;
         virtual ~ICallable() noexcept = default;
@@ -14,13 +19,13 @@ namespace nil::gate::detail
         ICallable& operator=(ICallable&&) = delete;
         ICallable& operator=(const ICallable&) = delete;
 
-        virtual void call() = 0;
+        virtual R call(A...) = 0;
     };
 
     template <typename CB>
-    std::unique_ptr<ICallable> make_callable(CB&& cb)
+    std::unique_ptr<ICallable<void()>> make_callable(CB&& cb)
     {
-        struct Callable: ICallable
+        struct Callable: ICallable<void()>
         {
             Callable(CB&& init_cb)
                 : cb(std::forward<CB>(init_cb))
