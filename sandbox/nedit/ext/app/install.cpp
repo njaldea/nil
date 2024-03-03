@@ -63,10 +63,11 @@ namespace ext
             int r
         ) const
         {
+            // will be executed after 1 second.
+            // this is not debounced.
             post(
                 [&core, async_outputs, l, r]() mutable
                 {
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
                     get<0>(async_outputs)->set_value(l + r);
                     core.commit();
                 }

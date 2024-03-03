@@ -38,13 +38,8 @@ enum class EPriority
     Run
 };
 
-//  TODO:
-//      Create a better "priority" executor/debouncer. right now, i have to push everything in.
-//  ideally:
-//   -  some older tasks can be removed and be overridden by newer tasks
-//   -  some task can be registered once and can be "retriggered" easily
-//       -  this is what posts do. caller have to check if it is already available befor pushing
-//      Maybe possible to add this to service library
+// first layer of io_context is to debounce changes. second layer is for gate execution.
+// this is to allow cancellation in cases where there is a asnyc node that has posted changes.
 struct Executor
 {
     void push(std::tuple<EPriority, std::uint64_t> key, std::function<void()> exec)
@@ -64,38 +59,67 @@ struct Executor
 
     void flush()
     {
-        const auto [es, ps] = [this]()
-        {
-            std::lock_guard _(mutex);
-            return std::make_tuple(std::exchange(execs, {}), std::exchange(posts, {}));
-        }();
-        for (const auto& [key, value] : es)
-        {
-            if (value)
+        boost::asio::post(
+            *secondary_context,
+            [ss =
+                 [this]()
+             {
+                 std::lock_guard _(mutex);
+                 return std::exchange(execs, {});
+             }()]()
             {
-                value();
+                for (const auto& [key, value] : ss)
+                {
+                    if (value)
+                    {
+                        value();
+                    }
+                }
             }
-        }
-        for (const auto& p : ps)
-        {
-            p();
-        }
+        );
     }
 
+    // should i debounce this?
     void post(std::function<void()> cb)
     {
+        auto tm = std::make_shared<boost::asio::deadline_timer>(
+            *secondary_context,
+            boost::posix_time::seconds(2)
+        );
+        tm->async_wait(
+            [tm, cb](const boost::system::error_code& er)
+            {
+                if (er)
+                {
+                    std::cout << er.what() << std::endl;
+                }
+                cb();
+            }
+        );
+    }
+
+    void reset()
+    {
+        if (secondary_context && secondary_thread)
         {
-            std::lock_guard _(mutex);
-            posts.push_back(std::move(cb));
+            secondary_context->stop();
+            secondary_thread->join();
         }
-        boost::asio::post(context, [this]() { flush(); });
+        secondary_context = std::make_unique<boost::asio::io_context>();
+        secondary_thread = std::make_unique<std::thread>(
+            [this]()
+            {
+                const auto guard = boost::asio::make_work_guard(*secondary_context);
+                secondary_context->run();
+            }
+        );
     }
 
     std::mutex mutex;
     std::map<std::tuple<EPriority, std::uint64_t>, std::function<void()>> execs;
     boost::asio::io_context context;
-
-    std::vector<std::function<void()>> posts; //
+    std::unique_ptr<boost::asio::io_context> secondary_context;
+    std::unique_ptr<std::thread> secondary_thread;
 };
 
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
@@ -176,6 +200,8 @@ int EXT::run(const nil::cli::Options& options) const
     nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
 
     Executor executor;
+    executor.reset();
+
     ext::GraphState graph_state = make_state(service, executor);
 
     ext::install(
@@ -238,6 +264,7 @@ int EXT::run(const nil::cli::Options& options) const
                     const proto::State& info
                 )
                 {
+                    executor.reset();
                     executor.push(
                         {EPriority::State, 0u},
                         [&graph_state, &app_state, &types, &service, &executor, id, info]()
