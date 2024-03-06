@@ -81,8 +81,9 @@ message State {
 
         message Link {
             uint64 id = 1;
-            uint64 input = 2;
-            uint64 output = 3;
+            uint64 type = 2;
+            uint64 input = 3;
+            uint64 output = 4;
         }
 
         repeated Node nodes = 1;

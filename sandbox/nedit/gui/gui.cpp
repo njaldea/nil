@@ -78,6 +78,7 @@ void load(const gui::App& app, nil::nedit::proto::State& info)
         l->set_id(id);
         l->set_input(link->entry->id.value);
         l->set_output(link->exit->id.value);
+        l->set_type(link->entry->type != 0 ? link->entry->type : link->exit->type);
     }
     for (const auto& [id, n] : app.nodes)
     {
@@ -278,10 +279,6 @@ auto process_state(
         }
     );
 
-    tmp.emplace_back( //
-        [&service]() { service.publish(nil::nedit::proto::message_type::Run); }
-    );
-
     return tmp;
 }
 
@@ -352,6 +349,12 @@ int GUI::run(const nil::cli::Options& options) const
                     {
                         app.before_render.emplace_back(std::move(cb));
                     }
+
+                    if (!app.allow_editing && app.changed)
+                    {
+                        service.publish(nil::nedit::proto::message_type::Run);
+                        app.changed = false;
+                    }
                 }
             )
             .add(
@@ -408,6 +411,7 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::PushItemWidth(std::max(ImGui::GetWindowWidth() - 20.0f, 300.f));
         ImGui::InputText("###file", &path);
         ImGui::PopItemWidth();
+        ImGui::BeginDisabled(!app.allow_editing);
         if (ImGui::Button("load") && std::filesystem::exists(path))
         {
             try
@@ -415,6 +419,7 @@ int GUI::run(const nil::cli::Options& options) const
                 std::ifstream file(path, std::ios::binary);
                 nil::nedit::proto::State tmp;
                 tmp.ParseFromIstream(&file);
+                app.changed = true;
                 service.publish(nil::nedit::proto::message_type::State, tmp);
             }
             catch (const std::exception& e)
@@ -422,7 +427,9 @@ int GUI::run(const nil::cli::Options& options) const
                 nil::log(e.what());
             }
         }
+        ImGui::EndDisabled();
         ImGui::SameLine();
+        ImGui::BeginDisabled(app.allow_editing);
         if (ImGui::Button("save"))
         {
             const auto _ = std::unique_lock(app.mutex);
@@ -450,6 +457,7 @@ int GUI::run(const nil::cli::Options& options) const
                 }
             );
         }
+        ImGui::EndDisabled();
 
         if (ImGui::Checkbox("allow editing", &app.allow_editing))
         {
@@ -460,18 +468,18 @@ int GUI::run(const nil::cli::Options& options) const
             else
             {
                 service.publish(nil::nedit::proto::message_type::Play);
-            }
 
-            if (!app.allow_editing && app.pop_diff())
-            {
-                const auto _ = std::unique_lock(app.mutex);
-                app.after_render.emplace_back(
-                    [&]()
-                    {
-                        load(app, info);
-                        service.publish(nil::nedit::proto::message_type::State, info);
-                    }
-                );
+                if (app.changed)
+                {
+                    const auto _ = std::unique_lock(app.mutex);
+                    app.after_render.emplace_back(
+                        [&]()
+                        {
+                            load(app, info);
+                            service.publish(nil::nedit::proto::message_type::State, info);
+                        }
+                    );
+                }
             }
         }
 

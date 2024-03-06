@@ -14,5 +14,4 @@ namespace gui
     {
         ax::NodeEditor::Link(id.value, entry->id.value, exit->id.value);
     }
-
 }

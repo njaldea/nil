@@ -1,6 +1,5 @@
 #pragma once
 
-#define IMGUI_DEFINE_MATH_OPERATORS
 #include <imgui-node-editor/imgui_node_editor.h>
 
 namespace gui
@@ -14,7 +13,7 @@ namespace gui
         FlowIcon& operator=(const FlowIcon&) = default;
         FlowIcon& operator=(FlowIcon&&) noexcept = default;
 
-        void render(float x_offset) const;
+        void render(const ImVec2& pos1, const ImVec2& pos2, float padding, bool flipped) const;
 
         ImVec4 color;
     };

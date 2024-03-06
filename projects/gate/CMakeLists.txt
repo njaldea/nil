@@ -14,17 +14,13 @@ set(
         publish/nil/gate/Batch.hpp
         publish/nil/gate/Core.hpp
         publish/nil/gate/IEdge.hpp
+        publish/nil/gate/BEdge.hpp
         publish/nil/gate/MEdge.hpp
         publish/nil/gate/REdge.hpp
-        publish/nil/gate/traits.hpp
-        publish/nil/gate/tuples/async_outputs.hpp
-        publish/nil/gate/tuples/edges.hpp
-        publish/nil/gate/tuples/inputs.hpp
-        publish/nil/gate/tuples/outputs.hpp
-        publish/nil/gate/tuples/sync_outputs.hpp
+        publish/nil/gate/types.hpp
+        publish/nil/gate/api/uniform.hpp
         publish/nil/gate/nodes/Asynctify.hpp
         publish/nil/gate/nodes/Scoped.hpp
-        publish/nil/gate/detail/BatchEdge.hpp
         publish/nil/gate/detail/DataEdge.hpp
         publish/nil/gate/detail/ICallable.hpp
         publish/nil/gate/detail/INode.hpp

@@ -9,7 +9,6 @@ protobuf_generate_cpp(
     state.proto
     node_state.proto
     metadata.proto
-    graph.proto
     control_update.proto
 )
 

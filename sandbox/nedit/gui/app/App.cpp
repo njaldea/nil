@@ -14,17 +14,22 @@ namespace
         gui::Pin*(gui::Link::*next_pin)
     )
     {
+        if (current_node->type == 0)
+        {
+            return false;
+        }
         for (const auto& pin : current_node->*pins_getter)
         {
             for (const auto& pin_links : pin_mapping.at(pin.id.value).links)
             {
                 const auto* npin = pin_links->*next_pin;
-                if (npin == nullptr)
-                {
-                    continue;
-                }
 
                 const auto* next_node = pin_mapping.at(npin->id.value).node;
+                if (next_node->type == 0)
+                {
+                    return false;
+                }
+
                 if (next_node == target_node)
                 {
                     return true;
@@ -53,9 +58,36 @@ namespace gui
         auto& detail_a = pins.at(a.Get());
         auto& detail_b = pins.at(b.Get());
 
-        if (detail_a.pin->kind == detail_b.pin->kind    //
-            || detail_a.pin->type != detail_b.pin->type //
-            || detail_a.node == detail_b.node)
+        if (detail_a.pin->kind == detail_b.pin->kind || detail_a.node == detail_b.node)
+        {
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
+        }
+
+        if (detail_a.pin->type == 0 && detail_b.pin->type == 0)
+        {
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
+        }
+        else if (detail_a.pin->type == 0)
+        {
+            if (detail_a.pin->icon != &pin_infos[0].icon
+                && detail_a.pin->icon != detail_b.pin->icon)
+            {
+                ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+                return;
+            }
+        }
+        else if (detail_b.pin->type == 0)
+        {
+            if (detail_b.pin->icon != &pin_infos[0].icon
+                && detail_b.pin->icon != detail_a.pin->icon)
+            {
+                ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+                return;
+            }
+        }
+        else if (detail_a.pin->type != detail_b.pin->type)
         {
             ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
             return;
@@ -82,6 +114,17 @@ namespace gui
 
         if (ax::NodeEditor::AcceptNewItem())
         {
+            if (start.pin->type == 0)
+            {
+                start.pin->icon = end.pin->icon;
+                start.node->pins_i[0].icon = end.pin->icon;
+            }
+            else if (end.pin->type == 0)
+            {
+                end.pin->icon = start.pin->icon;
+                end.node->pins_o[0].icon = start.pin->icon;
+            }
+
             auto link = std::make_unique<Link>(ids.reserve(), Link::Info{start.pin, end.pin});
             auto* ptr = link.get();
             const auto id = link->id.value;
@@ -138,13 +181,6 @@ namespace gui
         node_infos.clear();
         pin_infos.clear();
         ids = {};
-    }
-
-    bool App::pop_diff()
-    {
-        const auto c = changed;
-        changed = false;
-        return c;
     }
 
     void App::render_panel()
@@ -209,8 +245,8 @@ namespace gui
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
 
         ax_ne::PushStyleVar(ax_ne::StyleVar_NodeBorderWidth, 0.0f);
-        ax_ne::PushStyleVar(ax_ne::StyleVar_NodePadding, ImVec4(2, 3, 3, 2));
-        ax_ne::PushStyleVar(ax_ne::StyleVar_NodeRounding, 0.0f);
+        ax_ne::PushStyleVar(ax_ne::StyleVar_NodePadding, ImVec4(4, 4, 4, 4));
+        ax_ne::PushStyleVar(ax_ne::StyleVar_NodeRounding, 2.0f);
         ax_ne::PushStyleVar(ax_ne::StyleVar_PinCorners, 0.0f);
         ax_ne::PushStyleVar(ax_ne::StyleVar_PinRounding, 0.0f);
         ax_ne::PushStyleVar(ax_ne::StyleVar_PinBorderWidth, 0.0f);
@@ -261,8 +297,29 @@ namespace gui
                     if (link != links.end())
                     {
                         Link* current_link = link->second.get();
-                        pins.at(current_link->entry->id.value).links.erase(current_link);
-                        pins.at(current_link->exit->id.value).links.erase(current_link);
+                        auto& pin_in = pins.at(current_link->entry->id.value);
+                        if (pin_in.pin->type == 0)
+                        {
+                            auto* icon = &pin_infos[0].icon;
+                            if (pins.at(pin_in.node->pins_i[0].id.value).links.empty())
+                            {
+                                pin_in.pin->icon = icon;
+                                pin_in.node->pins_i[0].icon = icon;
+                            }
+                        }
+                        pin_in.links.erase(current_link);
+
+                        auto& pin_out = pins.at(current_link->exit->id.value);
+                        if (pin_out.pin->type == 0)
+                        {
+                            auto* icon = &pin_infos[0].icon;
+                            if (pins.at(pin_in.node->pins_o[0].id.value).links.empty())
+                            {
+                                pin_out.pin->icon = icon;
+                                pin_out.node->pins_o[0].icon = icon;
+                            }
+                        }
+                        pin_out.links.erase(current_link);
                         links.erase(link);
                         changed = true;
                     }
@@ -321,19 +378,26 @@ namespace gui
     )
     {
         auto& node_info = node_infos[type_index];
-        auto tmp_node = std::make_unique<Node>(ids.reserve(node_id), type_index, node_info.label);
+        auto tmp_node = std::make_unique<Node>(
+            ids.reserve(node_id),
+            type_index,
+            type_index == 0 ? "" : node_info.label.c_str(),
+            type_index == 0
+        );
 
         // input_ids should be equal to node_info.inputs
         tmp_node->pins_i.reserve(node_info.inputs.size());
         for (auto index = 0u; index < input_ids.size(); ++index)
         {
-            auto& pin_info = pin_infos[node_info.inputs[index]];
+            auto pin_type = node_info.inputs[index];
+            auto& pin_info = pin_infos[pin_type];
             auto& pin = tmp_node->pins_i.emplace_back(
                 ids.reserve(input_ids[index]),
                 ax::NodeEditor::PinKind::Input,
-                &pin_info,
+                pin_type,
                 pin_info.label,
-                pin_info.icon
+                &pin_info.icon,
+                type_index == 0
             );
             pins.emplace(pin.id.value, PinMapping{tmp_node.get(), &pin, {}});
         }
@@ -342,13 +406,15 @@ namespace gui
         tmp_node->pins_o.reserve(node_info.outputs.size());
         for (auto index = 0u; index < output_ids.size(); ++index)
         {
-            auto& pin_info = pin_infos[node_info.outputs[index]];
+            auto pin_type = node_info.outputs[index];
+            auto& pin_info = pin_infos[pin_type];
             auto& pin = tmp_node->pins_o.emplace_back(
                 ids.reserve(output_ids[index]),
                 ax::NodeEditor::PinKind::Output,
-                &pin_info,
+                pin_type,
                 pin_info.label,
-                pin_info.icon
+                &pin_info.icon,
+                type_index == 0
             );
             pins.emplace(pin.id.value, PinMapping{tmp_node.get(), &pin, {}});
         }
@@ -375,6 +441,17 @@ namespace gui
         auto link = std::make_unique<Link>(ids.reserve(link_id), Link::Info{start.pin, end.pin});
         start.links.emplace(link.get());
         end.links.emplace(link.get());
+
+        if (start.pin->type == 0)
+        {
+            start.pin->icon = end.pin->icon;
+            start.node->pins_i[0].icon = end.pin->icon;
+        }
+        if (end.pin->type == 0)
+        {
+            end.pin->icon = start.pin->icon;
+            end.node->pins_o[0].icon = start.pin->icon;
+        }
         links.emplace(link_id, std::move(link));
     }
 
@@ -382,37 +459,45 @@ namespace gui
     {
         if (!tmp)
         {
-            tmp = std::make_unique<Node>(ids.reserve(), type_index, node_infos[type_index].label);
+            auto& node_info = node_infos[type_index];
+            tmp = std::make_unique<Node>(
+                ids.reserve(),
+                type_index,
+                type_index == 0 ? "" : node_info.label.c_str(),
+                type_index == 0
+            );
 
-            tmp->pins_i.reserve(node_infos[type_index].inputs.size());
-            for (const auto& type_i : node_infos[type_index].inputs)
+            tmp->pins_i.reserve(node_info.inputs.size());
+            for (const auto& pin_type : node_info.inputs)
             {
-                auto& pin_info = pin_infos[type_i];
+                auto& pin_info = pin_infos[pin_type];
                 auto& pin = tmp->pins_i.emplace_back(
                     ids.reserve(),
                     ax::NodeEditor::PinKind::Input,
-                    &pin_info,
+                    pin_type,
                     pin_info.label,
-                    pin_info.icon
+                    &pin_info.icon,
+                    type_index == 0
                 );
                 pins.emplace(pin.id.value, PinMapping{tmp.get(), &pin, {}});
             }
 
-            tmp->pins_o.reserve(node_infos[type_index].outputs.size());
-            for (const auto& type_o : node_infos[type_index].outputs)
+            tmp->pins_o.reserve(node_info.outputs.size());
+            for (const auto& pin_type : node_info.outputs)
             {
-                auto& pin_info = pin_infos[type_o];
+                auto& pin_info = pin_infos[pin_type];
                 auto& pin = tmp->pins_o.emplace_back(
                     ids.reserve(),
                     ax::NodeEditor::PinKind::Output,
-                    &pin_info,
+                    pin_type,
                     pin_info.label,
-                    pin_info.icon
+                    &pin_info.icon,
+                    type_index == 0
                 );
                 pins.emplace(pin.id.value, PinMapping{tmp.get(), &pin, {}});
             }
 
-            for (const auto& control : node_infos[type_index].controls)
+            for (const auto& control : node_info.controls)
             {
                 tmp->controls.push_back(control(ids.reserve()));
             }

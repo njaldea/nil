@@ -15,9 +15,10 @@ namespace gui
     {
         Pin(ID init_id,
             ax::NodeEditor::PinKind init_kind,
-            const void* init_type,
+            std::uint64_t init_type,
             std::string_view init_label,
-            const FlowIcon& init_icon);
+            const FlowIcon* init_icon,
+            bool init_flipped);
         ~Pin() noexcept = default;
 
         Pin(Pin&&) = default;
@@ -29,8 +30,9 @@ namespace gui
 
         ID id;
         ax::NodeEditor::PinKind kind;
-        const void* type;
+        std::uint64_t type;
         std::string_view label;
-        const FlowIcon& icon;
+        const FlowIcon* icon;
+        bool flipped;
     };
 }

@@ -40,23 +40,43 @@ namespace ext
     {
         struct RelaxedEdge
         {
+            template <typename T>
+            RelaxedEdge(nil::gate::ReadOnlyEdge<T>* init_edge)
+                : edge(init_edge)
+                , identity(nil::utils::traits::identity_v<T>)
+            {
+            }
+
             nil::gate::IEdge* edge;
+            const void* identity;
 
             template <typename T>
             operator nil::gate::MutableEdge<T>*() const
             {
+                if (nil::utils::traits::identity_v<T> != identity)
+                {
+                    throw std::runtime_error("incompatible types");
+                }
                 return static_cast<nil::gate::MutableEdge<T>*>(edge);
             }
 
             template <typename T>
             operator nil::gate::ReadOnlyEdge<T>*() const
             {
+                if (nil::utils::traits::identity_v<T> != identity)
+                {
+                    throw std::runtime_error("incompatible types");
+                }
                 return static_cast<nil::gate::ReadOnlyEdge<T>*>(edge);
             }
 
             template <typename T>
             void set_value(T value)
             {
+                if (nil::utils::traits::identity_v<T> != identity)
+                {
+                    throw std::runtime_error("incompatible types");
+                }
                 static_cast<nil::gate::MutableEdge<T>*>(edge)->set_value(value);
             }
         };
@@ -288,16 +308,70 @@ namespace ext
         }
     }
 
-    // [TODO]
-    //  -  find a way to abstract out the message type
-    //  -  create a library. if possible, gate can take ownership of this, only if the message
-    //  handling is abstracted out.
     class App final
     {
     public:
         App(AppState& init_state)
             : state(init_state)
         {
+            struct Any
+            {
+                bool operator==(const Any&) const
+                {
+                    return true;
+                }
+            };
+
+            constexpr auto identity = nil::utils::traits::identity_v<Any>;
+
+            state.type_to_pin_index.emplace(identity, state.info.types().pins_size());
+            const Pin<void> pin{"any", {0.5, 0.5, 0.5, 1.0}};
+            detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
+
+            struct N
+            {
+                std::tuple<Any> operator()(Any) const
+                {
+                    return {};
+                }
+            };
+
+            const Node<N> node{"feedback"};
+
+            auto& node_message = *state.info.mutable_types()->add_nodes();
+            detail::api::to_message(node_message, node, state.type_to_pin_index);
+            state.node_factories.push_back(
+                [](GraphState& graph_state,
+                   std::uint64_t id,
+                   const std::vector<std::uint64_t>& i_ids,
+                   const std::vector<std::uint64_t>& s_ids,
+                   const std::vector<std::uint64_t>&)
+                {
+                    struct FF
+                    {
+                        void operator()(int v)
+                        {
+                            if (output == nullptr)
+                            {
+                                output = graph_state.internal_edges.at(s_ids[0]);
+                            }
+                            output->set_value(v);
+                        }
+
+                        GraphState& graph_state;
+                        std::vector<std::uint64_t> s_ids;
+                        nil::gate::MutableEdge<int>* output = nullptr;
+                    };
+
+                    graph_state.core.node<nil::gate::nodes::Scoped<FF>>(
+                        {graph_state.internal_edges.at(i_ids.at(0))},
+                        [&graph_state, id]() { graph_state.activate(id); },
+                        [&graph_state, id]() { graph_state.deactivate(id); },
+                        graph_state,
+                        s_ids
+                    );
+                }
+            );
         }
 
         ~App() = default;

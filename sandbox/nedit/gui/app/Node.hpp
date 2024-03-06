@@ -15,7 +15,7 @@ namespace gui
 
     struct Node final
     {
-        Node(ID init_id, std::uint64_t init_type, std::string_view init_label);
+        Node(ID init_id, std::uint64_t init_type, std::string_view init_label, bool init_flipped);
         ~Node() noexcept = default;
 
         Node(Node&&) = default;
@@ -32,6 +32,7 @@ namespace gui
         std::vector<Pin> pins_o;
         std::vector<std::unique_ptr<Control>> controls;
 
+        bool flipped;
         bool activated = false;
     };
 }

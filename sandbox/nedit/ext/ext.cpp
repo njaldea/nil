@@ -40,86 +40,97 @@ enum class EPriority
 
 // first layer of io_context is to debounce changes. second layer is for gate execution.
 // this is to allow cancellation in cases where there is a asnyc node that has posted changes.
-struct Executor
+class Executor
 {
+public:
     void push(std::tuple<EPriority, std::uint64_t> key, std::function<void()> exec)
     {
+        std::lock_guard _(mutex);
+        execs[key] = std::move(exec);
+        if (!flushing)
         {
-            std::lock_guard _(mutex);
-            execs[key] = std::move(exec);
+            flushing = true;
+            boost::asio::post(*context, [this]() { flush(); });
         }
-        boost::asio::post(context, [this]() { flush(); });
-    }
-
-    void run()
-    {
-        const auto guard = boost::asio::make_work_guard(context);
-        context.run();
-    }
-
-    void flush()
-    {
-        boost::asio::post(
-            *secondary_context,
-            [ss =
-                 [this]()
-             {
-                 std::lock_guard _(mutex);
-                 return std::exchange(execs, {});
-             }()]()
-            {
-                for (const auto& [key, value] : ss)
-                {
-                    if (value)
-                    {
-                        value();
-                    }
-                }
-            }
-        );
     }
 
     // should i debounce this?
     void post(std::function<void()> cb)
     {
-        auto tm = std::make_shared<boost::asio::deadline_timer>(
-            *secondary_context,
-            boost::posix_time::seconds(2)
-        );
-        tm->async_wait(
-            [tm, cb](const boost::system::error_code& er)
+        std::lock_guard _(mutex);
+        boost::asio::post(
+            *context,
+            [this, cb]()
             {
-                if (er)
-                {
-                    std::cout << er.what() << std::endl;
-                }
-                cb();
+                // std::this_thread::sleep_for(std::chrono::seconds(1));
+                // cb();
+                auto tm = std::make_shared<boost::asio::deadline_timer>(
+                    *context,
+                    boost::posix_time::seconds(1)
+                );
+                tm->async_wait(
+                    [tm, cb](const boost::system::error_code& er)
+                    {
+                        if (er)
+                        {
+                            std::cout << er.what() << std::endl;
+                        }
+                        cb();
+                    }
+                );
             }
         );
     }
 
     void reset()
     {
-        if (secondary_context && secondary_thread)
+        if (context && thread)
         {
-            secondary_context->stop();
-            secondary_thread->join();
+            cancelled = true;
+            context->stop();
+            thread->join();
+            cancelled = false;
+            flushing = false;
         }
-        secondary_context = std::make_unique<boost::asio::io_context>();
-        secondary_thread = std::make_unique<std::thread>(
+        std::lock_guard _(mutex);
+        context = std::make_unique<boost::asio::io_context>();
+        thread = std::make_unique<std::thread>(
             [this]()
             {
-                const auto guard = boost::asio::make_work_guard(*secondary_context);
-                secondary_context->run();
+                const auto guard = boost::asio::make_work_guard(*context);
+                context->run();
             }
         );
     }
 
+private:
     std::mutex mutex;
     std::map<std::tuple<EPriority, std::uint64_t>, std::function<void()>> execs;
-    boost::asio::io_context context;
-    std::unique_ptr<boost::asio::io_context> secondary_context;
-    std::unique_ptr<std::thread> secondary_thread;
+    std::unique_ptr<boost::asio::io_context> context;
+    std::unique_ptr<std::thread> thread;
+    std::atomic_bool flushing = false;
+    std::atomic_bool cancelled = false;
+
+    void flush()
+    {
+        const auto ss = [this]()
+        {
+            std::lock_guard _(mutex);
+            flushing = false;
+            return std::exchange(execs, {});
+        }();
+        for (const auto& [key, value] : ss)
+        {
+            if (cancelled)
+            {
+                return;
+            }
+            if (value)
+            {
+                value();
+            }
+        }
+    }
 };
 
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
@@ -204,15 +215,7 @@ int EXT::run(const nil::cli::Options& options) const
 
     ext::GraphState graph_state = make_state(service, executor);
 
-    ext::install(
-        app,
-        [&executor](std::function<void()> cb)
-        {
-            // 1. This should be cancelled when Core is refreshed.
-            // 2. Add timer and postpone call to cb.
-            executor.post([cb]() { cb(); });
-        }
-    );
+    ext::install(app, [&executor](std::function<void()> cb) { executor.post(cb); });
     const std::string types = app_state.info.types().SerializeAsString();
 
     namespace proto = nil::nedit::proto;
@@ -264,53 +267,72 @@ int EXT::run(const nil::cli::Options& options) const
                     const proto::State& info
                 )
                 {
+                    if (info.types().SerializeAsString() != types)
+                    {
+                        nil::log();
+                        std::cout << "state is not compatible to types" << std::endl;
+                        return;
+                    }
+
+                    std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
+                    for (const auto& link : info.graph().links())
+                    {
+                        i_to_o.emplace(link.output(), link.input());
+                    }
+
+                    std::vector<ext::NodeData> nodes;
+                    for (const auto& node : info.graph().nodes())
+                    {
+                        nodes.push_back({
+                            .id = node.id(),
+                            .type = node.type(),
+                            .inputs = {node.inputs().begin(), node.inputs().end()},
+                            .outputs = {node.outputs().begin(), node.outputs().end()},
+                            .controls = {node.controls().begin(), node.controls().end()} //
+                        });
+
+                        // convert id of input from id of the pin to the id of the port it
+                        // is connected to.
+                        for (auto& i : nodes.back().inputs)
+                        {
+                            if (i_to_o.contains(i))
+                            {
+                                i = i_to_o.at(i);
+                            }
+                            else
+                            {
+                                std::cout << "incomplete input... not supported" << std::endl;
+                                return;
+                            }
+                        }
+                    }
+
                     executor.reset();
                     executor.push(
                         {EPriority::State, 0u},
-                        [&graph_state, &app_state, &types, &service, &executor, id, info]()
+                        [&graph_state,
+                         &app_state,
+                         &service,
+                         &executor,
+                         id,
+                         info,
+                         nodes = std::move(nodes)]()
                         {
-                            if (info.types().SerializeAsString() != types)
-                            {
-                                nil::log();
-                                std::cout << "state is not compatible to types" << std::endl;
-                                return;
-                            }
-
                             app_state.info = info;
-
                             graph_state = make_state(service, executor);
 
-                            std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
-                            for (const auto& link : info.graph().links())
+                            for (const auto& node : nodes)
                             {
-                                i_to_o.emplace(link.output(), link.input());
-                            }
-
-                            std::vector<ext::NodeData> nodes;
-                            for (const auto& node : info.graph().nodes())
-                            {
-                                nodes.push_back({
-                                    .id = node.id(),
-                                    .type = node.type(),
-                                    .inputs = {node.inputs().begin(), node.inputs().end()},
-                                    .outputs = {node.outputs().begin(), node.outputs().end()},
-                                    .controls = {node.controls().begin(), node.controls().end()} //
-                                });
-
-                                // convert id of input from id of the pin to the id of the port it
-                                // is connected to.
-                                for (auto& i : nodes.back().inputs)
+                                if (node.type == 0)
                                 {
-                                    if (i_to_o.contains(i))
-                                    {
-                                        i = i_to_o.at(i);
-                                    }
-                                    else
-                                    {
-                                        std::cout << "incomplete input... not supported"
-                                                  << std::endl;
-                                        return;
-                                    }
+                                    graph_state         //
+                                        .internal_edges //
+                                        .emplace(
+                                            node.outputs[0],
+                                            ext::GraphState::RelaxedEdge{
+                                                graph_state.core.edge<int>(100)
+                                            }
+                                        );
                                 }
                             }
 
@@ -342,9 +364,6 @@ int EXT::run(const nil::cli::Options& options) const
             )
     );
 
-    std::thread ex_thread([&executor]() { executor.run(); });
-
     service.run();
-    ex_thread.join();
     return 0;
 }

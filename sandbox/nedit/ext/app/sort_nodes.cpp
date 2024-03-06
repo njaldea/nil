@@ -33,10 +33,11 @@ namespace ext
                 {
                     if (edge_to_node.contains(i))
                     {
-                        score = std::max(
-                            recurse(edge_to_node, edge_to_node.at(i), cache) + 1u,
-                            score
-                        );
+                        auto next_node = edge_to_node.at(i);
+                        if (next_node->type != 0)
+                        {
+                            score = std::max(recurse(edge_to_node, next_node, cache) + 1u, score);
+                        }
                     }
                 }
                 cache.emplace(current_node, score);
