@@ -74,9 +74,10 @@ message State {
         message Node {
             uint64 id = 1;
             uint64 type = 2;
-            repeated uint64 inputs = 3;
-            repeated uint64 outputs = 4;
-            repeated uint64 controls = 5;
+            uint64 alias = 3;
+            repeated uint64 inputs = 4;
+            repeated uint64 outputs = 5;
+            repeated uint64 controls = 6;
         }
 
         message Link {

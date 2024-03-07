@@ -138,15 +138,18 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
     ext::GraphState state;
     state.core = {};
     state.core.set_commit( //
-        [&executor](auto& core)
+        [&executor, is_paused = state.paused](auto& core)
         {
             executor.push(
                 {EPriority::Run, 0},
-                [&]()
+                [&core, is_paused]()
                 {
                     try
                     {
-                        core.run();
+                        if (!*is_paused)
+                        {
+                            core.run();
+                        }
                     }
                     catch (const std::exception& ex)
                     {
@@ -258,8 +261,8 @@ int EXT::run(const nil::cli::Options& options) const
                     EPriority::ControlUpdateS
                 )
             )
-            .add(proto::message_type::Play, []() { nil::log(); })
-            .add(proto::message_type::Pause, []() { nil::log(); })
+            .add(proto::message_type::Play, [&graph_state]() { *graph_state.paused = false; })
+            .add(proto::message_type::Pause, [&graph_state]() { *graph_state.paused = true; })
             .add(
                 proto::message_type::State,
                 [&graph_state, &app_state, &types, &service, &executor](
@@ -286,6 +289,7 @@ int EXT::run(const nil::cli::Options& options) const
                         nodes.push_back({
                             .id = node.id(),
                             .type = node.type(),
+                            .alias = node.alias(),
                             .inputs = {node.inputs().begin(), node.inputs().end()},
                             .outputs = {node.outputs().begin(), node.outputs().end()},
                             .controls = {node.controls().begin(), node.controls().end()} //
@@ -325,14 +329,10 @@ int EXT::run(const nil::cli::Options& options) const
                             {
                                 if (node.type == 0)
                                 {
-                                    graph_state         //
-                                        .internal_edges //
-                                        .emplace(
-                                            node.outputs[0],
-                                            ext::GraphState::RelaxedEdge{
-                                                graph_state.core.edge<int>(100)
-                                            }
-                                        );
+                                    app_state.edge_factories[node.alias](
+                                        graph_state,
+                                        node.outputs[0]
+                                    );
                                 }
                             }
 
@@ -342,6 +342,7 @@ int EXT::run(const nil::cli::Options& options) const
                                 factory(
                                     graph_state,
                                     node.id,
+                                    node.alias,
                                     node.inputs,
                                     node.outputs,
                                     node.controls

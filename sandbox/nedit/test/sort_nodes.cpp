@@ -13,6 +13,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
             ext::NodeData{
                 .id = 0,
                 .type = 1,
+                .alias = 101,
                 .inputs = {2},
                 .outputs = {3},
                 .controls = {4} //
@@ -22,6 +23,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
             ext::NodeData{
                 .id = 1,
                 .type = 2,
+                .alias = 102,
                 .inputs = {3},
                 .outputs = {5},
                 .controls = {6} //
@@ -31,6 +33,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
             ext::NodeData{
                 .id = 2,
                 .type = 1,
+                .alias = 103,
                 .inputs = {5},
                 .outputs = {7},
                 .controls = {8} //
@@ -45,6 +48,7 @@ TEST(sort_nodes, sort_by_score_already_sorted)
     {
         ASSERT_EQ(result[i].id, nodes[i].id);
         ASSERT_EQ(result[i].type, nodes[i].type);
+        ASSERT_EQ(result[i].alias, nodes[i].alias);
         ASSERT_EQ(result[i].inputs, nodes[i].inputs);
         ASSERT_EQ(result[i].outputs, nodes[i].outputs);
         ASSERT_EQ(result[i].controls, nodes[i].controls);
@@ -61,6 +65,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
             ext::NodeData{
                 .id = 2,
                 .type = 1,
+                .alias = 103,
                 .inputs = {5},
                 .outputs = {7},
                 .controls = {8} //
@@ -70,6 +75,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
             ext::NodeData{
                 .id = 1,
                 .type = 2,
+                .alias = 102,
                 .inputs = {3},
                 .outputs = {5},
                 .controls = {6} //
@@ -79,6 +85,7 @@ TEST(sort_nodes, sort_by_score_reverse_sorted)
             ext::NodeData{
                 .id = 0,
                 .type = 1,
+                .alias = 101,
                 .inputs = {2},
                 .outputs = {3},
                 .controls = {4} //

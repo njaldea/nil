@@ -81,8 +81,12 @@ int main()
     nil::gate::MutableEdge<int>* edge = core.edge<int>(initial_value);
 
     edge->value(); // will return 100
-    edge->set_value(200); // will request to set the value to 200 on next Core::run()
+    // will request to set the value to 200 on next Core::run()
+    edge->set_value(200);
     edge->value(); // will return 100
+
+    core.commit();
+    edge->value(); // will return 200
 }
 ```
 
@@ -102,6 +106,12 @@ nil::gate::MutableEdge<T>* Core::edge(Args... args);
 // value will be moved to the data inside the edge
 nil::gate::MutableEdge<T>* Core::edge(T value);
 ```
+
+requirements for `T`:
+1. non-const
+2. non-pointer and non-reference
+3. if a smart pointer (or std::optional), value_type should be `const`
+4. compatible to `std::equal_to`
 
 ## Node
 
@@ -124,8 +134,9 @@ int main()
     nil::gate::MutableEdge<float>* edge_f = core.edge<float>(200.f);
 
     nil::gate::inputs<float> inputs = { edge_f };
-    // std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
-    core.node<Node>(inputs);
+    core.node<Node>({ edge_f });
+    //              ^--- nil::gate::inputs<float>
+    //              ^--- std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
 }
 ```
 
@@ -152,8 +163,8 @@ int main()
         nil::gate::ReadOnlyEdge<float>* edge_f = get<0>(outputs);
     }
     {
-        auto& [edge_f] = outputs;
-        edge_f; // nil::gate::ReadOnlyEdge<float>*
+        auto [ edge_f ] = outputs;
+        //     ^--- nil::gate::ReadOnlyEdge<float>*
     }
 }
 ```
@@ -166,11 +177,11 @@ int main()
 struct Node
 {
     void operator()(nil::gate::async_output<float> asyncs) const
-    //              ^--- this is equivalent to `std::tuple<MutableEdge<T>*...>`
+    //              ^--- this is equivalent to `std::tuple<nil::gate::MutableEdge<T>*...>`
     //              ^--- this is not treated as an input
     {
-        auto [edge_f] = asyncs;
-        edge_f; // nil::gate::MutableEdge<float>*
+        auto [ edge_f ] = asyncs;
+        //     ^--- nil::gate::MutableEdge<float>*
     }
 };
 
@@ -178,15 +189,16 @@ int main()
 {
     nil::gate::Core core;
     
-    nil::gate::outputs<float> = core.node<Node>();
+    nil::gate::outputs<float> = core.node<Node>(std::tuple<float>(100.f));
+    //                 ^                        ^--- initial value of the async edges
     //                 ^--- all async outputs is appended to the end of all sync outputs
 
     {
         nil::gate::ReadOnlyEdge<float>* edge_f = get<0>(outputs);
     }
     {
-        auto& [edge_f] = outputs;
-        edge_f; // nil::gate::ReadOnlyEdge<float>*
+        auto [ edge_f ] = outputs;
+        //     ^--- nil::gate::ReadOnlyEdge<float>*
     }
 }
 ```
@@ -205,16 +217,13 @@ See [Batch](#batch) section for more detail.
 
 struct Node
 {
-    void operator()(
-        nil::gate::async_output<float> asyncs,
-        //  ^--- this is equivalent to `std::tuple<MutableEdge<T>*...>`
-        //  ^--- this is not treated as an input
-        const nil::gate::Core& core
-        //  ^--- this is not treated as an input
-    ) const
+    void operator()(nil::gate::async_output<float> asyncs, const nil::gate::Core& core) const
+    //              ^                                      ^--- this is not treated as an input
+    //              ^--- this is equivalent to `std::tuple<MutableEdge<T>*...>`
+    //              ^--- this is not treated as an input
     {
-        auto [edge_f] = asyncs;
-        edge_f; // nil::gate::MutableEdge<float>*
+        auto [ edge_f ] = asyncs;
+        //     ^--- nil::gate::MutableEdge<float>*
     }
 };
 
@@ -222,8 +231,8 @@ int main()
 {
     nil::gate::Core core;
     
-    auto [edge_f] = core.node<Node>();
-    edge_f; // nil::gate::ReadOnlyEdge<float>*
+    auto [ edge_f ] = core.node<Node>();
+    //     ^--- nil::gate::ReadOnlyEdge<float>*
 }
 ```
 

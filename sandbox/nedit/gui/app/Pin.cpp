@@ -18,6 +18,7 @@ namespace gui
         : id(std::move(init_id))
         , kind(init_kind)
         , type(init_type)
+        , alias(type)
         , label(init_label)
         , icon(init_icon)
         , flipped(init_flipped)

@@ -15,7 +15,7 @@ namespace nil::gate::nodes
         Scoped(Pre init_pre, Post init_post, Args&&... args)
             : pre(detail::make_callable(std::move(init_pre)))
             , post(detail::make_callable(std::move(init_post)))
-            , node(std::forward<Args>(args)...)
+            , node{std::forward<Args>(args)...}
         {
         }
 

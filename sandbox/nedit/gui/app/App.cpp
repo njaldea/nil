@@ -117,12 +117,16 @@ namespace gui
             if (start.pin->type == 0)
             {
                 start.pin->icon = end.pin->icon;
+                start.pin->alias = end.pin->type;
                 start.node->pins_i[0].icon = end.pin->icon;
+                start.node->pins_i[0].alias = end.pin->type;
             }
             else if (end.pin->type == 0)
             {
                 end.pin->icon = start.pin->icon;
+                end.pin->alias = start.pin->type;
                 end.node->pins_o[0].icon = start.pin->icon;
+                end.node->pins_o[0].alias = start.pin->type;
             }
 
             auto link = std::make_unique<Link>(ids.reserve(), Link::Info{start.pin, end.pin});
@@ -293,36 +297,7 @@ namespace gui
             {
                 if (ax::NodeEditor::AcceptDeletedItem())
                 {
-                    auto link = links.find(link_id.Get());
-                    if (link != links.end())
-                    {
-                        Link* current_link = link->second.get();
-                        auto& pin_in = pins.at(current_link->entry->id.value);
-                        if (pin_in.pin->type == 0)
-                        {
-                            auto* icon = &pin_infos[0].icon;
-                            if (pins.at(pin_in.node->pins_i[0].id.value).links.empty())
-                            {
-                                pin_in.pin->icon = icon;
-                                pin_in.node->pins_i[0].icon = icon;
-                            }
-                        }
-                        pin_in.links.erase(current_link);
-
-                        auto& pin_out = pins.at(current_link->exit->id.value);
-                        if (pin_out.pin->type == 0)
-                        {
-                            auto* icon = &pin_infos[0].icon;
-                            if (pins.at(pin_in.node->pins_o[0].id.value).links.empty())
-                            {
-                                pin_out.pin->icon = icon;
-                                pin_out.node->pins_o[0].icon = icon;
-                            }
-                        }
-                        pin_out.links.erase(current_link);
-                        links.erase(link);
-                        changed = true;
-                    }
+                    delete_link(link_id.Get());
                 }
             }
 
@@ -343,28 +318,72 @@ namespace gui
         auto node_it = nodes.find(node_id);
         if (node_it != nodes.end())
         {
+            using Mapping = std::unordered_map<std::uint64_t, PinMapping>;
             auto& node = node_it->second;
-            constexpr auto process =                              //
-                [](                                               //
-                    const std::vector<gui::Pin>& pins_to_process, //
-                    std::unordered_map<std::uint64_t, gui::PinMapping>& stored_pins,
-                    std::unordered_map<std::uint64_t, std::unique_ptr<gui::Link>>& stored_links,
-                    gui::Pin*(gui::Link::*side)
-                )
+            const auto delete_links
+                = [this](const std::vector<Pin>& current_pins, const Mapping& stored_pins)
             {
-                for (const auto& pin : pins_to_process)
+                for (const auto& pin : current_pins)
                 {
-                    for (auto* link : stored_pins.at(pin.id.value).links)
+                    const auto& pin_detail = stored_pins.at(pin.id.value);
+                    const auto l = pin_detail.links;
+                    for (auto* link : l)
                     {
-                        stored_pins.at((link->*side)->id.value).links.erase(link);
-                        stored_links.erase(link->id.value);
+                        delete_link(link->id.value);
                     }
+                }
+            };
+            const auto delete_pins
+                = [this](const std::vector<Pin>& current_pins, Mapping& stored_pins)
+            {
+                for (const auto& pin : current_pins)
+                {
                     stored_pins.erase(pin.id.value);
                 }
             };
-            process(node->pins_i, pins, links, &gui::Link::entry);
-            process(node->pins_o, pins, links, &gui::Link::exit);
+            delete_links(node->pins_i, pins);
+            delete_links(node->pins_o, pins);
+            delete_pins(node->pins_i, pins);
+            delete_pins(node->pins_o, pins);
             nodes.erase(node_it);
+            changed = true;
+        }
+    }
+
+    void App::delete_link(std::uint64_t link_id)
+    {
+        auto link = links.find(link_id);
+        if (link != links.end())
+        {
+            Link* current_link = link->second.get();
+            auto& pin_in = pins.at(current_link->entry->id.value);
+            if (pin_in.pin->type == 0)
+            {
+                if (pins.at(pin_in.node->pins_i[0].id.value).links.empty())
+                {
+                    auto* icon = &pin_infos[0].icon;
+                    pin_in.pin->icon = icon;
+                    pin_in.pin->alias = 0;
+                    pin_in.node->pins_i[0].icon = icon;
+                    pin_in.node->pins_i[0].alias = 0;
+                }
+            }
+            pin_in.links.erase(current_link);
+
+            auto& pin_out = pins.at(current_link->exit->id.value);
+            if (pin_out.pin->type == 0)
+            {
+                if (pins.at(pin_out.node->pins_o[0].id.value).links.empty())
+                {
+                    auto* icon = &pin_infos[0].icon;
+                    pin_out.pin->icon = icon;
+                    pin_out.pin->alias = 0;
+                    pin_out.node->pins_o[0].icon = icon;
+                    pin_out.node->pins_o[0].alias = 0;
+                }
+            }
+            pin_out.links.erase(current_link);
+            links.erase(link);
             changed = true;
         }
     }

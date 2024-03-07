@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Control.hpp"
 #include "sort_nodes.hpp"
 
 #include <nil/gate.hpp>
@@ -86,16 +87,20 @@ namespace ext
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
         std::function<void(std::uint64_t)> activate;
         std::function<void(std::uint64_t)> deactivate;
+        std::shared_ptr<bool> paused = std::make_shared<bool>(false);
     };
 
     struct AppState
     {
         using IDs = std::vector<std::uint64_t>;
-        using Factory
-            = std::function<void(GraphState&, std::uint64_t, const IDs&, const IDs&, const IDs&)>;
+        using NodeFactory = std::function<
+            void(GraphState&, std::uint64_t, std::uint64_t, const IDs&, const IDs&, const IDs&)>;
+        using EdgeFactory = std::function<void(GraphState&, std::uint64_t)>;
 
         nil::nedit::proto::State info;
-        std::vector<Factory> node_factories;
+        std::vector<NodeFactory> node_factories;
+        std::vector<NodeFactory> feedback_node_factories;
+        std::vector<EdgeFactory> edge_factories;
         std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
     };
 
@@ -261,7 +266,7 @@ namespace ext
             }
 
             template <typename T, typename... Controls, typename... A, typename... Args>
-            AppState::Factory factory(
+            AppState::NodeFactory factory(
                 const Node<T, Controls...>& node,
                 std::tuple<A...> a,
                 const Args&... args
@@ -275,6 +280,7 @@ namespace ext
                     [controls, a = std::move(a), ... args = args]( //
                         GraphState& state,
                         std::uint64_t id,
+                        std::uint64_t /* alias */,
                         const std::vector<std::uint64_t>& input_ids,
                         const std::vector<std::uint64_t>& output_ids,
                         const std::vector<std::uint64_t>& control_ids
@@ -322,56 +328,44 @@ namespace ext
                 }
             };
 
-            constexpr auto identity = nil::utils::traits::identity_v<Any>;
+            add_pin<Any>({"any", {0.5f, 0.5f, 0.5f, 1.0f}});
 
-            state.type_to_pin_index.emplace(identity, state.info.types().pins_size());
-            const Pin<void> pin{"any", {0.5, 0.5, 0.5, 1.0}};
-            detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
-
-            struct N
             {
-                std::tuple<Any> operator()(Any) const
+                struct N
                 {
-                    return {};
-                }
-            };
+                    Any operator()(Any, bool) const;
+                };
 
-            const Node<N> node{"feedback"};
-
-            auto& node_message = *state.info.mutable_types()->add_nodes();
-            detail::api::to_message(node_message, node, state.type_to_pin_index);
-            state.node_factories.push_back(
-                [](GraphState& graph_state,
-                   std::uint64_t id,
-                   const std::vector<std::uint64_t>& i_ids,
-                   const std::vector<std::uint64_t>& s_ids,
-                   const std::vector<std::uint64_t>&)
-                {
-                    struct FF
+                auto& node_message = *state.info.mutable_types()->add_nodes();
+                detail::api::to_message(
+                    node_message,
+                    Node<N, Value<bool>>{"feedback", {{.value = true}}},
+                    state.type_to_pin_index
+                );
+                state.node_factories.push_back( //
+                    [this](
+                        GraphState& graph_state,
+                        std::uint64_t id,
+                        std::uint64_t alias,
+                        const std::vector<std::uint64_t>& i_ids,
+                        const std::vector<std::uint64_t>& s_ids,
+                        const std::vector<std::uint64_t>& c_ids
+                    )
                     {
-                        void operator()(int v)
-                        {
-                            if (output == nullptr)
-                            {
-                                output = graph_state.internal_edges.at(s_ids[0]);
-                            }
-                            output->set_value(v);
-                        }
-
-                        GraphState& graph_state;
-                        std::vector<std::uint64_t> s_ids;
-                        nil::gate::MutableEdge<int>* output = nullptr;
-                    };
-
-                    graph_state.core.node<nil::gate::nodes::Scoped<FF>>(
-                        {graph_state.internal_edges.at(i_ids.at(0))},
-                        [&graph_state, id]() { graph_state.activate(id); },
-                        [&graph_state, id]() { graph_state.deactivate(id); },
-                        graph_state,
-                        s_ids
-                    );
-                }
-            );
+                        std::cout << __FILE__ << ':' << __LINE__ << ':'
+                                  << (const char*)(__FUNCTION__) << std::endl;
+                        std::cout << alias << std::endl;
+                        state.feedback_node_factories[alias](
+                            graph_state,
+                            id,
+                            alias,
+                            i_ids,
+                            s_ids,
+                            c_ids
+                        );
+                    }
+                );
+            }
         }
 
         ~App() = default;
@@ -386,6 +380,53 @@ namespace ext
             constexpr auto identity = nil::utils::traits::identity_v<T>;
             state.type_to_pin_index.emplace(identity, state.info.types().pins_size());
             detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
+
+            state.edge_factories.push_back(
+                [](GraphState& graph_state, std::uint64_t id)
+                {
+                    graph_state         //
+                        .internal_edges //
+                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core.edge<T>()});
+                }
+            );
+            state.feedback_node_factories.push_back(
+                [](GraphState& graph_state,
+                   std::uint64_t id,
+                   std::uint64_t alias,
+                   const std::vector<std::uint64_t>& i_ids,
+                   const std::vector<std::uint64_t>& s_ids,
+                   const std::vector<std::uint64_t>& c_ids)
+                {
+                    struct FeedbackNode
+                    {
+                        void operator()(T v, bool enabled)
+                        {
+                            if (output == nullptr)
+                            {
+                                output = graph_state->internal_edges.at(s_id);
+                            }
+                            if (enabled)
+                            {
+                                output->set_value(std::move(v));
+                                graph_state->core.commit();
+                            }
+                        }
+
+                        GraphState* graph_state;
+                        std::uint64_t s_id;
+                        nil::gate::MutableEdge<T>* output;
+                    };
+
+                    auto factory = detail::api::factory(
+                        Node<FeedbackNode, Value<bool>>{"feedback", {{.value = true}}},
+                        std::tuple<>(),
+                        &graph_state,
+                        s_ids.at(0),
+                        nullptr
+                    );
+                    factory(graph_state, id, alias, i_ids, s_ids, c_ids);
+                }
+            );
             return *this;
         }
 

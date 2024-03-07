@@ -87,6 +87,14 @@ void load(const gui::App& app, nil::nedit::proto::State& info)
             auto* node = graph->add_nodes();
             node->set_id(id);
             node->set_type(n->type);
+            if (n->type == 0)
+            {
+                node->set_alias(n->pins_i[0].alias);
+            }
+            else
+            {
+                node->set_alias(0u);
+            }
             for (const auto& pin : n->pins_i)
             {
                 node->add_inputs(pin.id.value);
@@ -349,12 +357,6 @@ int GUI::run(const nil::cli::Options& options) const
                     {
                         app.before_render.emplace_back(std::move(cb));
                     }
-
-                    if (!app.allow_editing && app.changed)
-                    {
-                        service.publish(nil::nedit::proto::message_type::Run);
-                        app.changed = false;
-                    }
                 }
             )
             .add(
@@ -467,8 +469,6 @@ int GUI::run(const nil::cli::Options& options) const
             }
             else
             {
-                service.publish(nil::nedit::proto::message_type::Play);
-
                 if (app.changed)
                 {
                     const auto _ = std::unique_lock(app.mutex);
@@ -477,8 +477,16 @@ int GUI::run(const nil::cli::Options& options) const
                         {
                             load(app, info);
                             service.publish(nil::nedit::proto::message_type::State, info);
+                            service.publish(nil::nedit::proto::message_type::Play);
+                            service.publish(nil::nedit::proto::message_type::Run);
                         }
                     );
+                    app.changed = false;
+                }
+                else
+                {
+                    service.publish(nil::nedit::proto::message_type::Play);
+                    service.publish(nil::nedit::proto::message_type::Run);
                 }
             }
         }

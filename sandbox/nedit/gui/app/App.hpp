@@ -106,6 +106,7 @@ namespace gui
         void edit_delete();
 
         void delete_node(std::uint64_t node_id);
+        void delete_link(std::uint64_t link_id);
 
     public:
         // Node/Pin/Link/Controls share the same ID

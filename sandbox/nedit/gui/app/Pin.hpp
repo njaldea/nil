@@ -31,6 +31,7 @@ namespace gui
         ID id;
         ax::NodeEditor::PinKind kind;
         std::uint64_t type;
+        std::uint64_t alias;
         std::string_view label;
         const FlowIcon* icon;
         bool flipped;
