@@ -64,30 +64,25 @@ namespace gui
             return;
         }
 
-        if (detail_a.pin->type == 0 && detail_b.pin->type == 0)
+        if ((detail_a.node->type == 0 || detail_a.node->type == 1)
+            && (detail_a.pin->icon != &pin_infos[0].icon)
+            && (detail_a.pin->icon != detail_b.pin->icon))
         {
             ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
             return;
         }
-        else if (detail_a.pin->type == 0)
+
+        if ((detail_b.node->type == 0 || detail_b.node->type == 1)
+            && (detail_b.pin->icon != &pin_infos[0].icon)
+            && (detail_b.pin->icon != detail_a.pin->icon))
         {
-            if (detail_a.pin->icon != &pin_infos[0].icon
-                && detail_a.pin->icon != detail_b.pin->icon)
-            {
-                ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
-                return;
-            }
+            ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
+            return;
         }
-        else if (detail_b.pin->type == 0)
-        {
-            if (detail_b.pin->icon != &pin_infos[0].icon
-                && detail_b.pin->icon != detail_a.pin->icon)
-            {
-                ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
-                return;
-            }
-        }
-        else if (detail_a.pin->type != detail_b.pin->type)
+
+        if ((detail_a.node->type != 0 && detail_a.node->type != 1)
+            && !(detail_a.node->type != 0 && detail_a.node->type != 1)
+            && (detail_a.pin->type != detail_b.pin->type))
         {
             ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
             return;
@@ -114,19 +109,37 @@ namespace gui
 
         if (ax::NodeEditor::AcceptNewItem())
         {
+            // TODO: propagate forward in case of chained feedback/delay nodes
             if (start.pin->type == 0)
             {
                 start.pin->icon = end.pin->icon;
-                start.pin->alias = end.pin->type;
                 start.node->pins_i[0].icon = end.pin->icon;
-                start.node->pins_i[0].alias = end.pin->type;
+
+                if (end.pin->type == 0)
+                {
+                    start.pin->alias = end.pin->alias;
+                    start.node->pins_i[0].alias = end.pin->alias;
+                }
+                else
+                {
+                    start.pin->alias = end.pin->type;
+                    start.node->pins_i[0].alias = end.pin->type;
+                }
             }
             else if (end.pin->type == 0)
             {
                 end.pin->icon = start.pin->icon;
-                end.pin->alias = start.pin->type;
                 end.node->pins_o[0].icon = start.pin->icon;
-                end.node->pins_o[0].alias = start.pin->type;
+                if (start.pin->type == 0)
+                {
+                    end.pin->alias = start.pin->alias;
+                    end.node->pins_o[0].alias = start.pin->alias;
+                }
+                else
+                {
+                    end.pin->alias = start.pin->type;
+                    end.node->pins_o[0].alias = start.pin->type;
+                }
             }
 
             auto link = std::make_unique<Link>(ids.reserve(), Link::Info{start.pin, end.pin});
