@@ -3,6 +3,7 @@
 #include "Control.hpp"
 #include "sort_nodes.hpp"
 
+#include <nil/dev.hpp>
 #include <nil/gate.hpp>
 #include <nil/gate/api/uniform.hpp>
 #include <nil/utils/traits/identity.hpp>
@@ -88,6 +89,8 @@ namespace ext
         std::function<void(std::uint64_t)> activate;
         std::function<void(std::uint64_t)> deactivate;
         std::shared_ptr<bool> paused = std::make_shared<bool>(false);
+
+        std::function<void(const void*, float, std::function<void()>)> post;
     };
 
     struct AppState
@@ -100,6 +103,7 @@ namespace ext
         nil::nedit::proto::State info;
         std::vector<NodeFactory> node_factories;
         std::vector<NodeFactory> feedback_node_factories;
+        std::vector<NodeFactory> delay_node_factories;
         std::vector<EdgeFactory> edge_factories;
         std::unordered_map<const void*, std::uint64_t> type_to_pin_index;
     };
@@ -350,12 +354,40 @@ namespace ext
                         const std::vector<std::uint64_t>& i_ids,
                         const std::vector<std::uint64_t>& s_ids,
                         const std::vector<std::uint64_t>& c_ids
-                    )
-                    {
-                        std::cout << __FILE__ << ':' << __LINE__ << ':'
-                                  << (const char*)(__FUNCTION__) << std::endl;
-                        std::cout << alias << std::endl;
+                    ) {
                         state.feedback_node_factories[alias](
+                            graph_state,
+                            id,
+                            alias,
+                            i_ids,
+                            s_ids,
+                            c_ids
+                        );
+                    }
+                );
+            }
+            {
+                struct N
+                {
+                    void operator()(nil::gate::async_outputs<Any>, Any, float) const;
+                };
+
+                auto& node_message = *state.info.mutable_types()->add_nodes();
+                detail::api::to_message(
+                    node_message,
+                    Node<N, MinMax<float>>{"delay", {{.value = 0.1f, .min = 0.0f, .max = 5.f}}},
+                    state.type_to_pin_index
+                );
+                state.node_factories.push_back( //
+                    [this](
+                        GraphState& graph_state,
+                        std::uint64_t id,
+                        std::uint64_t alias,
+                        const std::vector<std::uint64_t>& i_ids,
+                        const std::vector<std::uint64_t>& s_ids,
+                        const std::vector<std::uint64_t>& c_ids
+                    ) {
+                        state.delay_node_factories[alias](
                             graph_state,
                             id,
                             alias,
@@ -399,7 +431,7 @@ namespace ext
                 {
                     struct FeedbackNode
                     {
-                        void operator()(T v, bool enabled)
+                        void operator()(const T& v, bool enabled)
                         {
                             if (output == nullptr)
                             {
@@ -407,8 +439,11 @@ namespace ext
                             }
                             if (enabled)
                             {
-                                output->set_value(std::move(v));
-                                graph_state->core.commit();
+                                if (output->value() != v)
+                                {
+                                    output->set_value(v);
+                                    graph_state->core.commit();
+                                }
                             }
                         }
 
@@ -423,6 +458,50 @@ namespace ext
                         &graph_state,
                         s_ids.at(0),
                         nullptr
+                    );
+                    factory(graph_state, id, alias, i_ids, s_ids, c_ids);
+                }
+            );
+            state.delay_node_factories.push_back(
+                [](GraphState& graph_state,
+                   std::uint64_t id,
+                   std::uint64_t alias,
+                   const std::vector<std::uint64_t>& i_ids,
+                   const std::vector<std::uint64_t>& s_ids,
+                   const std::vector<std::uint64_t>& c_ids)
+                {
+                    struct Delay
+                    {
+                        void operator()(
+                            nil::gate::async_outputs<T> async_outputs,
+                            const T& v,
+                            float time
+                        )
+                        {
+                            graph_state->post(
+                                this,
+                                time,
+                                [this, async_outputs, v = v]() mutable
+                                {
+                                    if (get<0>(async_outputs)->value() != v)
+                                    {
+                                        get<0>(async_outputs)->set_value(std::move(v));
+                                        graph_state->core.commit();
+                                    }
+                                }
+                            );
+                        }
+
+                        GraphState* graph_state;
+                    };
+
+                    auto factory = detail::api::factory(
+                        Node<Delay, MinMax<float>>{
+                            "delay",
+                            {{.value = 0.1f, .min = 0.0f, .max = 5.f}}
+                        },
+                        std::tuple<T>(),
+                        &graph_state
                     );
                     factory(graph_state, id, alias, i_ids, s_ids, c_ids);
                 }

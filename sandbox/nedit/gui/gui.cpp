@@ -87,7 +87,7 @@ void load(const gui::App& app, nil::nedit::proto::State& info)
             auto* node = graph->add_nodes();
             node->set_id(id);
             node->set_type(n->type);
-            if (n->type == 0)
+            if (n->type == 0 || n->type == 1)
             {
                 node->set_alias(n->pins_i[0].alias);
             }

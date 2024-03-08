@@ -54,30 +54,7 @@ namespace ext
         }
     };
 
-    struct DeferredAdd
-    {
-        void operator()(
-            nil::gate::async_outputs<int> async_outputs,
-            const nil::gate::Core& core,
-            int l,
-            int r
-        ) const
-        {
-            // will be executed after 1 second.
-            // this is not debounced.
-            post(
-                [&core, async_outputs, l, r]() mutable
-                {
-                    get<0>(async_outputs)->set_value(l + r);
-                    core.commit();
-                }
-            );
-        }
-
-        std::function<void(std::function<void()>)> post;
-    };
-
-    void install(ext::App& app, const std::function<void(std::function<void()>)>& post)
+    void install(ext::App& app)
     {
         using text = std::string;
         // clang-format off
@@ -107,7 +84,6 @@ namespace ext
         app.add_node<Consume<int>>    ({.label = "Consume<i>"});
         app.add_node<Consume<float>>  ({.label = "Consume<f>"});
         app.add_node<Consume<text>>   ({.label = "Consume<s>"});
-        app.add_node<DeferredAdd>     ({.label = "DeferredAdd<i>"}, {0}, post);
         // clang-format on
 
         // for version 2. figure out if i can drag drop scripts(or c++?)

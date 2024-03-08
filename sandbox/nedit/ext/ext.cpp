@@ -55,26 +55,39 @@ public:
     }
 
     // should i debounce this?
-    void post(std::function<void()> cb)
+    void post(const void* id, float time, std::function<void()> cb)
     {
         std::lock_guard _(mutex);
         boost::asio::post(
             *context,
-            [this, cb]()
+            [this, id, time, cb]()
             {
-                // std::this_thread::sleep_for(std::chrono::seconds(1));
-                // cb();
-                auto tm = std::make_shared<boost::asio::deadline_timer>(
-                    *context,
-                    boost::posix_time::seconds(1)
-                );
-                tm->async_wait(
-                    [tm, cb](const boost::system::error_code& er)
+                auto& timer = timers[id];
+
+                if (timer)
+                {
+                    timer->cancel();
+                }
+                else
+                {
+                    timer = std::make_unique<boost::asio::deadline_timer>(
+                        *context,
+                        boost::posix_time::microsec(int(time * 1000000))
+                    );
+                }
+
+                timer->async_wait(
+                    [this, id, cb](const boost::system::error_code& er)
                     {
                         if (er)
                         {
-                            std::cout << er.what() << std::endl;
+                            if (er != boost::asio::error::operation_aborted)
+                            {
+                                std::cout << er.what() << std::endl;
+                            }
+                            return;
                         }
+                        timers.erase(id);
                         cb();
                     }
                 );
@@ -110,6 +123,8 @@ private:
     std::unique_ptr<std::thread> thread;
     std::atomic_bool flushing = false;
     std::atomic_bool cancelled = false;
+
+    std::unordered_map<const void*, std::unique_ptr<boost::asio::deadline_timer>> timers;
 
     void flush()
     {
@@ -177,6 +192,9 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
         service.publish(nil::nedit::proto::message_type::NodeState, message);
     };
 
+    state.post = [&executor](const void* id, float time, std::function<void()> cb)
+    { executor.post(id, time, cb); };
+
     return state;
 }
 
@@ -218,7 +236,7 @@ int EXT::run(const nil::cli::Options& options) const
 
     ext::GraphState graph_state = make_state(service, executor);
 
-    ext::install(app, [&executor](std::function<void()> cb) { executor.post(cb); });
+    ext::install(app);
     const std::string types = app_state.info.types().SerializeAsString();
 
     namespace proto = nil::nedit::proto;
