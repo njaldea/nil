@@ -17,35 +17,6 @@ namespace gui
 {
     struct NodeInfo final
     {
-        void render()
-        {
-            ImGui::Selectable(label.c_str());
-        }
-
-        bool is_dragged()
-        {
-            constexpr auto src_flags                      //
-                = ImGuiDragDropFlags_SourceNoDisableHover //
-                | ImGuiDragDropFlags_SourceNoPreviewTooltip
-                | ImGuiDragDropFlags_SourceNoHoldToOpenOthers;
-            if (ImGui::BeginDragDropSource(src_flags))
-            {
-                ImGui::EndDragDropSource();
-                return true;
-            }
-            return false;
-        }
-
-        bool is_dropped()
-        {
-            if (ImGui::BeginDragDropTarget())
-            {
-                ImGui::EndDragDropTarget();
-                return true;
-            }
-            return false;
-        }
-
         std::string label;
         std::vector<std::uint64_t> inputs;
         std::vector<std::uint64_t> outputs;
@@ -54,11 +25,6 @@ namespace gui
 
     struct PinInfo final
     {
-        void render()
-        {
-            ImGui::TextColored(icon.color, "%s", label.data());
-        }
-
         std::string label;
         FlowIcon icon;
     };

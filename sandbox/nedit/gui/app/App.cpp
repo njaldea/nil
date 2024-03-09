@@ -206,7 +206,7 @@ namespace gui
             ImGui::LabelText("", " >  ");
             ImGui::PopItemWidth();
             ImGui::SameLine();
-            pin_info.render();
+            ImGui::TextColored(pin_info.icon.color, "%s", pin_info.label.data());
         }
 
         ImGui::Text("Node Type (drag)");
@@ -217,17 +217,28 @@ namespace gui
             ImGui::LabelText("", " >  ");
             ImGui::PopItemWidth();
             ImGui::SameLine();
-            info.render();
+            ImGui::Selectable(info.label.c_str());
             if (allow_editing)
             {
-                if (info.is_dragged())
+                constexpr auto src_flags                      //
+                    = ImGuiDragDropFlags_SourceNoDisableHover //
+                    | ImGuiDragDropFlags_SourceNoPreviewTooltip
+                    | ImGuiDragDropFlags_SourceNoHoldToOpenOthers;
+                if (ImGui::BeginDragDropSource(src_flags))
                 {
+                    ImGui::EndDragDropSource();
                     prepare_create(n);
                 }
                 else
                 {
                     confirm_create(n);
                 }
+
+                // for dropping one over the other
+                // if (ImGui::BeginDragDropTarget())
+                // {
+                //     ImGui::EndDragDropTarget();
+                // }
             }
         }
     }

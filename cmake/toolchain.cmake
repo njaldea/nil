@@ -13,7 +13,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "[0 | OFF - 1 | ON]: Build using shared libraries?")
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-fno-rtti)
     add_compile_options(-flto)
     add_compile_options(-Wfatal-errors)
@@ -34,4 +34,8 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     # add_compile_options("/wd4464") # "../" warning for relative include
     # add_compile_options("/wd4514") # unreferenced inline function has been removed
     # [TODO] figure out how to ignore 3rd party headers
+endif()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    add_link_options("-fuse-ld=lld-18")
 endif()

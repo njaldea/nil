@@ -9,31 +9,31 @@ template <typename Service>
 std::unique_ptr<nil::service::IService> make_service(const nil::cli::Options& options)
 {
     const auto port = std::uint16_t(options.number("port"));
-    if constexpr (
-        std::is_same_v<nil::service::tcp::Server, Service> || //
-        std::is_same_v<nil::service::udp::Server, Service> || //
-        std::is_same_v<nil::service::ws::Server, Service>
-    )
+    constexpr auto is_server //
+        = std::is_same_v<nil::service::tcp::Server, Service>
+        || std::is_same_v<nil::service::udp::Server, Service>
+        || std::is_same_v<nil::service::ws::Server, Service>;
+    constexpr auto is_client //
+        = std::is_same_v<nil::service::tcp::Client, Service>
+        || std::is_same_v<nil::service::udp::Client, Service>
+        || std::is_same_v<nil::service::ws::Client, Service>;
+    if constexpr (is_server)
     {
         return nil::service::make_service<Service>({.port = port});
     }
-    else if constexpr (
-        std::is_same_v<nil::service::tcp::Client, Service> || //
-        std::is_same_v<nil::service::udp::Client, Service> || //
-        std::is_same_v<nil::service::ws::Client, Service>
-    )
+    else if constexpr (is_client)
     {
         return nil::service::make_service<Service>({.host = "127.0.0.1", .port = port});
     }
     else
     {
         static_assert(
-            std::is_same_v<nil::service::tcp::Server, Service> || //
-            std::is_same_v<nil::service::tcp::Client, Service> || //
-            std::is_same_v<nil::service::udp::Server, Service> || //
-            std::is_same_v<nil::service::udp::Client, Service> || //
-            std::is_same_v<nil::service::ws::Server, Service> ||  //
-            std::is_same_v<nil::service::ws::Client, Service>     //
+            std::is_same_v<nil::service::tcp::Server, Service>    //
+            || std::is_same_v<nil::service::tcp::Client, Service> //
+            || std::is_same_v<nil::service::udp::Server, Service> //
+            || std::is_same_v<nil::service::udp::Client, Service> //
+            || std::is_same_v<nil::service::ws::Server, Service>  //
+            || std::is_same_v<nil::service::ws::Client, Service> 
         );
     }
 }

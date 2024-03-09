@@ -10,7 +10,7 @@
 
 namespace nil::cli
 {
-    class Command;
+    struct Command;
 
     class Node final
     {

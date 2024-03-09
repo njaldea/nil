@@ -37,7 +37,14 @@ to enable cli:
 ### use cmake presets
 
 - export `VCPKG_ROOT` pointing to where vcpkg is located
-- `cmake . --preset debug`
+- use cmake preset
+```bash
+> cmake . --preset debug
+```
+- since clang-18 is already setup (clang-tidy/clang-format/clangd), we can use clang as the compiler
+```bash
+> CC=`(which clang-18)` CXX=`(which clang++-18)` cmake . --preset debug
+```
 
 ### rely on vscode
 
