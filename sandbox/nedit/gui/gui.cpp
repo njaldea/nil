@@ -1,5 +1,5 @@
 #include "gui.hpp"
-#include "../codec.hpp"
+#include "../codec.hpp" // IWYU pragma: keep
 #include "app/App.hpp"
 #include "app/Control.hpp"
 

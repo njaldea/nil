@@ -80,7 +80,7 @@ namespace nil::service::udp
                 connection = std::make_unique<Connection>(endpoint, strand);
                 if (storage.connect)
                 {
-                    storage.connect(id);
+                    storage.connect->call(id);
                 }
             }
             connection->timer.expires_after(storage.options.timeout);
@@ -93,7 +93,7 @@ namespace nil::service::udp
                     }
                     if (storage.disconnect)
                     {
-                        storage.disconnect(id);
+                        storage.disconnect->call(id);
                     }
                     connections.erase(id);
                 }
@@ -109,7 +109,7 @@ namespace nil::service::udp
         {
             if (storage.msg)
             {
-                storage.msg(id, data, size);
+                storage.msg->call(id, data, size);
             }
         }
 
@@ -217,17 +217,17 @@ namespace nil::service::udp
         impl->receive();
     }
 
-    void Server::on_message(MessageHandler handler)
+    void Server::on_message_impl(MessageHandler handler)
     {
         storage.msg = std::move(handler);
     }
 
-    void Server::on_connect(ConnectHandler handler)
+    void Server::on_connect_impl(ConnectHandler handler)
     {
         storage.connect = std::move(handler);
     }
 
-    void Server::on_disconnect(DisconnectHandler handler)
+    void Server::on_disconnect_impl(DisconnectHandler handler)
     {
         storage.disconnect = std::move(handler);
     }

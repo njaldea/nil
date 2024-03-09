@@ -1,16 +1,15 @@
 #pragma once
 
 #include "codec.hpp"
+#include "nil/service/IService.hpp"
 
-#include <functional>
 #include <string>
-#include <type_traits>
 #include <unordered_map>
 
 namespace nil::service
 {
     template <typename Indexer>
-    class TypedHandler
+    class TypedHandler final
     {
         struct AutoCast
         {
@@ -24,33 +23,62 @@ namespace nil::service
             std::uint64_t* s;
         };
 
-    public:
-        template <typename Handler>
-        TypedHandler& add(Indexer type, Handler handler)
+        template <typename T>
+        struct Callable final: detail::ICallable<const void*, std::uint64_t>
         {
-            handlers.emplace(
-                type,
-                [h = std::move(handler)] //
-                (                        //
-                    [[maybe_unused]] const std::string& id,
-                    [[maybe_unused]] const void* data,
-                    [[maybe_unused]] std::uint64_t size
-                )
+            Callable() = delete;
+            Callable(Callable&&) = delete;
+            Callable(const Callable&) = delete;
+            Callable& operator=(Callable&&) = delete;
+            Callable& operator=(const Callable&) = delete;
+
+            explicit Callable(T init_handler)
+                : handler(std::move(init_handler))
+            {
+            }
+
+            ~Callable() noexcept override = default;
+
+            void call(const std::string& id, const void* data, std::uint64_t size) override
+            {
+                if constexpr (std::is_invocable_v<T>)
                 {
-                    if constexpr (std::is_invocable_v<Handler>)
-                    {
-                        h();
-                    }
-                    else if constexpr (std::is_invocable_v<Handler, const std::string&>)
-                    {
-                        h(id);
-                    }
-                    else
-                    {
-                        h(id, AutoCast(data, &size));
-                    }
+                    handler();
                 }
-            );
+                else if constexpr (std::is_invocable_v<T, const std::string&>)
+                {
+                    handler(id);
+                }
+                else
+                {
+                    handler(id, AutoCast(data, &size));
+                }
+            }
+
+            T handler;
+        };
+
+    public:
+        TypedHandler() = default;
+        ~TypedHandler() noexcept = default;
+
+        TypedHandler(TypedHandler&&) = default;
+        TypedHandler& operator=(TypedHandler&&) = default;
+
+        TypedHandler(const TypedHandler&) = delete;
+        TypedHandler& operator=(const TypedHandler&) = delete;
+
+        template <typename Handler>
+        TypedHandler add(Indexer type, Handler handler) &&
+        {
+            handlers.emplace(type, std::make_unique<Callable<Handler>>(std::move(handler)));
+            return std::move(*this);
+        }
+
+        template <typename Handler>
+        TypedHandler& add(Indexer type, Handler handler) &
+        {
+            handlers.emplace(type, std::make_unique<Callable<Handler>>(std::move(handler)));
             return *this;
         }
 
@@ -62,12 +90,11 @@ namespace nil::service
             const auto it = handlers.find(t);
             if (it != handlers.end() && it->second)
             {
-                it->second(id, m + o_size - size, size);
+                it->second->call(id, m + o_size - size, size);
             }
         }
 
     private:
-        using Handler = std::function<void(const std::string&, const void*, std::uint64_t)>;
-        std::unordered_map<Indexer, Handler> handlers;
+        std::unordered_map<Indexer, MessageHandler> handlers;
     };
 }

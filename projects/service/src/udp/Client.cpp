@@ -50,7 +50,7 @@ namespace nil::service::udp
         {
             if (storage.msg)
             {
-                storage.msg(targetID, data, size);
+                storage.msg->call(targetID, data, size);
             }
         }
 
@@ -61,7 +61,7 @@ namespace nil::service::udp
                 connected = true;
                 if (storage.connect)
                 {
-                    storage.connect(targetID);
+                    storage.connect->call(targetID);
                 }
             }
             timeout.expires_after(storage.options.timeout);
@@ -77,7 +77,7 @@ namespace nil::service::udp
                         connected = false;
                         if (storage.disconnect)
                         {
-                            storage.disconnect(targetID);
+                            storage.disconnect->call(targetID);
                         }
                     }
                 }
@@ -180,17 +180,17 @@ namespace nil::service::udp
         impl->prepare();
     }
 
-    void Client::on_message(MessageHandler handler)
+    void Client::on_message_impl(MessageHandler handler)
     {
         storage.msg = std::move(handler);
     }
 
-    void Client::on_connect(ConnectHandler handler)
+    void Client::on_connect_impl(ConnectHandler handler)
     {
         storage.connect = std::move(handler);
     }
 
-    void Client::on_disconnect(DisconnectHandler handler)
+    void Client::on_disconnect_impl(DisconnectHandler handler)
     {
         storage.disconnect = std::move(handler);
     }

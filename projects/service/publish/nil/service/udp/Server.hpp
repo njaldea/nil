@@ -36,10 +36,6 @@ namespace nil::service::udp
         void stop() override;
         void restart() override;
 
-        void on_message(MessageHandler handler) override;
-        void on_connect(ConnectHandler handler) override;
-        void on_disconnect(DisconnectHandler handler) override;
-
         void publish(std::vector<std::uint8_t> data) override;
         void send(const std::string& id, std::vector<std::uint8_t> data) override;
 
@@ -53,5 +49,9 @@ namespace nil::service::udp
 
         struct Impl;
         std::unique_ptr<Impl> impl;
+
+        void on_message_impl(MessageHandler handler) override;
+        void on_connect_impl(ConnectHandler handler) override;
+        void on_disconnect_impl(DisconnectHandler handler) override;
     };
 }

@@ -3,28 +3,81 @@
 #include "codec.hpp"
 
 #include <array>
-#include <functional>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 namespace nil::service
 {
-    using MessageHandler = std::function<void(const std::string&, const void*, std::uint64_t)>;
-    using ConnectHandler = std::function<void(const std::string&)>;
-    using DisconnectHandler = std::function<void(const std::string&)>;
 
     namespace detail
     {
+        template <typename... Args>
+        struct ICallable
+        {
+            ICallable() = default;
+            virtual ~ICallable() noexcept = default;
+
+            ICallable(ICallable&&) = delete;
+            ICallable(const ICallable&) = delete;
+            ICallable& operator=(ICallable&&) = delete;
+            ICallable& operator=(const ICallable&) = delete;
+
+            virtual void call(const std::string&, Args... args) = 0;
+        };
+
         template <typename Options>
         struct Storage final
         {
             Options options;
-            MessageHandler msg;
-            ConnectHandler connect;
-            DisconnectHandler disconnect;
+            std::unique_ptr<ICallable<const void*, std::uint64_t>> msg;
+            std::unique_ptr<ICallable<>> connect;
+            std::unique_ptr<ICallable<>> disconnect;
         };
+
+        template <typename Handler, typename... Args>
+        std::unique_ptr<ICallable<Args...>> make_callable(Handler&& handler)
+        {
+            struct Callable final: detail::ICallable<Args...>
+            {
+                explicit Callable(Handler init_handler)
+                    : handler(std::move(init_handler))
+                {
+                }
+
+                ~Callable() noexcept override = default;
+
+                Callable(Callable&&) = delete;
+                Callable(const Callable&) = delete;
+                Callable& operator=(Callable&&) = delete;
+                Callable& operator=(const Callable&) = delete;
+
+                void call(const std::string& id, Args... args) override
+                {
+                    if constexpr (std::is_invocable_v<Handler, const std::string&, Args...>)
+                    {
+                        handler(id, args...);
+                    }
+                    else
+                    {
+                        handler(args...);
+                    }
+                }
+
+                Handler handler;
+            };
+
+            return std::make_unique<Callable>(std::forward<Handler>(handler));
+        }
     }
+
+    using MessageHandler //
+        = std::unique_ptr<detail::ICallable<const void*, std::uint64_t>>;
+    using ConnectHandler //
+        = std::unique_ptr<detail::ICallable<>>;
+    using DisconnectHandler //
+        = std::unique_ptr<detail::ICallable<>>;
 
     class IService
     {
@@ -53,27 +106,6 @@ namespace nil::service
          *  Call before calling other methods.
          */
         virtual void restart() = 0;
-
-        /**
-         * @brief Add a message handler
-         *
-         * @param handler
-         */
-        virtual void on_message(MessageHandler handler) = 0;
-
-        /**
-         * @brief Add a connect handler for service events.
-         *
-         * @param handler
-         */
-        virtual void on_connect(ConnectHandler handler) = 0;
-
-        /**
-         * @brief Add a disconnect handler for service events.
-         *
-         * @param handler
-         */
-        virtual void on_disconnect(DisconnectHandler handler) = 0;
 
         /**
          * @brief Broadcast a message to all listeners
@@ -132,6 +164,41 @@ namespace nil::service
             send(id, std::vector<std::uint8_t>(ptr, ptr + size));
         }
 
+        /**
+         * @brief Add a message handler
+         *
+         * @param handler
+         */
+        template <typename Handler>
+        void on_message(Handler handler)
+        {
+            on_message_impl(
+                detail::make_callable<Handler, const void*, std::uint64_t>(std::move(handler))
+            );
+        }
+
+        /**
+         * @brief Add a connect handler for service events.
+         *
+         * @param handler
+         */
+        template <typename Handler>
+        void on_connect(Handler handler)
+        {
+            on_connect_impl(detail::make_callable<Handler>(std::move(handler)));
+        }
+
+        /**
+         * @brief Add a disconnect handler for service events.
+         *
+         * @param handler
+         */
+        template <typename Handler>
+        void on_disconnect(Handler handler)
+        {
+            on_disconnect_impl(detail::make_callable<Handler>(std::move(handler)));
+        }
+
     private:
         // TODO: refactor and make this better;
         template <typename... T>
@@ -161,6 +228,27 @@ namespace nil::service
             }
             return message;
         }
+
+        /**
+         * @brief Add a message handler
+         *
+         * @param handler
+         */
+        virtual void on_message_impl(MessageHandler handler) = 0;
+
+        /**
+         * @brief Add a connect handler for service events.
+         *
+         * @param handler
+         */
+        virtual void on_connect_impl(ConnectHandler handler) = 0;
+
+        /**
+         * @brief Add a disconnect handler for service events.
+         *
+         * @param handler
+         */
+        virtual void on_disconnect_impl(DisconnectHandler handler) = 0;
     };
 
     template <typename T>
@@ -168,4 +256,5 @@ namespace nil::service
     {
         return std::make_unique<T>(std::move(options));
     }
+
 }

@@ -63,7 +63,7 @@ namespace nil::service::tcp
                     {
                         if (storage.disconnect)
                         {
-                            storage.disconnect(connection->id());
+                            storage.disconnect->call(connection->id());
                         }
                         connection.reset();
                     }
@@ -76,7 +76,7 @@ namespace nil::service::tcp
         {
             if (storage.msg)
             {
-                storage.msg(id, data, size);
+                storage.msg->call(id, data, size);
             }
         }
 
@@ -97,7 +97,7 @@ namespace nil::service::tcp
                         );
                         if (storage.connect)
                         {
-                            storage.connect(connection->id());
+                            storage.connect->call(connection->id());
                         }
                         return;
                     }
@@ -154,17 +154,17 @@ namespace nil::service::tcp
         impl->connect();
     }
 
-    void Client::on_message(MessageHandler handler)
+    void Client::on_message_impl(MessageHandler handler)
     {
         storage.msg = std::move(handler);
     }
 
-    void Client::on_connect(ConnectHandler handler)
+    void Client::on_connect_impl(ConnectHandler handler)
     {
         storage.connect = std::move(handler);
     }
 
-    void Client::on_disconnect(DisconnectHandler handler)
+    void Client::on_disconnect_impl(DisconnectHandler handler)
     {
         storage.disconnect = std::move(handler);
     }

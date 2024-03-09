@@ -66,7 +66,7 @@ namespace nil::service::ws
                     }
                     if (storage.disconnect)
                     {
-                        storage.disconnect(id);
+                        storage.disconnect->call(id);
                     }
                 }
             );
@@ -76,7 +76,7 @@ namespace nil::service::ws
         {
             if (storage.msg)
             {
-                storage.msg(id, data, size);
+                storage.msg->call(id, data, size);
             }
         }
 
@@ -125,7 +125,7 @@ namespace nil::service::ws
                                 connections.emplace(id, std::move(connection));
                                 if (storage.connect)
                                 {
-                                    storage.connect(id);
+                                    storage.connect->call(id);
                                 }
                             }
                         );
@@ -170,17 +170,17 @@ namespace nil::service::ws
         impl->accept();
     }
 
-    void Server::on_message(MessageHandler handler)
+    void Server::on_message_impl(MessageHandler handler)
     {
         storage.msg = std::move(handler);
     }
 
-    void Server::on_connect(ConnectHandler handler)
+    void Server::on_connect_impl(ConnectHandler handler)
     {
         storage.connect = std::move(handler);
     }
 
-    void Server::on_disconnect(DisconnectHandler handler)
+    void Server::on_disconnect_impl(DisconnectHandler handler)
     {
         storage.disconnect = std::move(handler);
     }
