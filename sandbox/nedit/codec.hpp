@@ -35,7 +35,7 @@ namespace nil::service
 
         static std::vector<std::uint8_t> serialize(const type& message)
         {
-            return codec<std::uint32_t>::serialize(message);
+            return codec<std::uint32_t>::serialize(std::uint32_t(message));
         }
 
         static type deserialize(const void* data, std::uint64_t& size)

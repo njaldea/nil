@@ -2,7 +2,6 @@
 
 #include "../IService.hpp"
 
-#include <chrono>
 #include <memory>
 
 namespace nil::service::ws
@@ -20,7 +19,7 @@ namespace nil::service::ws
             std::uint64_t buffer = 1024;
         };
 
-        Server(Options options);
+        explicit Server(Options options);
         ~Server() noexcept override;
 
         Server(Server&&) = delete;

@@ -28,5 +28,15 @@
   "C_Cpp.inlayHints.referenceOperator.showSpace": true,
   "C_Cpp.autoAddFileAssociations": false,
   "C_Cpp.errorSquiggles": "enabled",
-  "clang-format.executable": "clang-format-18"
+  "clang-format.executable": "clang-format-18",
+  "clangd.path": "clangd-18",
+  "clangd.arguments": [
+    "--j=4",
+    "--clang-tidy",
+    "--compile-commands-dir=${workspaceFolder}/.build",
+    "--all-scopes-completion",
+    "--header-insertion=iwyu",
+    "--background-index",
+    "--query-driver=/**/*"
+  ]
 }

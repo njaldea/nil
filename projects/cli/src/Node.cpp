@@ -10,7 +10,7 @@ namespace nil::cli
 {
     Node Node::root()
     {
-        return {std::make_unique<Command>()};
+        return Node{std::make_unique<Command>()};
     }
 
     Node::Node(std::unique_ptr<Command> init_command)

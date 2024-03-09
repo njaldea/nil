@@ -24,10 +24,12 @@ Checks: >
   -misc-non-private-member-variables-in-classes,
   -bugprone-exception-escape,
   -hicpp-uppercase-literal-suffix,
-  -hicpp-signed-bitwise
+  -hicpp-signed-bitwise,
+  -bugprone-unused-return-value
 WarningsAsErrors: >
   *,
-  -bugprone-easily-swappable-parameters
+  -bugprone-easily-swappable-parameters,
+  -readability-convert-member-functions-to-static
 HeaderFileExtensions:
   - ''
   - h

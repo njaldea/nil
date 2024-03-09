@@ -12,6 +12,7 @@ namespace nil::service
         static T deserialize(const void* data, std::uint64_t& size);
     };
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define NIL_CODEC_DECLARE(TYPE)                                                                    \
     template <>                                                                                    \
     std::vector<std::uint8_t> codec<TYPE>::serialize(const TYPE& message);                         \

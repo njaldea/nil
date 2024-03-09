@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Control.hpp"
 #include "IDs.hpp"
+#include "Pin.hpp"
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
@@ -11,7 +13,6 @@
 namespace gui
 {
     struct Pin;
-    struct Control;
 
     struct Node final
     {

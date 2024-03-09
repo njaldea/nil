@@ -20,7 +20,7 @@ namespace nil::service::tcp
             std::uint64_t buffer = 1024;
         };
 
-        Client(Options options);
+        explicit Client(Options options);
         ~Client() noexcept override;
 
         Client(Client&&) = delete;

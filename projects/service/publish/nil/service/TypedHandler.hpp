@@ -71,7 +71,7 @@ namespace nil::service
 
         void operator()(const std::string& id, const void* data, std::uint64_t size) const
         {
-            const auto m = static_cast<const std::uint8_t*>(data);
+            const auto* const m = static_cast<const std::uint8_t*>(data);
             const auto o_size = size;
             const auto t = codec<Indexer>::deserialize(data, size);
             const auto it = handlers.find(t);

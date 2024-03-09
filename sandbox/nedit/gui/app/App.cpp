@@ -1,7 +1,4 @@
 #include "App.hpp"
-#include "Control.hpp"
-
-#include <set>
 
 namespace
 {
@@ -81,7 +78,7 @@ namespace gui
         }
 
         if ((detail_a.node->type != 0 && detail_a.node->type != 1)
-            && !(detail_a.node->type != 0 && detail_a.node->type != 1)
+            && (detail_a.node->type == 0 || detail_a.node->type == 1)
             && (detail_a.pin->type != detail_b.pin->type))
         {
             ax::NodeEditor::RejectNewItem(ImVec4(1, 0, 0, 1), 1.0);
@@ -346,8 +343,7 @@ namespace gui
                     }
                 }
             };
-            const auto delete_pins
-                = [this](const std::vector<Pin>& current_pins, Mapping& stored_pins)
+            const auto delete_pins = [](const std::vector<Pin>& current_pins, Mapping& stored_pins)
             {
                 for (const auto& pin : current_pins)
                 {

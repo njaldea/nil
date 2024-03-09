@@ -25,7 +25,7 @@ namespace nil::service::udp
             std::chrono::nanoseconds timeout = std::chrono::seconds(2);
         };
 
-        Client(Options options);
+        explicit Client(Options options);
         ~Client() noexcept override;
 
         Client(Client&&) = delete;

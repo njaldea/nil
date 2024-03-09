@@ -7,10 +7,7 @@
 
 #include "types.hpp"
 
-#include <memory>
-#include <optional>
 #include <string>
-#include <vector>
 
 namespace nil::cli
 {

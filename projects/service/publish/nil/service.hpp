@@ -1,10 +1,10 @@
 #pragma once
 
-#include "service/tcp/Client.hpp"
-#include "service/tcp/Server.hpp"
-#include "service/udp/Client.hpp"
-#include "service/udp/Server.hpp"
-#include "service/ws/Client.hpp"
-#include "service/ws/Server.hpp"
+#include "service/tcp/Client.hpp" // IWYU pragma: export
+#include "service/tcp/Server.hpp" // IWYU pragma: export
+#include "service/udp/Client.hpp" // IWYU pragma: export
+#include "service/udp/Server.hpp" // IWYU pragma: export
+#include "service/ws/Client.hpp"  // IWYU pragma: export
+#include "service/ws/Server.hpp"  // IWYU pragma: export
 
-#include "service/TypedHandler.hpp"
+#include "service/TypedHandler.hpp" // IWYU pragma: export

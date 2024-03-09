@@ -23,11 +23,12 @@ namespace nil::cli
         ~Options() noexcept;
 
         Options(Options&&) = default;
-        Options(const Options&) = delete;
         Options& operator=(Options&&) = default;
-        Options& operator=(const Options&) = delete;
 
     public:
+        Options(const Options&) = delete;
+        Options& operator=(const Options&) = delete;
+
         /**
          * @brief Print help message to ostream.
          *

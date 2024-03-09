@@ -27,10 +27,16 @@ namespace nil::gate::detail
     {
         struct Callable: ICallable<void()>
         {
-            Callable(CB&& init_cb)
-                : cb(std::forward<CB>(init_cb))
+            explicit Callable(CB init_cb)
+                : cb(std::move(init_cb))
             {
             }
+
+            ~Callable() noexcept override = default;
+            Callable(Callable&&) = delete;
+            Callable(const Callable&) = delete;
+            Callable& operator=(Callable&&) = delete;
+            Callable& operator=(const Callable&) = delete;
 
             void call() override
             {

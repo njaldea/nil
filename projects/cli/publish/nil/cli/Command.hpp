@@ -1,12 +1,8 @@
 #pragma once
 
-#include "IOption.hpp"
 #include "types.hpp"
 
-#include <memory>
 #include <string>
-#include <tuple>
-#include <vector>
 
 namespace nil::cli
 {
@@ -18,7 +14,14 @@ namespace nil::cli
      */
     struct Command
     {
+        Command() = default;
+
         virtual ~Command() noexcept = default;
+
+        Command(Command&&) = delete;
+        Command(const Command&) = delete;
+        Command& operator=(Command&&) = delete;
+        Command& operator=(const Command&) = delete;
 
         /**
          * @brief message to use used when printing help for this command.

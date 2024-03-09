@@ -14,10 +14,10 @@ namespace nil::gate::detail
         Tasks() = default;
         ~Tasks() noexcept = default;
 
-        Tasks(Tasks&&) = default;
-        Tasks(const Tasks&) = default;
-        Tasks& operator=(Tasks&&) = default;
-        Tasks& operator=(const Tasks&) = default;
+        Tasks(Tasks&&) = delete;
+        Tasks(const Tasks&) = delete;
+        Tasks& operator=(Tasks&&) = delete;
+        Tasks& operator=(const Tasks&) = delete;
 
         void push_batch(std::vector<std::unique_ptr<ICallable<void()>>> cbs)
         {

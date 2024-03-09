@@ -11,6 +11,11 @@
     - `sudo add-apt-repository 'deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy main'`
     - `sudo apt install clang-format-18`
     - `sudo apt install clang-tidy-18`
+    - `sudo apt install clangd-18`
+- install via convenience script
+    - `wget https://apt.llvm.org/llvm.sh`
+    - `chmod +x llvm.sh`
+    - `sudo ./llvm.sh 18 all`
     
 ## Coverage
 

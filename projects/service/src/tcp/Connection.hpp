@@ -11,7 +11,14 @@ namespace nil::service::tcp
 
     struct IImpl
     {
+        IImpl() = default;
         virtual ~IImpl() noexcept = default;
+
+        IImpl(IImpl&&) = delete;
+        IImpl(const IImpl&) = delete;
+        IImpl& operator=(IImpl&&) = delete;
+        IImpl& operator=(const IImpl&) = delete;
+
         virtual void message(
             const std::string& id,
             const std::uint8_t* data,

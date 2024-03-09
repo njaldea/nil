@@ -4,7 +4,6 @@
 #include "IDs.hpp"
 
 #include <string_view>
-#include <unordered_set>
 
 namespace gui
 {

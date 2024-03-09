@@ -16,9 +16,9 @@ namespace gui
     public:
         ~ID() noexcept;
         ID(ID&& o) noexcept;
+        ID& operator=(ID&& o) noexcept;
 
         ID(const ID&) = delete;
-        ID& operator=(ID&&) = delete;
         ID& operator=(const ID&) = delete;
 
     private:
@@ -38,7 +38,6 @@ namespace gui
         friend class ID;
         void release(std::uint64_t id);
 
-    private:
         std::uint64_t current = 0;
         std::stack<std::uint64_t> reuse_ids;
     };

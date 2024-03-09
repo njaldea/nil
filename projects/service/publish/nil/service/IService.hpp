@@ -22,9 +22,9 @@ namespace nil::service
         struct Storage final
         {
             Options options;
-            MessageHandler msg = {};
-            ConnectHandler connect = {};
-            DisconnectHandler disconnect = {};
+            MessageHandler msg;
+            ConnectHandler connect;
+            DisconnectHandler disconnect;
         };
     }
 

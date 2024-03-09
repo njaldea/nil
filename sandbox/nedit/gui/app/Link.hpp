@@ -19,6 +19,12 @@ namespace gui
         Link(ID init_id, Info info);
         ~Link() noexcept = default;
 
+        Link() = delete;
+        Link(Link&&) = delete;
+        Link(const Link&) = delete;
+        Link& operator=(Link&&) = delete;
+        Link& operator=(const Link&) = delete;
+
         void render() const;
 
         ID id;

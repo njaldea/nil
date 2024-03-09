@@ -30,15 +30,20 @@ namespace nil::gate::detail
 
         // this is called when instantiated from Core
         template <typename... Args>
-        DataEdge(Tasks* init_tasks, Args&&... args)
+        explicit DataEdge(Tasks* init_tasks, Args&&... args)
             : MutableEdge<T>()
-            , data(std::make_optional<Args>(args)...)
+            , data(std::make_optional<Args>(std::forward<Args>(args))...)
             , tasks(init_tasks)
             , depth_value(0u)
         {
         }
 
         ~DataEdge() noexcept override = default;
+
+        DataEdge(DataEdge&&) = delete;
+        DataEdge(const DataEdge&) = delete;
+        DataEdge& operator=(DataEdge&&) = delete;
+        DataEdge& operator=(const DataEdge&) = delete;
 
         const T& value() const override
         {

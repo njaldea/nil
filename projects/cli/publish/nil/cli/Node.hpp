@@ -43,7 +43,7 @@ namespace nil::cli
          *
          * @param command   Command instance
          */
-        Node(std::unique_ptr<Command> command);
+        explicit Node(std::unique_ptr<Command> command);
         ~Node() noexcept;
 
         Node(const Node&) = delete;

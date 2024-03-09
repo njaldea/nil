@@ -18,8 +18,8 @@ namespace nil::gate
 
         MutableEdge(MutableEdge&&) = delete;
         MutableEdge(const MutableEdge&) = delete;
-        MutableEdge& operator=(MutableEdge&&) = delete;
-        MutableEdge& operator=(const MutableEdge&&) = delete;
+        MutableEdge<T>& operator=(MutableEdge&&) = delete;
+        MutableEdge<T>& operator=(const MutableEdge&) = delete;
 
         virtual void set_value(T new_data) = 0;
     };

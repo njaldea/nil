@@ -1,12 +1,13 @@
 #pragma once
 
+#include "IOption.hpp"
+
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace nil::cli
 {
-    class IOption;
     using OptionInfo = std::vector<std::unique_ptr<IOption>>;
 
     class Node;

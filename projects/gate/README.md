@@ -12,10 +12,10 @@
         - [Sync Output](#sync-output)
         - [Async Output](#async-output)
         - [Special Arguments](#special-arguments)
+        - [nil::gate::Core::node](#nilgatecorenode)
+    - [Run](#run)
     - [Batch](#batch)
     - [Commit](#commit)
-
----
 
 ## Supported Graph
 
@@ -54,8 +54,8 @@ int main()
 {
     nil::gate::Core core;
 
-    // nil::gate::ReadOnlyEdge<float>* 
-    auto [edge] = core.node();
+    auto [ edge ] = core.node();
+    //     ┗━━━ nil::gate::ReadOnlyEdge<float>*
 
     // will return the current value.
     // since the node is not yet ran, the edge does not have a value yet.
@@ -78,14 +78,15 @@ int main()
     nil::gate::Core core;
 
     int initial_value = 100;
-    nil::gate::MutableEdge<int>* edge = core.edge<int>(initial_value);
+    auto edge = core.edge<int>(initial_value);
+    //   ┗━━━ nil::gate::MutableEdge<int>*
 
     edge->value(); // will return 100
     // will request to set the value to 200 on next Core::run()
     edge->set_value(200);
     edge->value(); // will return 100
 
-    core.commit();
+    core.run();
     edge->value(); // will return 200
 }
 ```
@@ -125,18 +126,18 @@ In simple terms, a Node is just an object that is Callable (with `operator()`). 
 class Node
 {
     void operator()(float) const;
-    //              ^--- all arguments are treated as an input
+    //              ┗━━━ all arguments are treated as an input
 };
 
 int main()
 {
     nil::gate::Core core;
-    nil::gate::MutableEdge<float>* edge_f = core.edge<float>(200.f);
+    auto edge_f = core.edge<float>(200.f);
+    //   ┗━━━ nil::gate::MutableEdge<float>*
 
-    nil::gate::inputs<float> inputs = { edge_f };
     core.node<Node>({ edge_f });
-    //              ^--- nil::gate::inputs<float>
-    //              ^--- std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
+    //              ┗━━━ nil::gate::inputs<float>
+    //              ┗━━━ std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
 }
 ```
 
@@ -148,23 +149,26 @@ int main()
 struct Node
 {
     std::tuple<float> operator()() const;
-    //         ^--- all tuple types are treated as the sync output
+    //         ┗━━━ all tuple types are treated as the sync output
     // returning void is also allowed
+    // if non-tuple, it will be treated as one return
 };
 
 int main()
 {
     nil::gate::Core core;
     
-    nil::gate::outputs<float> outputs = core.node<Node>();
-    // std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
+    auto outputs = core.node<Node>();
+    //   ┗━━━ nil::gate::outputs<float>
+    //   ┗━━━ std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
 
     {
-        nil::gate::ReadOnlyEdge<float>* edge_f = get<0>(outputs);
+        auto edge_f = get<0>(outputs);
+        //   ┗━━━ nil::gate::ReadOnlyEdge<float>*
     }
     {
         auto [ edge_f ] = outputs;
-        //     ^--- nil::gate::ReadOnlyEdge<float>*
+        //     ┗━━━ nil::gate::ReadOnlyEdge<float>*
     }
 }
 ```
@@ -177,11 +181,11 @@ int main()
 struct Node
 {
     void operator()(nil::gate::async_output<float> asyncs) const
-    //              ^--- this is equivalent to `std::tuple<nil::gate::MutableEdge<T>*...>`
-    //              ^--- this is not treated as an input
+    //              ┗━━━ this is equivalent to `std::tuple<nil::gate::MutableEdge<T>*...>`
+    //              ┗━━━ this is not treated as an input
     {
         auto [ edge_f ] = asyncs;
-        //     ^--- nil::gate::MutableEdge<float>*
+        //     ┗━━━ nil::gate::MutableEdge<float>*
     }
 };
 
@@ -190,15 +194,16 @@ int main()
     nil::gate::Core core;
     
     nil::gate::outputs<float> = core.node<Node>(std::tuple<float>(100.f));
-    //                 ^                        ^--- initial value of the async edges
-    //                 ^--- all async outputs is appended to the end of all sync outputs
+    //                 ┃                        ┗━━━ initial value of the async edges
+    //                 ┗━━━ all async outputs is appended to the end of all sync outputs
 
     {
-        nil::gate::ReadOnlyEdge<float>* edge_f = get<0>(outputs);
+        auto edge_f = get<0>(outputs);
+        //   ┗━━━ nil::gate::ReadOnlyEdge<float>*
     }
     {
         auto [ edge_f ] = outputs;
-        //     ^--- nil::gate::ReadOnlyEdge<float>*
+        //     ┗━━━ nil::gate::ReadOnlyEdge<float>*
     }
 }
 ```
@@ -218,12 +223,12 @@ See [Batch](#batch) section for more detail.
 struct Node
 {
     void operator()(nil::gate::async_output<float> asyncs, const nil::gate::Core& core) const
-    //              ^                                      ^--- this is not treated as an input
-    //              ^--- this is equivalent to `std::tuple<MutableEdge<T>*...>`
-    //              ^--- this is not treated as an input
+    //              ┃                                      ┗━━━ this is not treated as an input
+    //              ┣━━━ this is equivalent to `std::tuple<MutableEdge<T>*...>`
+    //              ┗━━━ this is not treated as an input
     {
         auto [ edge_f ] = asyncs;
-        //     ^--- nil::gate::MutableEdge<float>*
+        //     ┗━━━ nil::gate::MutableEdge<float>*
     }
 };
 
@@ -232,7 +237,7 @@ int main()
     nil::gate::Core core;
     
     auto [ edge_f ] = core.node<Node>();
-    //     ^--- nil::gate::ReadOnlyEdge<float>*
+    //     ┗━━━ nil::gate::ReadOnlyEdge<float>*
 }
 ```
 
@@ -272,7 +277,7 @@ nil::gate::outputs<S..., A...> Core::node(std::tuple<A...>, nil::gate::inputs<I.
 
 Calling run will execute the nodes in proper order executing the nodes based on their inputs.
 
-Before running all necessary nodes, it will also resolve all calls to `MutableEdge::set_value` updating the values held by the edges to the latest values.
+Before running all necessary nodes, it will also resolve all calls to `MutableEdge::set_value` updating the values held by the edges to the latest valu
 
 NOTE: first call to `Core::run()` will execute all the nodes. succeeding calls will only execute nodes that expects new data from their inputs.
 
@@ -288,15 +293,15 @@ int main()
 
     /**
      *  N1 and N2 are chained
-     *  | ---------------------------------- |
-     *  |        ----                        |
-     *  | I1 => |    |                       |
-     *  |       | N1 |           ----        |
-     *  | I1 => |    | => I3 => |    |       |
-     *  |        ----           | N2 | => I5 |
-     *  | I2 =================> |    | => I6 |
-     *  |                        ----        |
-     *  | ---------------------------------- |
+     *  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+     *  ┃       ┏━━━━┓                       ┃
+     *  ┃ I1 => ┃    ┃                       ┃
+     *  ┃       ┃ N1 ┃          ┏━━━━┓       ┃
+     *  ┃ I1 => ┃    ┃ => I3 => ┃    ┃ => I5 ┃
+     *  ┃       ┗━━━━┛          ┃ N2 ┃       ┃
+     *  ┃ I2 =================> ┃    ┃ => I6 ┃
+     *  ┃                       ┗━━━━┛       ┃
+     *  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
      */
     auto* edge_i1 = core.edge<int>(10);
     auto* edge_i2 = core.edge<int>(20);
@@ -339,10 +344,12 @@ int main()
 {
     nil::gate::Core core;
 
-    nil::gate::MutableEdge<int>* ei = core.edge<int>(100);
-    nil::gate::MutableEdge<float>* ef = core.edge<float>(200.0);
+    auto ei = core.edge<int>(100);
+    //   ┗━━━ nil::gate::MutableEdge<int>*
+    auto ef = core.edge<float>(200.0);
+    //   ┗━━━ nil::gate::MutableEdge<float>*
 
-    core.node<Node>({ei, ef});
+    core.node<Node>({ ei, ef });
 
     // infinitely run core in another thread.
     std::thread t([&core](){ while (true) { core.run(); }});
@@ -356,12 +363,13 @@ int main()
 
     // to guarantee batches
     {
-        nil::gate::Batch<int, float> batch = core.batch(ei, ef);
-
-        auto& [ bei, bef ] = batch;
-        // notice auto&. batch is non-copyable and non-movable.
-        // inlining like below should also work.
         // auto [ bei, bef ] = core.batch(ei, ef);
+        auto batch = core.batch(ei, ef);
+        //   ┗━━━ nil::gate::Batch<int, float>
+        auto& [ bei, bef ] = batch;
+        //  ┃   ┃    ┗━━━ nil::gate::BatchEdge<float>*
+        //  ┃   ┗━━━━━━━━ nil::gate::BatchEdge<int>*
+        //  ┗━━━ required. batch is non-copyable and non-movable.
 
         bei->set_value(102);
         bef->set_value(202.0);
@@ -400,8 +408,10 @@ int main()
 
     core.set_commit(commit_hook);
 
-    nil::gate::MutableEdge<int>* ei = core.edge<int>(100);
-    nil::gate::MutableEdge<float>* ef = core.edge<float>(200.0);
+    auto ei = core.edge<int>(100);
+    //   ┗━━━ nil::gate::MutableEdge<int>*
+    auto ef = core.edge<float>(200.0);
+    //   ┗━━━ nil::gate::MutableEdge<float>*
 
     core.node<Node>({ei, ef});
 
@@ -420,9 +430,11 @@ int main()
     
     // also supports receiving tuple of mutable edges
     {
-        nil::gate::async_outputs<int, float> edges(ei, ef);
-        // ^--- identical to `std::tuple<MutableEdge<int>*, MutableEdge<float>*>
-        auto [ bei, bef ] = core.batch(edges);
+        auto [ bei, bef ] = core.batch({ ei, ef });
+        //     ┃    ┃                  ┣━━━ nil::gate::async_outputs<int, float>
+        //     ┃    ┃                  ┗━━━ std::tuple<MutableEdge<int>*, MutableEdge<float>*>
+        //     ┃    ┗━━━ nil::gate::BatchEdge<float>*
+        //     ┗━━━━━━━━ nil::gate::BatchEdge<int>*
         bei->set_value(102);
         bef->set_value(202.0);
         // will call the callback when the batch goes out of scope.

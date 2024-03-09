@@ -19,7 +19,7 @@ namespace nil::gate
         ReadOnlyEdge(ReadOnlyEdge&&) = delete;
         ReadOnlyEdge(const ReadOnlyEdge&) = delete;
         ReadOnlyEdge& operator=(ReadOnlyEdge&&) = delete;
-        ReadOnlyEdge& operator=(const ReadOnlyEdge&&) = delete;
+        ReadOnlyEdge& operator=(const ReadOnlyEdge&) = delete;
 
         // For edges created for a Node, make sure to call core.run() before accessing value.
         // For edges created on its own, it should always have a value due to Core's api.

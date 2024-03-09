@@ -159,7 +159,7 @@ namespace nil::service::ws
     };
 
     Client::Client(Client::Options options)
-        : storage{std::move(options)}
+        : storage{std::move(options), {}, {}, {}}
         , impl(std::make_unique<Impl>(storage))
     {
         impl->connect();

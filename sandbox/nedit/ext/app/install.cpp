@@ -2,7 +2,7 @@
 
 #include "Control.hpp"
 
-#include <thread>
+#include <iostream>
 
 namespace ext
 {

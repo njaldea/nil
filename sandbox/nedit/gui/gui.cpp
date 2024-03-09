@@ -8,7 +8,6 @@
 #include <nil/service/TypedHandler.hpp>
 #include <nil/service/tcp/Client.hpp>
 
-#include <gen/nedit/messages/graph_update.pb.h>
 #include <gen/nedit/messages/metadata.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
 #include <gen/nedit/messages/state.pb.h>
@@ -27,8 +26,6 @@
 #include <functional>
 #include <iostream>
 #include <mutex>
-#include <sstream>
-#include <string_view>
 #include <thread>
 #include <vector>
 

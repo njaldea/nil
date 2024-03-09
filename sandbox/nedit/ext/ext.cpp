@@ -1,6 +1,7 @@
 #include "ext.hpp"
-#include "../codec.hpp"
+#include "../codec.hpp" // IWYU pragma: keep
 #include "app/install.hpp"
+#include "app/sort_nodes.hpp"
 
 #include <nil/dev.hpp>
 #include <nil/service/TypedHandler.hpp>
@@ -8,7 +9,6 @@
 #include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
-#include <gen/nedit/messages/graph_update.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
 #include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
@@ -17,7 +17,6 @@
 
 #include <array>
 #include <iostream>
-#include <sstream>
 #include <thread>
 
 nil::cli::OptionInfo EXT::options() const
@@ -28,7 +27,7 @@ nil::cli::OptionInfo EXT::options() const
         .build();
 }
 
-enum class EPriority
+enum class EPriority : std::uint8_t
 {
     State,
     ControlUpdateB,
@@ -45,7 +44,7 @@ class Executor
 public:
     void push(std::tuple<EPriority, std::uint64_t> key, std::function<void()> exec)
     {
-        std::lock_guard _(mutex);
+        const std::lock_guard _(mutex);
         execs[key] = std::move(exec);
         if (!flushing)
         {
@@ -57,10 +56,10 @@ public:
     // should i debounce this?
     void post(const void* id, float time, std::function<void()> cb)
     {
-        std::lock_guard _(mutex);
+        const std::lock_guard _(mutex);
         boost::asio::post(
             *context,
-            [this, id, time, cb]()
+            [this, id, time, cb = std::move(cb)]()
             {
                 auto& timer = timers[id];
 
@@ -105,7 +104,7 @@ public:
             cancelled = false;
             flushing = false;
         }
-        std::lock_guard _(mutex);
+        const std::lock_guard _(mutex);
         context = std::make_unique<boost::asio::io_context>();
         thread = std::make_unique<std::thread>(
             [this]()
@@ -130,7 +129,7 @@ private:
     {
         const auto ss = [this]()
         {
-            std::lock_guard _(mutex);
+            const std::lock_guard _(mutex);
             flushing = false;
             return std::exchange(execs, {});
         }();
@@ -193,7 +192,7 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
     };
 
     state.post = [&executor](const void* id, float time, std::function<void()> cb)
-    { executor.post(id, time, cb); };
+    { executor.post(id, time, std::move(cb)); };
 
     return state;
 }

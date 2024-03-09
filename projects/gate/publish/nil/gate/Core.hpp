@@ -43,7 +43,8 @@ namespace nil::gate
         std::enable_if_t<
             !node_traits<T>::is_valid,
             typename node_traits<T>::outputs::edges> //
-            node(typename node_traits<T>::inputs::edges edges, Args&&... args) noexcept = delete;
+            node(typename node_traits<T>::inputs::edges edges, const Args&... /* unused */) noexcept
+            = delete;
 
         /**
          * @brief create a node
@@ -244,8 +245,8 @@ namespace nil::gate
         {
             struct Callable: detail::ICallable<void(const Core*)>
             {
-                Callable(CB&& init_cb)
-                    : cb(std::forward<CB>(init_cb))
+                explicit Callable(CB&& init_cb)
+                    : cb(std::move(init_cb))
                 {
                 }
 

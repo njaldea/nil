@@ -4,8 +4,8 @@
 
 #include <imgui-node-editor/imgui_node_editor.h>
 
-#include <functional>
 #include <string>
+#include <vector>
 
 namespace nil::service
 {
@@ -18,7 +18,15 @@ namespace gui
     {
     public:
         Control(nil::service::IService& init_service, ID init_id);
+
+        Control() = delete;
         virtual ~Control() noexcept = default;
+
+        Control(Control&&) = delete;
+        Control(const Control&) = delete;
+        Control& operator=(Control&&) = delete;
+        Control& operator=(const Control&) = delete;
+
         virtual void render(bool interactive_controls) = 0;
 
     protected:

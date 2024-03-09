@@ -34,11 +34,11 @@ namespace nil::gate
 
         ~Batch() noexcept
         {
-            if (tasks)
+            if (nullptr != tasks)
             {
                 tasks->push_batch(std::move(batch_tasks));
             }
-            if (commit)
+            if (nullptr != commit)
             {
                 commit->call(core);
             }
@@ -62,7 +62,7 @@ namespace nil::gate
             detail::Tasks* init_tasks,
             detail::ICallable<void(const Core*)>* init_commit,
             std::tuple<MutableEdge<T>*...> init_edges,
-            std::index_sequence<I...> //
+            std::index_sequence<I...> /* unused */
         )
             : core(init_core)
             , tasks(init_tasks)
@@ -80,9 +80,9 @@ namespace nil::gate
         }
 
         std::vector<std::unique_ptr<detail::ICallable<void()>>> batch_tasks;
-        const Core* core;
-        detail::Tasks* tasks;
-        detail::ICallable<void(const Core*)>* commit;
+        const Core* core = nullptr;
+        detail::Tasks* tasks = nullptr;
+        detail::ICallable<void(const Core*)>* commit = nullptr;
         std::tuple<BatchEdge<T>...> edges;
     };
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Control.hpp"
-#include "sort_nodes.hpp"
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
@@ -19,7 +18,7 @@ namespace ext
     struct Pin
     {
         std::string label;
-        std::array<float, 4> color;
+        std::array<float, 4> color = {};
     };
 
     template <typename T, typename... Controls>
@@ -326,7 +325,7 @@ namespace ext
         {
             struct Any
             {
-                bool operator==(const Any&) const
+                bool operator==(const Any& /* unused */) const
                 {
                     return true;
                 }
@@ -346,7 +345,7 @@ namespace ext
                     Node<N, Value<bool>>{"feedback", {{.value = true}}},
                     state.type_to_pin_index
                 );
-                state.node_factories.push_back( //
+                state.node_factories.emplace_back( //
                     [this](
                         GraphState& graph_state,
                         std::uint64_t id,
@@ -378,7 +377,7 @@ namespace ext
                     Node<N, MinMax<float>>{"delay", {{.value = 0.1f, .min = 0.0f, .max = 5.f}}},
                     state.type_to_pin_index
                 );
-                state.node_factories.push_back( //
+                state.node_factories.emplace_back( //
                     [this](
                         GraphState& graph_state,
                         std::uint64_t id,

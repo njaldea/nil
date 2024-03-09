@@ -31,21 +31,28 @@ namespace nil::gate::nodes
         {
             struct OnDestroy final
             {
-                OnDestroy(detail::ICallable<void()>& init_post)
+                explicit OnDestroy(detail::ICallable<void()>* init_post)
                     : post(init_post)
                 {
                 }
 
+                OnDestroy() = delete;
+
                 ~OnDestroy()
                 {
-                    post.call();
+                    post->call();
                 }
 
-                detail::ICallable<void()>& post;
+                OnDestroy(OnDestroy&&) = delete;
+                OnDestroy(const OnDestroy&) = delete;
+                OnDestroy& operator=(OnDestroy&&) = delete;
+                OnDestroy& operator=(const OnDestroy&) = delete;
+
+                detail::ICallable<void()>* post;
             };
 
             pre->call();
-            OnDestroy _(*post);
+            OnDestroy _(post.get());
 
             return node.operator()(args...);
         }

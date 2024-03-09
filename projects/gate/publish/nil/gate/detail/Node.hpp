@@ -40,7 +40,7 @@ namespace nil::gate::detail
         {
         }
 
-        ~Node() noexcept = default;
+        ~Node() noexcept override = default;
 
         Node(Node&&) = delete;
         Node(const Node&) = delete;
@@ -107,17 +107,14 @@ namespace nil::gate::detail
             [[maybe_unused]] Tasks* tasks,
             const typename input_t::edges& init_inputs,
             [[maybe_unused]] typename async_output_t::tuple init_asyncs,
-            traits::types<I...>,
-            std::index_sequence<i_indices...>,
-            std::index_sequence<s_indices...>,
-            std::index_sequence<a_indices...>,
+            traits::types<I...> /* unused */,
+            std::index_sequence<i_indices...> /* unused */,
+            std::index_sequence<s_indices...> /* unused */,
+            std::index_sequence<a_indices...> /* unused */,
             Args&&... args
         )
-            : state(EState::Pending)
-            , instance{std::forward<Args>(args)...}
+            : instance{std::forward<Args>(args)...}
             , inputs(init_inputs)
-            , sync_outputs()
-            , async_outputs()
         {
             (..., initialize_input(static_cast<DataEdge<I>*>(get<i_indices>(inputs))));
 
@@ -131,13 +128,13 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... s_indices>
-        void pend(std::index_sequence<s_indices...>)
+        void pend(std::index_sequence<s_indices...> /* unused */)
         {
             (get<s_indices>(sync_outputs).pend(), ...);
         }
 
         template <std::size_t... i_indices>
-        auto call(const Core* core, std::index_sequence<i_indices...>)
+        auto call(const Core* core, std::index_sequence<i_indices...> /* unused */)
         {
             if constexpr (traits::node<T>::has_async)
             {
@@ -164,13 +161,16 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... s_indices>
-        auto forward_to_output(sync_output_t::tuple& result, std::index_sequence<s_indices...>)
+        auto forward_to_output(
+            sync_output_t::tuple& result,
+            std::index_sequence<s_indices...> /* unused */
+        )
         {
             (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
         }
 
         template <std::size_t... a_indices>
-        auto async_edges(std::index_sequence<a_indices...>)
+        auto async_edges(std::index_sequence<a_indices...> /* unused */)
         {
             return typename async_output_t::edges( //
                 std::addressof(get<a_indices>(async_outputs))...
@@ -178,7 +178,10 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... s_indices, std::size_t... a_indices>
-        auto output_edges(std::index_sequence<s_indices...>, std::index_sequence<a_indices...>)
+        auto output_edges(
+            std::index_sequence<s_indices...> /* unused */,
+            std::index_sequence<a_indices...> /* unused */
+        )
         {
             if constexpr (sizeof...(s_indices) > 0 || sizeof...(a_indices) > 0)
             {
@@ -196,7 +199,7 @@ namespace nil::gate::detail
             cached_depth = std::max(cached_depth, edge->depth());
         }
 
-        EState state;
+        EState state = EState::Pending;
 
         T instance;
         typename input_t::edges inputs;

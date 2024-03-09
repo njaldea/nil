@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../detail/ICallable.hpp"
 #include "../detail/traits/node.hpp"
+#include "../types.hpp"
 
 namespace nil::gate::nodes
 {
@@ -22,13 +22,13 @@ namespace nil::gate::nodes
         static_assert(sizeof...(SyncOutputs) > 0, "Node has no sync output");
 
         template <typename... Args>
-        Asynctify(Args&&... args)
+        explicit Asynctify(Args&&... args)
             : node(std::forward<Args>(args)...)
         {
         }
 
         auto operator()(
-            const nil::gate::async_edges<SyncOutputs..., AsyncOutputs...>& asyncs,
+            const nil::gate::async_outputs<SyncOutputs..., AsyncOutputs...>& /* asyncs */,
             Inputs&... args
         ) const
         {

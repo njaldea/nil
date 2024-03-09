@@ -10,12 +10,12 @@ namespace nil::cli::conf
         /**
          * @brief Short Key - Alias
          */
-        std::optional<char> skey = {};
+        std::optional<char> skey;
 
         /**
          * @brief Message to be used during help
          */
-        std::optional<std::string> msg = {};
+        std::optional<std::string> msg;
 
         /**
          * @brief Value used when option is not provided

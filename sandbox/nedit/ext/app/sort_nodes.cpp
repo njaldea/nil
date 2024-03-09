@@ -33,7 +33,7 @@ namespace ext
                 {
                     if (edge_to_node.contains(i))
                     {
-                        auto next_node = edge_to_node.at(i);
+                        const auto* next_node = edge_to_node.at(i);
                         if (next_node->type != 0)
                         {
                             score = std::max(recurse(edge_to_node, next_node, cache) + 1u, score);

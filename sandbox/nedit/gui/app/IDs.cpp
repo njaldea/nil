@@ -1,5 +1,7 @@
 #include "IDs.hpp"
 
+#include <utility>
+
 namespace gui
 {
     ID::ID(IDs& init_ids, std::uint64_t init_value)
@@ -21,6 +23,13 @@ namespace gui
         , value(o.value)
     {
         o.ids = nullptr;
+    }
+
+    ID& ID::operator=(ID&& o) noexcept
+    {
+        ids = std::exchange(o.ids, nullptr);
+        value = o.value;
+        return *this;
     }
 
     ID IDs::reserve()
