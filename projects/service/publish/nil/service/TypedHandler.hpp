@@ -2,45 +2,31 @@
 
 #include "codec.hpp"
 
-#include <nil/utils/traits/callable.hpp>
-
 #include <functional>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 
 namespace nil::service
 {
-    namespace detail
-    {
-        template <typename T>
-        struct traits_impl
-        {
-            // TODO:
-            // fix for msvc. error coming from if constexpr code below
-            // using type = char;
-        };
-
-        template <typename T>
-        struct traits_impl<nil::utils::traits::types<>(const std::string&, T)>
-        {
-            using type = std::decay_t<T>;
-        };
-
-        template <typename T>
-        struct traits: traits_impl<typename nil::utils::traits::callable<T>::type>
-        {
-        };
-
-        template <typename T>
-        using traits_t = typename traits<T>::type;
-    }
-
     template <typename Indexer>
     class TypedHandler
     {
+        struct AutoCast
+        {
+            template <typename T>
+            operator T() const // NOLINT
+            {
+                return codec<T>::deserialize(d, *s);
+            }
+
+            const void* d;
+            std::uint64_t* s;
+        };
+
     public:
-        template <typename Message>
-        TypedHandler& add(Indexer type, Message handler)
+        template <typename Handler>
+        TypedHandler& add(Indexer type, Handler handler)
         {
             handlers.emplace(
                 type,
@@ -51,18 +37,17 @@ namespace nil::service
                     [[maybe_unused]] std::uint64_t size
                 )
                 {
-                    if constexpr (nil::utils::traits::callable<Message>::inputs::size == 2)
+                    if constexpr (std::is_invocable_v<Handler>)
                     {
-                        using T = detail::traits_t<Message>;
-                        h(id, codec<T>::deserialize(data, size));
+                        h();
                     }
-                    else if constexpr (nil::utils::traits::callable<Message>::inputs::size == 1)
+                    else if constexpr (std::is_invocable_v<Handler, const std::string&>)
                     {
                         h(id);
                     }
                     else
                     {
-                        h();
+                        h(id, AutoCast(data, &size));
                     }
                 }
             );

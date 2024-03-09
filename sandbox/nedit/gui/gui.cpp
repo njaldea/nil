@@ -37,12 +37,13 @@ nil::cli::OptionInfo GUI::options() const
         .build();
 }
 
-constexpr auto window_flag               //
-    = ImGuiWindowFlags_NoDecoration      //
-    | ImGuiWindowFlags_NoMove            //
-    | ImGuiWindowFlags_NoScrollWithMouse //
-    | ImGuiWindowFlags_NoSavedSettings   //
-    | ImGuiWindowFlags_NoBringToFrontOnFocus;
+constexpr auto window_flag                   //
+    = ImGuiWindowFlags_NoDecoration          //
+    | ImGuiWindowFlags_NoMove                //
+    | ImGuiWindowFlags_NoScrollWithMouse     //
+    | ImGuiWindowFlags_NoSavedSettings       //
+    | ImGuiWindowFlags_NoBringToFrontOnFocus //
+    | ImGuiWindowFlags_NoResize;
 
 constexpr auto draw = +[](GLFWwindow* w)
 {

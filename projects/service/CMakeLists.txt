@@ -4,10 +4,6 @@ if(NOT ENABLE_FEATURE_SERVICE)
     return()
 endif()
 
-if(NOT ENABLE_FEATURE_UTILS)
-    message(FATAL_ERROR "service library requires ENABLE_FEATURE_UTILS")
-endif()
-
 find_package(Boost REQUIRED)
 
 set(
@@ -45,8 +41,6 @@ add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 target_link_libraries(${PROJECT_NAME} PRIVATE pthread)
 endif()
-
-target_link_libraries(${PROJECT_NAME} PUBLIC utils)
 
 target_include_directories(
     ${PROJECT_NAME}

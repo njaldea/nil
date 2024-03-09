@@ -2,8 +2,6 @@
 
 #include "codec.hpp"
 
-#include <nil/utils/traits/callable.hpp>
-
 #include <array>
 #include <functional>
 #include <memory>

@@ -23,12 +23,6 @@
             "description": "Simplified event handling (from boost::asio)",
             "dependencies": [
                 {
-                    "name": "nil",
-                    "features": [
-                        "utils"
-                    ]
-                },
-                {
                     "name": "boost-asio",
                     "version>=": "1.82.0"
                 },
@@ -83,9 +77,13 @@
                     "features": [
                         "glfw-binding",
                         "opengl3-binding"
-                    ]
+                    ],
+                    "version>=": "1.89.9"
                 },
-                "imgui-node-editor",
+                {
+                    "name": "imgui-node-editor",
+                    "version>=": "0.9.2"
+                },
                 {
                     "name": "protobuf",
                     "version>=": "3.21.12"
