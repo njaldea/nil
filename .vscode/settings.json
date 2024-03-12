@@ -19,15 +19,6 @@
     "editor.defaultFormatter": "xaver.clang-format",
     "editor.inlayHints.enabled": "offUnlessPressed"
   },
-  "C_Cpp.inlayHints.parameterNames.enabled": true,
-  "C_Cpp.inlayHints.autoDeclarationTypes.showOnLeft": true,
-  "C_Cpp.inlayHints.autoDeclarationTypes.enabled": true,
-  "C_Cpp.inlayHints.parameterNames.hideLeadingUnderscores": true,
-  "C_Cpp.inlayHints.parameterNames.suppressWhenArgumentContainsName": true,
-  "C_Cpp.inlayHints.referenceOperator.enabled": true,
-  "C_Cpp.inlayHints.referenceOperator.showSpace": true,
-  "C_Cpp.autoAddFileAssociations": false,
-  "C_Cpp.errorSquiggles": "enabled",
   "clang-format.executable": "clang-format-18",
   "clangd.path": "clangd-18",
   "clangd.arguments": [
@@ -38,5 +29,6 @@
     "--header-insertion=iwyu",
     "--background-index",
     "--query-driver=/**/*"
-  ]
+  ],
+  "editor.stickyScroll.defaultModel": "foldingProviderModel"
 }
