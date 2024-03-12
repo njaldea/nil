@@ -2,6 +2,7 @@
 
 #include "../detail/traits/node.hpp"
 #include "../types.hpp"
+#include <utility>
 
 namespace nil::gate::nodes
 {
@@ -27,12 +28,38 @@ namespace nil::gate::nodes
         {
         }
 
-        auto operator()(
-            const nil::gate::async_outputs<SyncOutputs..., AsyncOutputs...>& /* asyncs */,
+        void operator()(
+            const nil::gate::async_outputs<SyncOutputs..., AsyncOutputs...>& asyncs,
             Inputs&... args
         ) const
         {
-            return node.operator()(args...);
+            using return_t = decltype(std::declval<T>.operator()(args...));
+            if constexpr (std::is_same_v<std::tuple<SyncOutputs...>, return_t>)
+            {
+                spread(
+                    asyncs,
+                    node.operator()(args...),
+                    std::make_index_sequence<sizeof...(SyncOutputs)>()
+                );
+            }
+            else if constexpr (std::is_same_v<void, return_t>)
+            {
+                node.operator()(args...);
+            }
+            else
+            {
+                get<0>(asyncs)->set_value(node.operator()(args...));
+            }
+        }
+
+        template <std::size_t... o_indices>
+        void spread(
+            const nil::gate::async_outputs<SyncOutputs..., AsyncOutputs...>& asyncs,
+            std::tuple<SyncOutputs...> output,
+            std::index_sequence<o_indices...> /* unused */
+        )
+        {
+            (..., get<o_indices>(asyncs)->set_value(get<o_indices>(output)));
         }
 
         T node;

@@ -14,7 +14,7 @@ set(
         publish/nil/cli/Command.hpp
         publish/nil/cli/Options.hpp
         publish/nil/cli/IOption.hpp
-        publish/nil/cli/types.hpp
+        publish/nil/cli/OptionInfo.hpp
         publish/nil/cli/conf/Flag.hpp
         publish/nil/cli/conf/Number.hpp
         publish/nil/cli/conf/Param.hpp

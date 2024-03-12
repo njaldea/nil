@@ -1,8 +1,8 @@
 #include <nil/cli/Node.hpp>
 
 #include <nil/cli/Command.hpp>
+#include <nil/cli/OptionInfo.hpp>
 #include <nil/cli/Options.hpp>
-#include <nil/cli/types.hpp>
 
 #include <stdexcept>
 
@@ -33,11 +33,12 @@ namespace nil::cli
             throw std::invalid_argument("[nil][cli][" + key + "] already exists");
         }
 
-        return *std::get<2>(sub.emplace_back(
+        SubNode subnode{
             std::move(key),
             std::move(description),
             std::make_unique<Node>(std::move(sub_command))
-        ));
+        };
+        return *(sub.emplace_back(std::move(subnode)).instance);
     }
 
     int Node::run(int argc, const char* const* argv) const
@@ -59,12 +60,12 @@ namespace nil::cli
         auto result = std::find_if(
             std::begin(sub),
             std::end(sub),
-            [&](const auto& subnode) { return std::get<0>(subnode) == name; }
+            [&](const auto& subnode) { return subnode.key == name; }
         );
 
         if (result != std::end(sub))
         {
-            return std::get<2>(*result).get();
+            return result->instance.get();
         }
         return nullptr;
     }

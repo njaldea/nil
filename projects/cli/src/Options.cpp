@@ -51,7 +51,7 @@ namespace nil::cli
     Options::Options(
         const OptionInfo& info,
         std::string usage,
-        const SubNodes& subnodes,
+        const std::vector<SubNode>& subnodes,
         int argc,
         const char* const* argv
     )
@@ -83,7 +83,7 @@ namespace nil::cli
 
         for (const auto& node : subnodes)
         {
-            impl->sub.emplace_back(std::get<0>(node), std::get<1>(node));
+            impl->sub.emplace_back(node.key, node.description);
         }
     }
 

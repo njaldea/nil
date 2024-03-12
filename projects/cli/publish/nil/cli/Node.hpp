@@ -1,16 +1,24 @@
 #pragma once
 
-#include "types.hpp"
-
 #include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace nil::cli
 {
     struct Command;
+
+    class Node;
+
+    struct SubNode
+    {
+        std::string key;
+        std::string description;
+        std::unique_ptr<Node> instance;
+    };
 
     class Node final
     {
@@ -93,7 +101,7 @@ namespace nil::cli
     private:
         std::unique_ptr<Command> command;
 
-        SubNodes sub;
+        std::vector<SubNode> sub;
 
         Node& add(std::string key, std::string description, std::unique_ptr<Command> command);
         const Node* find(std::string_view name) const;

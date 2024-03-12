@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.hpp"
+#include "OptionInfo.hpp"
 
 #include <memory>
 #include <string>
@@ -9,6 +9,7 @@
 namespace nil::cli
 {
     class Node;
+    struct SubNode;
 
     class Options final
     {
@@ -16,7 +17,7 @@ namespace nil::cli
         Options(
             const OptionInfo& info,
             std::string usage,
-            const SubNodes& subnodes,
+            const std::vector<SubNode>& subnodes,
             int argc,
             const char* const* argv
         );

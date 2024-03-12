@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../Command.hpp"
-#include "../types.hpp"
 
 #include <ostream>
 

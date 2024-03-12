@@ -5,7 +5,7 @@
 #include "conf/Param.hpp"
 #include "conf/Params.hpp"
 
-#include "types.hpp"
+#include "OptionInfo.hpp"
 
 #include <string>
 

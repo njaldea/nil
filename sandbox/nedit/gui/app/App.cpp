@@ -485,11 +485,32 @@ namespace gui
         {
             start.pin->icon = end.pin->icon;
             start.node->pins_i[0].icon = end.pin->icon;
+
+            if (end.pin->type == 0)
+            {
+                start.pin->alias = end.pin->alias;
+                start.node->pins_i[0].alias = end.pin->alias;
+            }
+            else
+            {
+                start.pin->alias = end.pin->type;
+                start.node->pins_i[0].alias = end.pin->type;
+            }
         }
-        if (end.pin->type == 0)
+        else if (end.pin->type == 0)
         {
             end.pin->icon = start.pin->icon;
             end.node->pins_o[0].icon = start.pin->icon;
+            if (start.pin->type == 0)
+            {
+                end.pin->alias = start.pin->alias;
+                end.node->pins_o[0].alias = start.pin->alias;
+            }
+            else
+            {
+                end.pin->alias = start.pin->type;
+                end.node->pins_o[0].alias = start.pin->type;
+            }
         }
         links.emplace(link_id, std::move(link));
     }
