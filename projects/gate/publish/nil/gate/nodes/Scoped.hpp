@@ -20,14 +20,14 @@ namespace nil::gate::nodes
         }
 
         Scoped() = delete;
-        ~Scoped() = default;
+        ~Scoped() noexcept = default;
 
         Scoped(Scoped&&) = delete;
         Scoped(const Scoped&) = delete;
         Scoped& operator=(Scoped&&) = delete;
         Scoped& operator=(const Scoped&) = delete;
 
-        auto operator()(const Inputs&... args)
+        auto operator()(const Inputs&... args) const
         {
             struct OnDestroy final
             {
@@ -36,13 +36,12 @@ namespace nil::gate::nodes
                 {
                 }
 
-                OnDestroy() = delete;
-
                 ~OnDestroy()
                 {
                     post->call();
                 }
 
+                OnDestroy() = delete;
                 OnDestroy(OnDestroy&&) = delete;
                 OnDestroy(const OnDestroy&) = delete;
                 OnDestroy& operator=(OnDestroy&&) = delete;

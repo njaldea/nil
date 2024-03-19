@@ -9,7 +9,6 @@ namespace nil::gate::detail
 
     template <typename R, typename... A>
     struct ICallable<R(A...)>
-
     {
         ICallable() = default;
         virtual ~ICallable() noexcept = default;

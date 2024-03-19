@@ -7,49 +7,52 @@
 #include <iostream>
 #include <thread>
 
-struct Deferred
+std::tuple<float> deferred(nil::gate::async_outputs<int> z, const nil::gate::Core& core, bool a)
 {
-    std::tuple<float> operator()(
-        nil::gate::async_outputs<int> z,
-        const nil::gate::Core& core,
-        bool a
-    ) const
+    std::cout << "deferred: " << a << std::endl;
+    if (a)
     {
-        std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
-        std::cout << a << std::endl;
-        if (a)
-        {
-            auto [zz] = core.batch(z);
-            // this will be triggered on next core.run()
-            zz->set_value(zz->value() + 100);
-        }
-        return {a ? 321.0f : 432.0f};
+        auto [zz] = core.batch(z);
+        // this will be triggered on next core.run()
+        zz->set_value(zz->value() + 100);
+        return {321.0f};
     }
-};
+    return {432.0f};
+}
 
 template <typename T>
-struct Printer
+void printer(const T& v)
 {
-    void operator()(const T& v)
+    if constexpr (std::is_same_v<int, T>)
     {
-        std::cout << __FILE__ << ':' << __LINE__ << ':' << (const char*)(__FUNCTION__) << std::endl;
-        std::cout << v << std::endl;
+        std::cout << "printer<int>: " << v << std::endl;
     }
-};
+    else if constexpr (std::is_same_v<float, T>)
+    {
+        std::cout << "printer<float>: " << v << std::endl;
+    }
+    else
+    {
+        std::cout << "printer<T>: " << v << std::endl;
+    }
+}
+
+void foo(int v)
+{
+    std::cout << "foo: " << v << std::endl;
+}
 
 int main()
 {
     boost::asio::io_context context;
 
     nil::gate::Core core;
-    const auto run = [&core]() { core.run(); };
 
     auto* a = core.edge(false);
-    const auto [f, x] = core.node<Deferred>({9000}, {a});
-    core.node<Printer<int>>({x});
-    core.node<Printer<float>>({f});
-
-    core.run();
+    const auto [f, x] = core.node({9000}, {a}, &deferred);
+    core.node({x}, &printer<int>);
+    core.node({f}, &printer<float>);
+    core.node({x}, &foo);
 
     std::thread gate_thread(
         [&context]()
@@ -62,8 +65,14 @@ int main()
     while (true)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        a->set_value(!a->value());
-        boost::asio::post(context, run);
+        boost::asio::post(
+            context,
+            [a, &core]()
+            {
+                a->set_value(!a->value());
+                core.run();
+            }
+        );
     }
 
     gate_thread.join();

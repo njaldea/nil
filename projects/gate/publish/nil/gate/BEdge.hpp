@@ -31,11 +31,11 @@ namespace nil::gate
             }
 #endif
             tasks->push_back(detail::make_callable(
-                [this, new_data = std::move(new_data)]()
+                [e = edge, d = std::move(new_data)]() mutable
                 {
-                    if (edge->exec(std::move(new_data)))
+                    if (e->exec(d))
                     {
-                        edge->pend();
+                        e->pend();
                     }
                 }
             ));

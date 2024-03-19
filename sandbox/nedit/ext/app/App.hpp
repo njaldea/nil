@@ -430,7 +430,7 @@ namespace ext
                 {
                     struct FeedbackNode
                     {
-                        void operator()(const T& v, bool enabled)
+                        void operator()(const T& v, bool enabled) const
                         {
                             if (output == nullptr)
                             {
@@ -448,7 +448,7 @@ namespace ext
 
                         GraphState* graph_state;
                         std::uint64_t s_id;
-                        nil::gate::MutableEdge<T>* output;
+                        mutable nil::gate::MutableEdge<T>* output;
                     };
 
                     auto factory = detail::api::factory(
@@ -475,7 +475,7 @@ namespace ext
                             nil::gate::async_outputs<T> async_outputs,
                             const T& v,
                             float time
-                        )
+                        ) const
                         {
                             graph_state->post(
                                 this,

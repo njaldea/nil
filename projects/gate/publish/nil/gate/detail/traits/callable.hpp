@@ -13,88 +13,49 @@ namespace nil::gate::detail::traits
         Mono
     };
 
-    /**
-     * @brief default/fallback type.
-     *  tries to move forward by checking the singature of call operator.
-     *
-     * @tparam T
-     */
     template <typename T>
     struct callable: callable<decltype(&T::operator())>
     {
     };
 
-    /**
-     * @brief pointer to const member method type.
-     *  tries to simplify signature to plain method signature.
-     *
-     * @tparam T    Class Type
-     * @tparam R    Return Type
-     * @tparam Args Argumen Types
-     */
+    template <typename R, typename... Args>
+    struct callable<R (*)(Args...)>: callable<R(Args...)>
+    {
+    };
+
     template <typename T, typename R, typename... Args>
     struct callable<R (T::*)(Args...) const>: callable<R(Args...)>
     {
     };
 
-    /**
-     * @brief pointer to member method type.
-     *  tries to simplify signature to plain method signature.
-     *
-     * @tparam T    Class Type
-     * @tparam R    Return Type
-     * @tparam Args Argumen Types
-     */
+    // TODO:
+    //  re-evaluate if I should allow non-const operator().
+    //  ideally, nodes should be stateless so having a non-const operator()
+    //  should not be necessary.
+    //
+    // template <typename T, typename R, typename... Args>
+    // struct callable<R (T::*)(Args...)>: callable<R(Args...)>
+    // {
+    // };
 
-    template <typename T, typename R, typename... Args>
-    struct callable<R (T::*)(Args...)>: callable<R(Args...)>
-    {
-    };
-
-    /**
-     * @brief specialization for `std::tuple` return.
-     *  converts `std::tuple<O...>` to `types<O...>`.
-     *
-     * @tparam I
-     * @tparam O
-     */
     template <typename... I, typename... O>
     struct callable<std::tuple<O...>(I...)>: callable<types<O...>(I...)>
     {
         static constexpr auto tag = EReturnType::Tuple;
     };
 
-    /**
-     * @brief specialized type for void return.
-     *  converts `void` to an empty `types<>`.
-     *
-     * @tparam I
-     */
     template <typename... I>
     struct callable<void(I...)>: callable<types<>(I...)>
     {
         static constexpr auto tag = EReturnType::Void;
     };
 
-    /**
-     * @brief fallback type for cases that O is not a `std::tuple` or `types`.
-     *  wraps `O` with `types`.
-     *
-     * @tparam I
-     * @tparam O
-     */
     template <typename... I, typename O>
     struct callable<O(I...)>: callable<types<O>(I...)>
     {
         static constexpr auto tag = EReturnType::Mono;
     };
 
-    /**
-     * @brief end of type recursion.
-     *
-     * @tparam I
-     * @tparam O
-     */
     template <typename... I, typename... O>
     struct callable<types<O...>(I...)>
     {

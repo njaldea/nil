@@ -24,24 +24,9 @@ namespace ext
         std::vector<std::string> selection;
     };
 
-    void to_message(
-        const Value<bool>& control,
-        nil::nedit::proto::State::Types::Node& info //
-    );
-    void to_message(
-        const MinMax<int>& control,
-        nil::nedit::proto::State::Types::Node& info //
-    );
-    void to_message(
-        const MinMax<float>& control,
-        nil::nedit::proto::State::Types::Node& info //
-    );
-    void to_message(
-        const Value<std::string>& control,
-        nil::nedit::proto::State::Types::Node& info //
-    );
-    void to_message(
-        const Enum& control,
-        nil::nedit::proto::State::Types::Node& info //
-    );
+    void to_message(const Value<bool>& control, nil::nedit::proto::State::Types::Node& info);
+    void to_message(const MinMax<int>& control, nil::nedit::proto::State::Types::Node& info);
+    void to_message(const MinMax<float>& control, nil::nedit::proto::State::Types::Node& info);
+    void to_message(const Value<std::string>& control, nil::nedit::proto::State::Types::Node& info);
+    void to_message(const Enum& control, nil::nedit::proto::State::Types::Node& info);
 }

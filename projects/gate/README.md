@@ -116,7 +116,10 @@ requirements for `T`:
 
 ## Node
 
-In simple terms, a Node is just an object that is Callable (with `operator()`). Its signature represents the Inputs and Outputs of the Node.
+In simple terms, a Node is just an object that is Callable (with `operator()`).
+Its signature represents the Inputs and Outputs of the Node.
+
+NOTE: currently only free function and `T::operator() const` is supported.
 
 ### Input
 
@@ -208,6 +211,37 @@ int main()
 }
 ```
 
+### Free functions
+
+A node does not need to be a `struct`/`class` that contains a call operator. A function pointer is also a valid node.
+
+```cpp
+// struct Node
+// {
+//     void operator()() const;
+// };
+// is identical to:
+void free_function_node();
+void free_function_node_with_async(
+    nil::gate::async_output<float> asyncs
+);
+
+int main()
+{
+    nil::gate::Core core;
+
+    // T will automatically be deduced
+    core.node(&free_function_node);
+    
+    // If it has async_outputs:
+    nil::gate::outputs<float> = core.node({ 100.0f }, &free_function_node_with_async);
+    //                 ┃                  ┗━━━ initial value of the async edges
+    //                 ┗━━━ all async outputs is appended to the end of all sync outputs
+
+    // all information about `Input`, `Sync Output`, `Async Output` are also applicable.
+}
+```
+
 ### Special Arguments
 
 When using Async Outputs, you might want to batch the updates to the edges.
@@ -252,24 +286,30 @@ Here are the list of available `node()` signature available to `Core`
 //   -  A -- Async Output
 //
 // NOTES:
-//  Args are going to be used to instantiate the node using uniform initialization
-//  `std::tuple<A...>` will be used to initialize each async edges
-//  `nil::gate::inputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
-//  `nil::gate::outputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
+//  1. Args are going to be used to instantiate the node using uniform initialization
+//  2. `std::tuple<A...>` will be used to initialize each async edges
+//  3. `nil::gate::inputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
+//  4. `nil::gate::outputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
 
 // no input, no sync output, no async output
+void Core::node(T callable);
 void Core::node(Args... args);
 // no input, has sync output, no async output
+nil::gate::outputs<S...> Core::node(T callable);
 nil::gate::outputs<S...> Core::node(Args... args);
 
 // has input, not sync output, no async output
+void Core::node(nil::gate::inputs<I...>, T callable);
 void Core::node(nil::gate::inputs<I...>, Args... args);
 // has input, has sync output, no async output
+nil::gate::outputs<S...> Core::node(nil::gate::inputs<I...>, T callable);
 nil::gate::outputs<S...> Core::node(nil::gate::inputs<I...>, Args... args);
 
 // no input, no sync output, has async output
+nil::gate::outputs<A...> Core::node(std::tuple<A...>, T callable);
 nil::gate::outputs<A...> Core::node(std::tuple<A...>, Args... args);
 // has input, has sync output, has async output
+nil::gate::outputs<S..., A...> Core::node(std::tuple<A...>, nil::gate::inputs<I...>, T callable);
 nil::gate::outputs<S..., A...> Core::node(std::tuple<A...>, nil::gate::inputs<I...>, Args... args);
 ```
 
