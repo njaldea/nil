@@ -20,23 +20,6 @@ std::tuple<float> deferred(nil::gate::async_outputs<int> z, const nil::gate::Cor
     return {432.0f};
 }
 
-template <typename T>
-void printer(const T& v)
-{
-    if constexpr (std::is_same_v<int, T>)
-    {
-        std::cout << "printer<int>: " << v << std::endl;
-    }
-    else if constexpr (std::is_same_v<float, T>)
-    {
-        std::cout << "printer<float>: " << v << std::endl;
-    }
-    else
-    {
-        std::cout << "printer<T>: " << v << std::endl;
-    }
-}
-
 void foo(int v)
 {
     std::cout << "foo: " << v << std::endl;
@@ -50,8 +33,8 @@ int main()
 
     auto* a = core.edge(false);
     const auto [f, x] = core.node({9000}, {a}, &deferred);
-    core.node({x}, &printer<int>);
-    core.node({f}, &printer<float>);
+    core.node({x}, [](int v) { std::cout << "printer<int>: " << v << std::endl; });
+    core.node({f}, [](float v) { std::cout << "printer<int>: " << v << std::endl; });
     core.node({x}, &foo);
 
     std::thread gate_thread(

@@ -2,18 +2,52 @@
 
 #include "Batch.hpp"
 #include "MEdge.hpp"
-#include "detail/DataEdge.hpp"
 #include "detail/Node.hpp"
 
 #include "detail/traits/node.hpp"
 #include "detail/validation/edge.hpp"
+
+namespace nil::gate::concepts
+{
+    template <typename T>
+    concept is_node_invalid = !detail::traits::node<T>::is_valid;
+    template <typename T>
+    concept is_edge_invalid = !detail::edge_validate<T>::value;
+    template <typename T>
+    concept is_edge_valid = detail::edge_validate<T>::value;
+
+    template <typename T>
+    concept has_input_has_async                      //
+        = detail::traits::node<T>::is_valid          //
+        && detail::traits::node<T>::inputs::size > 0 //
+        && detail::traits::node<T>::has_async;
+    template <typename T>
+    concept has_input_no_async                       //
+        = detail::traits::node<T>::is_valid          //
+        && detail::traits::node<T>::inputs::size > 0 //
+        && !detail::traits::node<T>::has_async;
+    template <typename T>
+    concept no_input_has_async                        //
+        = detail::traits::node<T>::is_valid           //
+        && detail::traits::node<T>::inputs::size == 0 //
+        && detail::traits::node<T>::has_async;
+    template <typename T>
+    concept no_input_no_async                         //
+        = detail::traits::node<T>::is_valid           //
+        && detail::traits::node<T>::inputs::size == 0 //
+        && !detail::traits::node<T>::has_async;
+}
 
 namespace nil::gate
 {
     class Core final
     {
         template <typename T>
-        using node_traits = detail::traits::node<T>;
+        using inputs_t = detail::traits::node<T>::inputs::edges;
+        template <typename T>
+        using outputs_t = detail::traits::node<T>::outputs::edges;
+        template <typename T>
+        using asyncs_t = detail::traits::node<T>::async_outputs::tuple;
 
     public:
         Core() = default;
@@ -36,97 +70,65 @@ namespace nil::gate
         // output_edges node<T>(async_init, input_edges, T&&);
         // output_edges node<T>(async_init, input_edges, Args&&...);
 
-        // Invalid types for input/output detected
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            !node_traits<T>::is_valid,
-            typename node_traits<T>::outputs::edges> //
-            node(typename node_traits<T>::inputs::edges edges, const Args&... /* unused */) noexcept
-            = delete;
+        template <concepts::is_node_invalid T, typename... Args>
+        outputs_t<T> node(inputs_t<T> edges, const Args&... args) = delete;
+        template <concepts::is_node_invalid T>
+        outputs_t<T> node(inputs_t<T> edges, T args) = delete;
 
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            node_traits<T>::is_valid          //
-                && !node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size > 0),
-            typename node_traits<T>::outputs::edges>
-            node(typename node_traits<T>::inputs::edges input_edges, Args&&... args)
+        template <concepts::has_input_no_async T, typename... Args>
+        outputs_t<T> node(inputs_t<T> input_edges, Args&&... args)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
-                std::tuple<>(),
+                asyncs_t<T>(),
                 std::forward<Args>(args)...
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
         }
 
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            node_traits<T>::is_valid          //
-                && !node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size > 0),
-            typename node_traits<T>::outputs::edges>
-            node(typename node_traits<T>::inputs::edges input_edges, T&& node)
+        template <concepts::has_input_no_async T>
+        outputs_t<T> node(inputs_t<T> input_edges, T node)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
-                std::tuple<>(),
-                std::forward<T>(node)
+                asyncs_t<T>(),
+                std::move(node)
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
         }
 
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            node_traits<T>::is_valid          //
-                && !node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size == 0),
-            typename node_traits<T>::outputs::edges>
-            node(Args&&... args)
+        template <concepts::no_input_no_async T, typename... Args>
+        outputs_t<T> node(Args&&... args)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
-                typename node_traits<T>::inputs::edges(),
-                std::tuple<>(),
+                inputs_t<T>(),
+                asyncs_t<T>(),
                 std::forward<Args>(args)...
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
         }
 
-        template <typename T>
-        std::enable_if_t<
-            node_traits<T>::is_valid          //
-                && !node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size == 0),
-            typename node_traits<T>::outputs::edges>
-            node(T&& node)
+        template <concepts::no_input_no_async T>
+        outputs_t<T> node(T node)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
-                typename node_traits<T>::inputs::edges(),
-                std::tuple<>(),
-                std::forward<T>(node)
+                inputs_t<T>(),
+                asyncs_t<T>(),
+                std::move(node)
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
         }
 
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            node_traits<T>::is_valid         //
-                && node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size > 0),
-            typename node_traits<T>::outputs::edges>
-            node(
-                typename node_traits<T>::async_outputs::tuple async_initilizer,
-                typename node_traits<T>::inputs::edges input_edges,
-                Args&&... args
-            )
+        template <concepts::has_input_has_async T, typename... Args>
+        outputs_t<T> node(asyncs_t<T> async_initilizer, inputs_t<T> input_edges, Args&&... args)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
@@ -138,39 +140,25 @@ namespace nil::gate
                 ->output_edges();
         }
 
-        template <typename T>
-        std::enable_if_t<
-            node_traits<T>::is_valid         //
-                && node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size > 0),
-            typename node_traits<T>::outputs::edges>
-            node(
-                typename node_traits<T>::async_outputs::tuple async_initilizer,
-                typename node_traits<T>::inputs::edges input_edges,
-                T&& node
-            )
+        template <concepts::has_input_has_async T>
+        outputs_t<T> node(asyncs_t<T> async_initilizer, inputs_t<T> input_edges, T node)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
                 std::move(async_initilizer),
-                std::forward<T>(node)
+                std::move(node)
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
         }
 
-        template <typename T, typename... Args>
-        std::enable_if_t<
-            node_traits<T>::is_valid         //
-                && node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size == 0),
-            typename node_traits<T>::outputs::edges>
-            node(typename node_traits<T>::async_outputs::tuple async_initilizer, Args&&... args)
+        template <concepts::no_input_has_async T, typename... Args>
+        outputs_t<T> node(asyncs_t<T> async_initilizer, Args&&... args)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
-                typename node_traits<T>::inputs::edges(),
+                inputs_t<T>(),
                 std::move(async_initilizer),
                 std::forward<Args>(args)...
             );
@@ -178,19 +166,14 @@ namespace nil::gate
                 ->output_edges();
         }
 
-        template <typename T>
-        std::enable_if_t<
-            node_traits<T>::is_valid         //
-                && node_traits<T>::has_async //
-                && (node_traits<T>::inputs::size == 0),
-            typename node_traits<T>::outputs::edges>
-            node(typename node_traits<T>::async_outputs::tuple async_initilizer, T&& node)
+        template <concepts::no_input_has_async T>
+        outputs_t<T> node(asyncs_t<T> async_initilizer, T node)
         {
             auto result = std::make_unique<detail::Node<T>>(
                 tasks.get(),
-                typename node_traits<T>::inputs::edges(),
+                inputs_t<T>(),
                 std::move(async_initilizer),
-                std::forward<T>(node)
+                std::move(node)
             );
             return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
                 ->output_edges();
@@ -198,20 +181,20 @@ namespace nil::gate
 
         /// starting from this point - edge
 
-        // Invalid type passed
-        template <typename T>
-        std::enable_if_t<!detail::edge_validate<T>::value, MutableEdge<T>*> edge() = delete;
+        template <concepts::is_edge_invalid T>
+        MutableEdge<T>* edge() = delete;
 
-        /**
-         * @brief create an edge
-         *
-         * @tparam T                    - edge type
-         * @return `MutableEdge<T>*`    - edge instance (still owned by core)
-         */
-        template <typename T, typename... Args>
-        std::enable_if_t<detail::edge_validate<T>::value, MutableEdge<T>*> edge( //
-            Args&&... args
-        )
+        template <concepts::is_edge_valid T>
+        MutableEdge<T>* edge()
+        {
+            return static_cast<MutableEdge<T>*>(
+                required_edges.emplace_back(std::make_unique<detail::DataEdge<T>>(tasks.get(), T()))
+                    .get()
+            );
+        }
+
+        template <concepts::is_edge_valid T, typename... Args>
+        MutableEdge<T>* edge(Args&&... args)
         {
             return static_cast<MutableEdge<T>*>(
                 required_edges
@@ -223,28 +206,19 @@ namespace nil::gate
             );
         }
 
-        /**
-         * @brief create an edge
-         *
-         * @tparam T                    - edge type
-         * @return `MutableEdge<T>*`    - edge instance (still owned by core)
-         */
         template <typename T>
-        MutableEdge<std::decay_t<T>>* edge(T&& value)
+        MutableEdge<T>* edge(T value)
         {
             return static_cast<MutableEdge<std::decay_t<T>>*>(
                 required_edges
                     .emplace_back(std::make_unique<detail::DataEdge<std::decay_t<T>>>(
                         tasks.get(),
-                        std::forward<T>(value)
+                        std::move(value)
                     ))
                     .get()
             );
         }
 
-        /**
-         * @brief run all pending nodes
-         */
         void run() const
         {
 #ifdef NIL_GATE_CHECKS

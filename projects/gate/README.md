@@ -292,25 +292,25 @@ Here are the list of available `node()` signature available to `Core`
 //  4. `nil::gate::outputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
 
 // no input, no sync output, no async output
-void Core::node(T callable);
-void Core::node(Args... args);
+void Core::node<T>(T callable);
+void Core::node<T>(Args... args);
 // no input, has sync output, no async output
-nil::gate::outputs<S...> Core::node(T callable);
-nil::gate::outputs<S...> Core::node(Args... args);
+nil::gate::outputs<S...> Core::node<T>(T callable);
+nil::gate::outputs<S...> Core::node<T>(Args... args);
 
 // has input, not sync output, no async output
-void Core::node(nil::gate::inputs<I...>, T callable);
-void Core::node(nil::gate::inputs<I...>, Args... args);
+void Core::node<T>(nil::gate::inputs<I...>, T callable);
+void Core::node<T>(nil::gate::inputs<I...>, Args... args);
 // has input, has sync output, no async output
-nil::gate::outputs<S...> Core::node(nil::gate::inputs<I...>, T callable);
-nil::gate::outputs<S...> Core::node(nil::gate::inputs<I...>, Args... args);
+nil::gate::outputs<S...> Core::node<T>(nil::gate::inputs<I...>, T callable);
+nil::gate::outputs<S...> Core::node<T>(nil::gate::inputs<I...>, Args... args);
 
 // no input, no sync output, has async output
-nil::gate::outputs<A...> Core::node(std::tuple<A...>, T callable);
-nil::gate::outputs<A...> Core::node(std::tuple<A...>, Args... args);
+void Core::node<T>(std::tuple<A...>, T callable);
+void Core::node<T>(std::tuple<A...>, Args... args);
 // has input, has sync output, has async output
-nil::gate::outputs<S..., A...> Core::node(std::tuple<A...>, nil::gate::inputs<I...>, T callable);
-nil::gate::outputs<S..., A...> Core::node(std::tuple<A...>, nil::gate::inputs<I...>, Args... args);
+nil::gate::outputs<S..., A...> Core::node<T>(std::tuple<A...>, nil::gate::inputs<I...>, T callable);
+nil::gate::outputs<S..., A...> Core::node<T>(std::tuple<A...>, nil::gate::inputs<I...>, Args... args);
 ```
 
 ## Run
