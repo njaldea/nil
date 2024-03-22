@@ -200,7 +200,7 @@ namespace nil::service
         }
 
     private:
-        // TODO: refactor and make this better;
+        // [TODO] refactor and make this better;
         template <typename... T>
         std::vector<std::uint8_t> serialize(const T&... data)
         {

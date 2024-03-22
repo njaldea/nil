@@ -49,6 +49,9 @@ namespace nil::gate
         template <typename T>
         using asyncs_t = detail::traits::node<T>::async_outputs::tuple;
 
+        template <typename T>
+        using edge_t = typename detail::edge_validate<T>::type;
+
     public:
         Core() = default;
         ~Core() noexcept = default;
@@ -60,24 +63,21 @@ namespace nil::gate
 
         /// starting from this point - node
 
-        // output_edges node<T>(T);
-        // output_edges node<T>(Args&&...);
-        // output_edges node<T>(async_init, T);
-        // output_edges node<T>(async_init, Args&&...);
-
-        // output_edges node<T>(input_edges, T);
-        // output_edges node<T>(input_edges, Args&&...);
-        // output_edges node<T>(async_init, input_edges, T);
-        // output_edges node<T>(async_init, input_edges, Args&&...);
+        // [TODO] expand and create specializations to emit proper error messages
+        template <typename>
+        struct Error
+        {
+            Error() = delete;
+        };
 
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance) = delete;
+        outputs_t<T> node(T instance, Error<T> = {});
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, inputs_t<T> edges) = delete;
+        outputs_t<T> node(T instance, inputs_t<T> edges, Error<T> = {});
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer, inputs_t<T> edges) = delete;
+        outputs_t<T> node(T instance, asyncs_t<T> async_init, inputs_t<T> edges, Error<T> = {});
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer) = delete;
+        outputs_t<T> node(T instance, asyncs_t<T> async_init, Error<T> = {});
 
         template <concepts::has_input_no_async T>
         outputs_t<T> node(T instance, inputs_t<T> input_edges)
@@ -102,36 +102,35 @@ namespace nil::gate
         }
 
         template <concepts::has_input_has_async T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer, inputs_t<T> input_edges)
+        outputs_t<T> node(T instance, asyncs_t<T> async_init, inputs_t<T> input_edges)
         {
             return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
-                std::move(async_initilizer),
+                std::move(async_init),
                 std::move(instance)
             ));
         }
 
         template <concepts::no_input_has_async T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer)
+        outputs_t<T> node(T instance, asyncs_t<T> async_init)
         {
             return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 inputs_t<T>(),
-                std::move(async_initilizer),
+                std::move(async_init),
                 std::move(instance)
             ));
         }
 
         /// starting from this point - edge
 
-        template <concepts::is_edge_invalid T>
-        MutableEdge<T>* edge(T value) = delete;
-
-        template <concepts::is_edge_valid T>
-        MutableEdge<T>* edge(T value)
+        template <typename T>
+        MutableEdge<edge_t<T>>* edge(T value)
         {
-            return edge_impl(std::make_unique<detail::DataEdge<T>>(tasks.get(), std::move(value)));
+            return edge_impl(
+                std::make_unique<detail::DataEdge<edge_t<T>>>(tasks.get(), std::move(value))
+            );
         }
 
         void run() const
@@ -157,7 +156,7 @@ namespace nil::gate
         Batch<T...> batch(MutableEdge<T>*... edges) const
         {
 #ifdef NIL_GATE_CHECKS
-            // TODO: validate if the edges has the same tasks object
+            // [TODO] validate if the edges has the same tasks object
 #endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), {edges...});
         }
@@ -166,7 +165,7 @@ namespace nil::gate
         Batch<T...> batch(std::tuple<MutableEdge<T>*...> edges) const
         {
 #ifdef NIL_GATE_CHECKS
-            // TODO: validate if the edges has the same tasks object
+            // [TODO] validate if the edges has the same tasks object
 #endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), edges);
         }

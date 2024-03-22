@@ -15,16 +15,19 @@ namespace nil::gate::detail
     template <typename T>
     struct edge_validate<const T>: std::false_type
     {
+        using type = T;
     };
 
     template <typename T>
     struct edge_validate<T&>: std::false_type
     {
+        using type = T;
     };
 
     template <typename T>
     struct edge_validate<T*>: std::false_type
     {
+        using type = T*;
     };
 
     template <typename T>

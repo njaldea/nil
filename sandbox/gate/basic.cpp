@@ -45,7 +45,7 @@ int main()
     using H = T<void(bool, char)>;
     using I = T<void(char, float)>;
 
-    auto* a1 = core.edge(std::unique_ptr<const bool>());
+    auto* a1 = core.edge(std::unique_ptr<bool>());
     auto* a2 = core.edge(0);
     auto* a3 = core.edge(0.0);
     auto* a4 = core.edge(std::string());

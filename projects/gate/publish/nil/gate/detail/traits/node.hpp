@@ -134,7 +134,8 @@ namespace nil::gate::detail::traits
         using edges = std::conditional_t<
             sizeof...(S) + sizeof...(A) == 0,
             void,
-            nil::gate::outputs<edgify_t<S>..., edgify_t<A>...>>;
+            nil::gate::
+                outputs<typename edge_validate<S>::type..., typename edge_validate<A>::type...>>;
         using make_index_sequence = std::make_index_sequence<sizeof...(S) + sizeof...(A)>;
         static constexpr auto size = sizeof...(S) + sizeof...(A);
     };
@@ -142,17 +143,22 @@ namespace nil::gate::detail::traits
     template <typename T>
     struct node final
     {
-        using i = typename callable<T>::inputs;
-        using s = typename callable<T>::outputs;
-        using split_i = typename input_resolver<i>::inputs;
-        using split_a = typename input_resolver<i>::asyncs;
+        using full_i = typename callable<T>::inputs;
+        using final_s = typename callable<T>::outputs;
+        using final_i = typename input_resolver<full_i>::inputs;
+        using final_a = typename input_resolver<full_i>::asyncs;
 
-        using inputs = node_inputs<split_i>;
-        using sync_outputs = node_sync_outputs<s>;
-        using async_outputs = node_async_outputs<split_a>;
-        using outputs = node_outputs<s, split_a>;
-        static constexpr bool has_async = input_resolver<i>::has_async;
-        static constexpr bool has_core = input_resolver<i>::has_core;
-        static constexpr bool is_valid = input_resolver<i>::is_valid;
+        using inputs = node_inputs<final_i>;
+        using sync_outputs = node_sync_outputs<final_s>;
+        using async_outputs = node_async_outputs<final_a>;
+        using outputs = node_outputs<final_s, final_a>;
+
+        using input_resolver_t = input_resolver<full_i>;
+        static constexpr bool has_async = input_resolver_t::has_async;
+        static constexpr bool has_core = input_resolver_t::has_core;
+        static constexpr bool is_valid   //
+            = input_resolver_t::is_valid //
+            && async_outputs::is_valid   //
+            && sync_outputs::is_valid;
     };
 }

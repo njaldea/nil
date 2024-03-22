@@ -28,16 +28,6 @@ namespace nil::gate::detail::traits
     {
     };
 
-    // TODO:
-    //  re-evaluate if I should allow non-const operator().
-    //  ideally, nodes should be stateless so having a non-const operator()
-    //  should not be necessary.
-    //
-    // template <typename T, typename R, typename... Args>
-    // struct callable<R (T::*)(Args...)>: callable<R(Args...)>
-    // {
-    // };
-
     template <typename... I, typename... O>
     struct callable<std::tuple<O...>(I...)>: callable<types<O...>(I...)>
     {

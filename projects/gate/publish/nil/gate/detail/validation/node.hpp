@@ -4,6 +4,11 @@
 #include <optional>
 #include <type_traits>
 
+//  [TODO]
+//   -  arguments should be strict (const reference, or pointer to const, ...)
+//   -  return type should be relaxed
+//   -  async should satisfy edge criteria
+
 namespace nil::gate::detail
 {
     template <typename T>
@@ -128,7 +133,7 @@ namespace nil::gate::detail
     };
 
     template <typename T>
-    struct node_validate_s<const T> final: std::false_type
+    struct node_validate_s<const T> final: std::true_type
     {
     };
 
@@ -143,7 +148,7 @@ namespace nil::gate::detail
     };
 
     static_assert(node_validate_s<bool>::value);
-    static_assert(!node_validate_s<const bool>::value);
+    static_assert(node_validate_s<const bool>::value);
     static_assert(!node_validate_s<const bool&>::value);
 
     static_assert(!node_validate_s<bool&>::value);

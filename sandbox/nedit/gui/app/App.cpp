@@ -106,7 +106,7 @@ namespace gui
 
         if (ax::NodeEditor::AcceptNewItem())
         {
-            // TODO: propagate forward in case of chained feedback/delay nodes
+            // [TODO] propagate forward in case of chained feedback/delay nodes
             if (start.pin->type == 0)
             {
                 start.pin->icon = end.pin->icon;
