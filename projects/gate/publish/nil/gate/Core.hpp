@@ -11,10 +11,6 @@ namespace nil::gate::concepts
 {
     template <typename T>
     concept is_node_invalid = !detail::traits::node<T>::is_valid;
-    template <typename T>
-    concept is_edge_invalid = !detail::edge_validate<T>::value;
-    template <typename T>
-    concept is_edge_valid = detail::edge_validate<T>::value;
 
     template <typename T>
     concept has_input_has_async                      //

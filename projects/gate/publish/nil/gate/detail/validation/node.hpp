@@ -8,6 +8,11 @@
 //   -  arguments should be strict (const reference, or pointer to const, ...)
 //   -  return type should be relaxed
 //   -  async should satisfy edge criteria
+//   -  if possible, make inputs follow the following criteria
+//       -  should not be reference to non-const
+//       -  should not be pointer
+//       -  if it has operator*, it should be a const type
+//       -  if non-copy-able, it should be const ref
 
 namespace nil::gate::detail
 {
@@ -89,93 +94,4 @@ namespace nil::gate::detail
     struct node_validate<const std::optional<const T>&>: std::true_type
     {
     };
-
-    template <typename T>
-    struct node_validate_i final: node_validate<T>
-    {
-    };
-
-    static_assert(node_validate_i<bool>::value);
-    static_assert(node_validate_i<const bool>::value);
-    static_assert(node_validate_i<const bool&>::value);
-
-    static_assert(!node_validate_i<bool&>::value);
-    static_assert(!node_validate_i<bool*>::value);
-    static_assert(!node_validate_i<const bool*>::value);
-
-    static_assert(!node_validate_i<std::unique_ptr<bool>>::value);
-    static_assert(!node_validate_i<std::shared_ptr<bool>>::value);
-    static_assert(!node_validate_i<std::optional<bool>>::value);
-
-    static_assert(!node_validate_i<std::unique_ptr<const bool>>::value);
-    static_assert(node_validate_i<std::shared_ptr<const bool>>::value);
-    static_assert(node_validate_i<std::optional<const bool>>::value);
-
-    static_assert(!node_validate_i<std::unique_ptr<bool>&>::value);
-    static_assert(!node_validate_i<std::shared_ptr<bool>&>::value);
-    static_assert(!node_validate_i<std::optional<bool>&>::value);
-
-    static_assert(!node_validate_i<const std::unique_ptr<bool>&>::value);
-    static_assert(!node_validate_i<const std::shared_ptr<bool>&>::value);
-    static_assert(!node_validate_i<const std::optional<bool>&>::value);
-
-    static_assert(!node_validate_i<std::unique_ptr<const bool>&>::value);
-    static_assert(!node_validate_i<std::shared_ptr<const bool>&>::value);
-    static_assert(!node_validate_i<std::optional<const bool>&>::value);
-
-    static_assert(node_validate_i<const std::unique_ptr<const bool>&>::value);
-    static_assert(node_validate_i<const std::shared_ptr<const bool>&>::value);
-    static_assert(node_validate_i<const std::optional<const bool>&>::value);
-
-    template <typename T>
-    struct node_validate_s final: node_validate<T>
-    {
-    };
-
-    template <typename T>
-    struct node_validate_s<const T> final: std::true_type
-    {
-    };
-
-    template <typename T>
-    struct node_validate_s<T&> final: std::false_type
-    {
-    };
-
-    template <typename T>
-    struct node_validate_s<std::unique_ptr<const T>> final: std::true_type
-    {
-    };
-
-    static_assert(node_validate_s<bool>::value);
-    static_assert(node_validate_s<const bool>::value);
-    static_assert(!node_validate_s<const bool&>::value);
-
-    static_assert(!node_validate_s<bool&>::value);
-    static_assert(!node_validate_s<bool*>::value);
-    static_assert(!node_validate_s<const bool*>::value);
-
-    static_assert(!node_validate_s<std::unique_ptr<bool>>::value);
-    static_assert(!node_validate_s<std::shared_ptr<bool>>::value);
-    static_assert(!node_validate_s<std::optional<bool>>::value);
-
-    static_assert(node_validate_s<std::unique_ptr<const bool>>::value);
-    static_assert(node_validate_s<std::shared_ptr<const bool>>::value);
-    static_assert(node_validate_s<std::optional<const bool>>::value);
-
-    static_assert(!node_validate_s<std::unique_ptr<bool>&>::value);
-    static_assert(!node_validate_s<std::shared_ptr<bool>&>::value);
-    static_assert(!node_validate_s<std::optional<bool>&>::value);
-
-    static_assert(!node_validate_s<const std::unique_ptr<bool>&>::value);
-    static_assert(!node_validate_s<const std::shared_ptr<bool>&>::value);
-    static_assert(!node_validate_s<const std::optional<bool>&>::value);
-
-    static_assert(!node_validate_s<std::unique_ptr<const bool>&>::value);
-    static_assert(!node_validate_s<std::shared_ptr<const bool>&>::value);
-    static_assert(!node_validate_s<std::optional<const bool>&>::value);
-
-    static_assert(!node_validate_s<const std::unique_ptr<const bool>&>::value);
-    static_assert(!node_validate_s<const std::shared_ptr<const bool>&>::value);
-    static_assert(!node_validate_s<const std::optional<const bool>&>::value);
 }

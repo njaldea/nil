@@ -106,16 +106,24 @@ TEST(gate, traits_sync_output)
     { // ok cases
         using sync_output_t = std::tuple<
             int,
+            std::unique_ptr<int>,
+            std::shared_ptr<int>,
+            std::optional<int>,
+            const int,
             std::unique_ptr<const int>,
             std::shared_ptr<const int>,
             std::optional<const int>>;
         using test_t = TC<sync_output_t()>;
         using type = SUT<test_t>;
 
-        ASSERT_EQ(type::sync_outputs::size, 4);
-        ASSERT_EQ(type::outputs::size, 4);
+        ASSERT_EQ(type::sync_outputs::size, 8);
+        ASSERT_EQ(type::outputs::size, 8);
 
         using expected_t = nil::gate::detail::traits::types<
+            int,
+            std::unique_ptr<const int>,
+            std::shared_ptr<const int>,
+            std::optional<const int>,
             int,
             std::unique_ptr<const int>,
             std::shared_ptr<const int>,
@@ -130,11 +138,6 @@ TEST(gate, traits_sync_output)
     { // invalid cases
         ASSERT_FALSE(SUT<TC<std::tuple<int*>()>>::is_valid);
         ASSERT_FALSE(SUT<TC<std::tuple<int&>()>>::is_valid);
-        ASSERT_FALSE(SUT<TC<std::tuple<const int>()>>::is_valid);
-
-        ASSERT_FALSE(SUT<TC<std::tuple<std::unique_ptr<int>>()>>::is_valid);
-        ASSERT_FALSE(SUT<TC<std::tuple<std::shared_ptr<int>>()>>::is_valid);
-        ASSERT_FALSE(SUT<TC<std::tuple<std::optional<int>>()>>::is_valid);
 
         ASSERT_FALSE(SUT<TC<std::tuple<std::unique_ptr<int>&>()>>::is_valid);
         ASSERT_FALSE(SUT<TC<std::tuple<std::shared_ptr<int>&>()>>::is_valid);
@@ -151,10 +154,6 @@ TEST(gate, traits_sync_output)
         ASSERT_FALSE(SUT<TC<std::tuple<const std::unique_ptr<const int>&>()>>::is_valid);
         ASSERT_FALSE(SUT<TC<std::tuple<const std::shared_ptr<const int>&>()>>::is_valid);
         ASSERT_FALSE(SUT<TC<std::tuple<const std::optional<const int>&>()>>::is_valid);
-
-        ASSERT_FALSE(SUT<TC<std::tuple<const std::unique_ptr<const int>>()>>::is_valid);
-        ASSERT_FALSE(SUT<TC<std::tuple<const std::shared_ptr<const int>>()>>::is_valid);
-        ASSERT_FALSE(SUT<TC<std::tuple<const std::optional<const int>>()>>::is_valid);
     }
 }
 

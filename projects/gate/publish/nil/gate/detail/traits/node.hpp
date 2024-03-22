@@ -56,7 +56,7 @@ namespace nil::gate::detail::traits
     static constexpr bool is_vanilla_v = std::is_same_v<T, std::decay_t<T>>;
 
     template <typename First, typename... I>
-        requires async_checker<First>::is_async
+        requires async_checker<std::decay_t<First>>::is_async
     struct input_resolver<types<First, I...>>
     {
         using inputs = types<I...>;
@@ -91,7 +91,7 @@ namespace nil::gate::detail::traits
         using edges = nil::gate::inputs<edgify_t<I>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(I)>;
         static constexpr auto size = sizeof...(I);
-        static constexpr bool is_valid = (true && ... && node_validate_i<I>::value);
+        static constexpr bool is_valid = (true && ... && node_validate<I>::value);
     };
 
     template <typename T>
@@ -106,7 +106,8 @@ namespace nil::gate::detail::traits
         using data_edges = std::tuple<DataEdge<edgify_t<S>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(S)>;
         static constexpr auto size = sizeof...(S);
-        static constexpr bool is_valid = (true && ... && node_validate_s<S>::value);
+        static constexpr bool is_valid
+            = (true && ... && (!std::is_reference_v<S> && !std::is_pointer_v<S>));
     };
 
     template <typename T>
@@ -134,8 +135,10 @@ namespace nil::gate::detail::traits
         using edges = std::conditional_t<
             sizeof...(S) + sizeof...(A) == 0,
             void,
-            nil::gate::
-                outputs<typename edge_validate<S>::type..., typename edge_validate<A>::type...>>;
+            nil::gate::outputs<
+                typename edge_validate<S>::type...,
+                typename edge_validate<A>::type...> //
+            >;
         using make_index_sequence = std::make_index_sequence<sizeof...(S) + sizeof...(A)>;
         static constexpr auto size = sizeof...(S) + sizeof...(A);
     };
@@ -158,7 +161,8 @@ namespace nil::gate::detail::traits
         static constexpr bool has_core = input_resolver_t::has_core;
         static constexpr bool is_valid   //
             = input_resolver_t::is_valid //
-            && async_outputs::is_valid   //
-            && sync_outputs::is_valid;
+            && inputs::is_valid          //
+            && sync_outputs::is_valid    //
+            && async_outputs::is_valid;
     };
 }
