@@ -60,163 +60,78 @@ namespace nil::gate
 
         /// starting from this point - node
 
-        // output_edges node<T>(T&&);
+        // output_edges node<T>(T);
         // output_edges node<T>(Args&&...);
-        // output_edges node<T>(async_init, T&&);
+        // output_edges node<T>(async_init, T);
         // output_edges node<T>(async_init, Args&&...);
 
-        // output_edges node<T>(input_edges, T&&);
+        // output_edges node<T>(input_edges, T);
         // output_edges node<T>(input_edges, Args&&...);
-        // output_edges node<T>(async_init, input_edges, T&&);
+        // output_edges node<T>(async_init, input_edges, T);
         // output_edges node<T>(async_init, input_edges, Args&&...);
 
-        template <concepts::is_node_invalid T, typename... Args>
-        outputs_t<T> node(inputs_t<T> edges, const Args&... args) = delete;
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(inputs_t<T> edges, T args) = delete;
-
-        template <concepts::has_input_no_async T, typename... Args>
-        outputs_t<T> node(inputs_t<T> input_edges, Args&&... args)
-        {
-            auto result = std::make_unique<detail::Node<T>>(
-                tasks.get(),
-                input_edges,
-                asyncs_t<T>(),
-                std::forward<Args>(args)...
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
-        }
+        outputs_t<T> node(T instance) = delete;
+        template <concepts::is_node_invalid T>
+        outputs_t<T> node(T instance, inputs_t<T> edges) = delete;
+        template <concepts::is_node_invalid T>
+        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer, inputs_t<T> edges) = delete;
+        template <concepts::is_node_invalid T>
+        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer) = delete;
 
         template <concepts::has_input_no_async T>
-        outputs_t<T> node(inputs_t<T> input_edges, T node)
+        outputs_t<T> node(T instance, inputs_t<T> input_edges)
         {
-            auto result = std::make_unique<detail::Node<T>>(
+            return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
                 asyncs_t<T>(),
-                std::move(node)
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
-        }
-
-        template <concepts::no_input_no_async T, typename... Args>
-        outputs_t<T> node(Args&&... args)
-        {
-            auto result = std::make_unique<detail::Node<T>>(
-                tasks.get(),
-                inputs_t<T>(),
-                asyncs_t<T>(),
-                std::forward<Args>(args)...
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
+                std::move(instance)
+            ));
         }
 
         template <concepts::no_input_no_async T>
-        outputs_t<T> node(T node)
+        outputs_t<T> node(T instance)
         {
-            auto result = std::make_unique<detail::Node<T>>(
+            return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 inputs_t<T>(),
                 asyncs_t<T>(),
-                std::move(node)
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
-        }
-
-        template <concepts::has_input_has_async T, typename... Args>
-        outputs_t<T> node(asyncs_t<T> async_initilizer, inputs_t<T> input_edges, Args&&... args)
-        {
-            auto result = std::make_unique<detail::Node<T>>(
-                tasks.get(),
-                input_edges,
-                std::move(async_initilizer),
-                std::forward<Args>(args)...
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
+                std::move(instance)
+            ));
         }
 
         template <concepts::has_input_has_async T>
-        outputs_t<T> node(asyncs_t<T> async_initilizer, inputs_t<T> input_edges, T node)
+        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer, inputs_t<T> input_edges)
         {
-            auto result = std::make_unique<detail::Node<T>>(
+            return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 input_edges,
                 std::move(async_initilizer),
-                std::move(node)
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
-        }
-
-        template <concepts::no_input_has_async T, typename... Args>
-        outputs_t<T> node(asyncs_t<T> async_initilizer, Args&&... args)
-        {
-            auto result = std::make_unique<detail::Node<T>>(
-                tasks.get(),
-                inputs_t<T>(),
-                std::move(async_initilizer),
-                std::forward<Args>(args)...
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
+                std::move(instance)
+            ));
         }
 
         template <concepts::no_input_has_async T>
-        outputs_t<T> node(asyncs_t<T> async_initilizer, T node)
+        outputs_t<T> node(T instance, asyncs_t<T> async_initilizer)
         {
-            auto result = std::make_unique<detail::Node<T>>(
+            return node_impl(std::make_unique<detail::Node<T>>(
                 tasks.get(),
                 inputs_t<T>(),
                 std::move(async_initilizer),
-                std::move(node)
-            );
-            return static_cast<detail::Node<T>*>(owned_nodes.emplace_back(std::move(result)).get())
-                ->output_edges();
+                std::move(instance)
+            ));
         }
 
         /// starting from this point - edge
 
         template <concepts::is_edge_invalid T>
-        MutableEdge<T>* edge() = delete;
+        MutableEdge<T>* edge(T value) = delete;
 
         template <concepts::is_edge_valid T>
-        MutableEdge<T>* edge()
-        {
-            return static_cast<MutableEdge<T>*>(
-                required_edges.emplace_back(std::make_unique<detail::DataEdge<T>>(tasks.get(), T()))
-                    .get()
-            );
-        }
-
-        template <concepts::is_edge_valid T, typename... Args>
-        MutableEdge<T>* edge(Args&&... args)
-        {
-            return static_cast<MutableEdge<T>*>(
-                required_edges
-                    .emplace_back(std::make_unique<detail::DataEdge<T>>(
-                        tasks.get(),
-                        std::forward<Args>(args)...
-                    ))
-                    .get()
-            );
-        }
-
-        template <typename T>
         MutableEdge<T>* edge(T value)
         {
-            return static_cast<MutableEdge<std::decay_t<T>>*>(
-                required_edges
-                    .emplace_back(std::make_unique<detail::DataEdge<std::decay_t<T>>>(
-                        tasks.get(),
-                        std::move(value)
-                    ))
-                    .get()
-            );
+            return edge_impl(std::make_unique<detail::DataEdge<T>>(tasks.get(), std::move(value)));
         }
 
         void run() const
@@ -242,10 +157,7 @@ namespace nil::gate
         Batch<T...> batch(MutableEdge<T>*... edges) const
         {
 #ifdef NIL_GATE_CHECKS
-            // TODO: edges should be in required_edges.
-            // by doing this i should be able to simplify BatchEdge
-            // and make sure that all edges received by Batch
-            // is a DataEdge.
+            // TODO: validate if the edges has the same tasks object
 #endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), {edges...});
         }
@@ -254,10 +166,7 @@ namespace nil::gate
         Batch<T...> batch(std::tuple<MutableEdge<T>*...> edges) const
         {
 #ifdef NIL_GATE_CHECKS
-            // TODO: edges should be in required_edges.
-            // by doing this i should be able to simplify BatchEdge
-            // and make sure that all edges received by Batch
-            // is a DataEdge.
+            // TODO: validate if the edges has the same tasks object
 #endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), edges);
         }
@@ -292,6 +201,20 @@ namespace nil::gate
         }
 
     private:
+        template <typename T>
+        outputs_t<T> node_impl(std::unique_ptr<detail::Node<T>> n)
+        {
+            auto r = owned_nodes.emplace_back(std::move(n)).get();
+            return static_cast<detail::Node<T>*>(r)->output_edges();
+        }
+
+        template <typename T>
+        MutableEdge<T>* edge_impl(std::unique_ptr<detail::DataEdge<T>> e)
+        {
+            auto r = required_edges.emplace_back(std::move(e)).get();
+            return static_cast<MutableEdge<T>*>(r);
+        }
+
         std::unique_ptr<detail::Tasks> tasks = std::make_unique<detail::Tasks>();
         std::unique_ptr<detail::ICallable<void(const Core*)>> commit_cb;
         std::vector<std::unique_ptr<detail::INode>> owned_nodes;

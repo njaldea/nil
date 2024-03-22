@@ -27,16 +27,18 @@ void foo(int v)
 
 int main()
 {
-    boost::asio::io_context context;
-
     nil::gate::Core core;
 
-    auto* a = core.edge(false);
-    const auto [f, x] = core.node({9000}, {a}, &deferred);
-    core.node({x}, [](int v) { std::cout << "printer<int>: " << v << std::endl; });
-    core.node({f}, [](float v) { std::cout << "printer<int>: " << v << std::endl; });
-    core.node({x}, &foo);
+    const auto printer_i = [](int v) { std::cout << "printer<int>: " << v << std::endl; };
+    const auto printer_f = [](float v) { std::cout << "printer<float>: " << v << std::endl; };
 
+    auto* a = core.edge(false);
+    const auto [f, x] = core.node(&deferred, {9000}, {a});
+    core.node(printer_i, {x});
+    core.node(printer_f, {f});
+    core.node(&foo, {x});
+
+    boost::asio::io_context context;
     std::thread gate_thread(
         [&context]()
         {

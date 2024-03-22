@@ -211,14 +211,14 @@ namespace ext
             {
                 using RE = GraphState::RelaxedEdge;
 
-                [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node<T>(
+                [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node(
+                    T(args...),
                     state.core,
                     std::move(a),
                     typename nil::gate::detail::traits::node<T>::inputs::edges(
                         state.internal_edges.at(i.at(i_indices))...,
                         state.control_edges.at(c.at(c_indices))...
-                    ),
-                    args...
+                    )
                 );
                 ( //
                     state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(output_edges)}),
@@ -417,7 +417,7 @@ namespace ext
                 {
                     graph_state         //
                         .internal_edges //
-                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core.edge<T>()});
+                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core.edge(T())});
                 }
             );
             state.feedback_node_factories.push_back(
@@ -471,20 +471,16 @@ namespace ext
                 {
                     struct Delay
                     {
-                        void operator()(
-                            nil::gate::async_outputs<T> async_outputs,
-                            const T& v,
-                            float time
-                        ) const
+                        void operator()(const T& v, float time) const
                         {
                             graph_state->post(
                                 this,
                                 time,
-                                [this, async_outputs, v = v]() mutable
+                                [this, v]() mutable
                                 {
-                                    if (get<0>(async_outputs)->value() != v)
+                                    if (async_output->value() != v)
                                     {
-                                        get<0>(async_outputs)->set_value(std::move(v));
+                                        async_output->set_value(std::move(v));
                                         graph_state->core.commit();
                                     }
                                 }
@@ -492,15 +488,21 @@ namespace ext
                         }
 
                         GraphState* graph_state;
+                        nil::gate::MutableEdge<T>* async_output;
                     };
 
+                    auto e = graph_state.core.edge(T());
+                    graph_state         //
+                        .internal_edges //
+                        .emplace(id, ext::GraphState::RelaxedEdge{e});
                     auto factory = detail::api::factory(
                         Node<Delay, MinMax<float>>{
                             "delay",
                             {{.value = 0.1f, .min = 0.0f, .max = 5.f}}
                         },
-                        std::tuple<T>(),
-                        &graph_state
+                        std::tuple<>(),
+                        &graph_state,
+                        e
                     );
                     factory(graph_state, id, alias, i_ids, s_ids, c_ids);
                 }

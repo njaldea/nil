@@ -45,20 +45,20 @@ int main()
     using H = T<void(bool, char)>;
     using I = T<void(char, float)>;
 
-    auto* a1 = core.edge<std::unique_ptr<const bool>>();
-    auto* a2 = core.edge<int>();
-    auto* a3 = core.edge<double>();
-    auto* a4 = core.edge<std::string>();
+    auto* a1 = core.edge(std::unique_ptr<const bool>());
+    auto* a2 = core.edge(0);
+    auto* a3 = core.edge(0.0);
+    auto* a4 = core.edge(std::string());
 
-    core.node<A>("a");
-    const auto [b1] = core.node<B>({a1}, "b");
-    const auto [c1] = core.node<C>({a2}, "c");
-    const auto [d1] = core.node<D>({a3}, "d");
-    const auto [e1] = core.node<E>({a4, d1}, "e");
-    const auto [f1] = core.node<F>({b1, c1}, "f");
-    core.node<G>({f1}, "g");
-    core.node<H>({f1, e1}, "h");
-    core.node<I>({e1, d1}, "i");
+    core.node(A("a"));
+    const auto [b1] = core.node(B("b"), {a1});
+    const auto [c1] = core.node(C("c"), {a2});
+    const auto [d1] = core.node(D("d"), {a3});
+    const auto [e1] = core.node(E("e"), {a4, d1});
+    const auto [f1] = core.node(F("f"), {b1, c1});
+    core.node(G("g"), {f1});
+    core.node(H("h"), {f1, e1});
+    core.node(I("i"), {e1, d1});
 
     {
         auto [b_a2, b_a3] = core.batch(a2, a3);

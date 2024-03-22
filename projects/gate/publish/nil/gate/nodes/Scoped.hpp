@@ -22,9 +22,9 @@ namespace nil::gate::nodes
         Scoped() = delete;
         ~Scoped() noexcept = default;
 
-        Scoped(Scoped&&) = delete;
+        Scoped(Scoped&&) = default;
         Scoped(const Scoped&) = delete;
-        Scoped& operator=(Scoped&&) = delete;
+        Scoped& operator=(Scoped&&) = default;
         Scoped& operator=(const Scoped&) = delete;
 
         auto operator()(const Inputs&... args) const

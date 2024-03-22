@@ -16,7 +16,8 @@
             },
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/.build/out"
-            }
+            },
+            "generator": "Ninja"
         },
         {
             "name": "sandbox",

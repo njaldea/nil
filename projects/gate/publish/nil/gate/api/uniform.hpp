@@ -4,12 +4,12 @@
 
 namespace nil::gate::api::uniform
 {
-    template <typename T, typename... Args>
+    template <typename T>
     auto add_node(
+        T instance,
         nil::gate::Core& core,
         typename nil::gate::detail::traits::node<T>::async_outputs::tuple async_initializers,
-        typename nil::gate::detail::traits::node<T>::inputs::edges inputs,
-        Args&&... args
+        typename nil::gate::detail::traits::node<T>::inputs::edges inputs
     )
     {
         constexpr auto has_output = nil::gate::detail::traits::node<T>::outputs::size > 0;
@@ -18,38 +18,38 @@ namespace nil::gate::api::uniform
 
         if constexpr (has_output && has_input && has_async)
         {
-            return core.node<T>(std::move(async_initializers), inputs, args...);
+            return core.node(std::move(instance), std::move(async_initializers), inputs);
         }
         else if constexpr (has_output && has_input && !has_async)
         {
-            return core.node<T>(inputs, args...);
+            return core.node(std::move(instance), inputs);
         }
         else if constexpr (has_output && !has_input && has_async)
         {
-            return core.node<T>(std::move(async_initializers), args...);
+            return core.node(std::move(instance), std::move(async_initializers));
         }
         else if constexpr (has_output && !has_input && !has_async)
         {
-            return core.node<T>(args...);
+            return core.node(std::move(instance));
         }
         else if constexpr (!has_output && has_input && has_async)
         {
-            core.node<T>(std::move(async_initializers), inputs, args...);
+            core.node(std::move(instance), std::move(async_initializers), inputs);
             return std::tuple<>();
         }
         else if constexpr (!has_output && has_input && !has_async)
         {
-            core.node<T>(inputs, args...);
+            core.node(std::move(instance), inputs);
             return std::tuple<>();
         }
         else if constexpr (!has_output && !has_input && has_async)
         {
-            core.node<T>(std::move(async_initializers), args...);
+            core.node(std::move(instance), std::move(async_initializers));
             return std::tuple<>();
         }
         else if constexpr (!has_output && !has_input && !has_async)
         {
-            core.node<T>(args...);
+            core.node(std::move(instance));
             return std::tuple<>();
         }
     }

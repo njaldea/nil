@@ -78,7 +78,7 @@ int main()
     nil::gate::Core core;
 
     int initial_value = 100;
-    auto edge = core.edge<int>(initial_value);
+    auto edge = core.edge(initial_value);
     //   ┗━━━ nil::gate::MutableEdge<int>*
 
     edge->value(); // will return 100
@@ -135,12 +135,12 @@ class Node
 int main()
 {
     nil::gate::Core core;
-    auto edge_f = core.edge<float>(200.f);
+    auto edge_f = core.edge(200.f);
     //   ┗━━━ nil::gate::MutableEdge<float>*
 
-    core.node<Node>({ edge_f });
-    //              ┗━━━ nil::gate::inputs<float>
-    //              ┗━━━ std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
+    core.node(Node(), { edge_f });
+    //                ┗━━━ nil::gate::inputs<float>
+    //                ┗━━━ std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
 }
 ```
 
@@ -161,7 +161,7 @@ int main()
 {
     nil::gate::Core core;
     
-    auto outputs = core.node<Node>();
+    auto outputs = core.node(Node());
     //   ┗━━━ nil::gate::outputs<float>
     //   ┗━━━ std::tuple<nil::gate::ReadOnlyEdge<float>*, ...>;
 
@@ -196,8 +196,8 @@ int main()
 {
     nil::gate::Core core;
     
-    nil::gate::outputs<float> = core.node<Node>(std::tuple<float>(100.f));
-    //                 ┃                        ┗━━━ initial value of the async edges
+    nil::gate::outputs<float> = core.node(Node(), std::tuple<float>(100.f));
+    //                 ┃                          ┗━━━ initial value of the async edges
     //                 ┗━━━ all async outputs is appended to the end of all sync outputs
 
     {
@@ -270,7 +270,7 @@ int main()
 {
     nil::gate::Core core;
     
-    auto [ edge_f ] = core.node<Node>();
+    auto [ edge_f ] = core.node(Node());
     //     ┗━━━ nil::gate::ReadOnlyEdge<float>*
 }
 ```
@@ -286,31 +286,25 @@ Here are the list of available `node()` signature available to `Core`
 //   -  A -- Async Output
 //
 // NOTES:
-//  1. Args are going to be used to instantiate the node using uniform initialization
+//  1. `T instance` will be moved (or copied) inside the node
 //  2. `std::tuple<A...>` will be used to initialize each async edges
 //  3. `nil::gate::inputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
 //  4. `nil::gate::outputs<T...>` is simply an alias to `std::tuple<nil::gate::ReadOnlyEdge<T>*...>`
 
 // no input, no sync output, no async output
-void Core::node<T>(T callable);
-void Core::node<T>(Args... args);
+void Core::node<T>(T instance);
 // no input, has sync output, no async output
-nil::gate::outputs<S...> Core::node<T>(T callable);
-nil::gate::outputs<S...> Core::node<T>(Args... args);
+nil::gate::outputs<S...> Core::node<T>(T instance);
 
 // has input, not sync output, no async output
-void Core::node<T>(nil::gate::inputs<I...>, T callable);
-void Core::node<T>(nil::gate::inputs<I...>, Args... args);
+void Core::node<T>(T instance, nil::gate::inputs<I...>);
 // has input, has sync output, no async output
-nil::gate::outputs<S...> Core::node<T>(nil::gate::inputs<I...>, T callable);
-nil::gate::outputs<S...> Core::node<T>(nil::gate::inputs<I...>, Args... args);
+nil::gate::outputs<S...> Core::node<T>(T instance, nil::gate::inputs<I...>);
 
 // no input, no sync output, has async output
-void Core::node<T>(std::tuple<A...>, T callable);
-void Core::node<T>(std::tuple<A...>, Args... args);
+void Core::node<T>(T instance, std::tuple<A...>);
 // has input, has sync output, has async output
-nil::gate::outputs<S..., A...> Core::node<T>(std::tuple<A...>, nil::gate::inputs<I...>, T callable);
-nil::gate::outputs<S..., A...> Core::node<T>(std::tuple<A...>, nil::gate::inputs<I...>, Args... args);
+nil::gate::outputs<S..., A...> Core::node<T>(T instance, std::tuple<A...>, nil::gate::inputs<I...>);
 ```
 
 ## Run
@@ -343,10 +337,10 @@ int main()
      *  ┃                       ┗━━━━┛       ┃
      *  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
      */
-    auto* edge_i1 = core.edge<int>(10);
-    auto* edge_i2 = core.edge<int>(20);
-    const auto [ edge_i3, edge_i4 ] = core.node<Node>({ edge_i1, edge_i1 }); // N1
-    const auto [ edge_i5, edge_i6 ] = core.node<Node>({ edge_i2, edge_i3 }); // N2
+    auto* edge_i1 = core.edge(10);
+    auto* edge_i2 = core.edge(20);
+    const auto [ edge_i3, edge_i4 ] = core.node(Node(), { edge_i1, edge_i1 }); // N1
+    const auto [ edge_i5, edge_i6 ] = core.node(Node(), { edge_i2, edge_i3 }); // N2
 
     // This will execute N1 then N2
     core.run();
@@ -384,12 +378,12 @@ int main()
 {
     nil::gate::Core core;
 
-    auto ei = core.edge<int>(100);
+    auto ei = core.edge(100);
     //   ┗━━━ nil::gate::MutableEdge<int>*
-    auto ef = core.edge<float>(200.0);
+    auto ef = core.edge(200.0f);
     //   ┗━━━ nil::gate::MutableEdge<float>*
 
-    core.node<Node>({ ei, ef });
+    core.node(Node(), { ei, ef });
 
     // infinitely run core in another thread.
     std::thread t([&core](){ while (true) { core.run(); }});
@@ -448,12 +442,12 @@ int main()
 
     core.set_commit(commit_hook);
 
-    auto ei = core.edge<int>(100);
+    auto ei = core.edge(100);
     //   ┗━━━ nil::gate::MutableEdge<int>*
-    auto ef = core.edge<float>(200.0);
+    auto ef = core.edge(200.0);
     //   ┗━━━ nil::gate::MutableEdge<float>*
 
-    core.node<Node>({ei, ef});
+    core.node(Node(), { ei, ef });
 
     {
         ei->set_value(101);

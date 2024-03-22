@@ -25,7 +25,7 @@ namespace nil::gate::detail
             Tasks* init_tasks,
             const typename input_t::edges& init_inputs,
             typename async_output_t::tuple init_asyncs,
-            Args&&... args
+            T init_instance
         )
             : Node(
                   init_tasks,
@@ -35,7 +35,7 @@ namespace nil::gate::detail
                   typename input_t::make_index_sequence(),
                   typename sync_output_t::make_index_sequence(),
                   typename async_output_t::make_index_sequence(),
-                  std::forward<Args>(args)...
+                  std::move(init_instance)
               )
         {
         }
@@ -101,8 +101,7 @@ namespace nil::gate::detail
             typename... I,
             std::size_t... i_indices,
             std::size_t... s_indices,
-            std::size_t... a_indices,
-            typename... Args>
+            std::size_t... a_indices>
         Node(
             [[maybe_unused]] Tasks* tasks,
             const typename input_t::edges& init_inputs,
@@ -111,9 +110,9 @@ namespace nil::gate::detail
             std::index_sequence<i_indices...> /* unused */,
             std::index_sequence<s_indices...> /* unused */,
             std::index_sequence<a_indices...> /* unused */,
-            Args&&... args
+            T init_instance
         )
-            : instance{std::forward<Args>(args)...}
+            : instance(std::move(init_instance))
             , inputs(init_inputs)
         {
             (..., initialize_input(static_cast<DataEdge<I>*>(get<i_indices>(inputs))));
