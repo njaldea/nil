@@ -1,6 +1,8 @@
 #pragma once
 
 #include "Control.hpp"
+#include "nil/gate/edges/Compatible.hpp"
+#include "nil/gate/edges/ReadOnly.hpp"
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
@@ -42,7 +44,7 @@ namespace ext
         struct RelaxedEdge
         {
             template <typename T>
-            RelaxedEdge(nil::gate::ReadOnlyEdge<T>* init_edge)
+            RelaxedEdge(nil::gate::edges::ReadOnly<T>* init_edge)
                 : edge(init_edge)
                 , identity(nil::utils::traits::identity_v<T>)
             {
@@ -52,23 +54,33 @@ namespace ext
             const void* identity;
 
             template <typename T>
-            operator nil::gate::MutableEdge<T>*() const
+            operator nil::gate::edges::Mutable<T>*() const
             {
                 if (nil::utils::traits::identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
-                return static_cast<nil::gate::MutableEdge<T>*>(edge);
+                return static_cast<nil::gate::edges::Mutable<T>*>(edge);
             }
 
             template <typename T>
-            operator nil::gate::ReadOnlyEdge<T>*() const
+            operator nil::gate::edges::ReadOnly<T>*() const
             {
                 if (nil::utils::traits::identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
-                return static_cast<nil::gate::ReadOnlyEdge<T>*>(edge);
+                return static_cast<nil::gate::edges::ReadOnly<T>*>(edge);
+            }
+
+            template <typename T>
+            operator nil::gate::edges::Compatible<T>() const
+            {
+                if (nil::utils::traits::identity_v<T> != identity)
+                {
+                    throw std::runtime_error("incompatible types");
+                }
+                return static_cast<nil::gate::edges::ReadOnly<T>*>(edge);
             }
 
             template <typename T>
@@ -78,7 +90,7 @@ namespace ext
                 {
                     throw std::runtime_error("incompatible types");
                 }
-                static_cast<nil::gate::MutableEdge<T>*>(edge)->set_value(value);
+                static_cast<nil::gate::edges::Mutable<T>*>(edge)->set_value(value);
             }
         };
 
@@ -448,7 +460,7 @@ namespace ext
 
                         GraphState* graph_state;
                         std::uint64_t s_id;
-                        mutable nil::gate::MutableEdge<T>* output;
+                        mutable nil::gate::edges::Mutable<T>* output;
                     };
 
                     auto factory = detail::api::factory(
@@ -488,7 +500,7 @@ namespace ext
                         }
 
                         GraphState* graph_state;
-                        nil::gate::MutableEdge<T>* async_output;
+                        nil::gate::edges::Mutable<T>* async_output;
                     };
 
                     auto e = graph_state.core.edge(T());

@@ -1,10 +1,9 @@
 #pragma once
 
-#include "./BEdge.hpp"
-#include "./detail/DataEdge.hpp"
-
+#include "detail/DataEdge.hpp"
 #include "detail/ICallable.hpp"
 #include "detail/Tasks.hpp"
+#include "edges/Batch.hpp"
 
 #include <tuple>
 
@@ -20,13 +19,13 @@ namespace nil::gate
             const Core* init_core,
             detail::Tasks* init_tasks,
             detail::ICallable<void(const Core*)>* init_commit,
-            std::tuple<MutableEdge<T>*...> init_edges
+            const std::tuple<edges::Mutable<T>*...>& init_edges
         )
             : Batch(
                   init_core,
                   init_tasks,
                   init_commit,
-                  std::move(init_edges),
+                  init_edges,
                   std::make_index_sequence<sizeof...(T)>()
               )
         {
@@ -61,7 +60,7 @@ namespace nil::gate
             const Core* init_core,
             detail::Tasks* init_tasks,
             detail::ICallable<void(const Core*)>* init_commit,
-            std::tuple<MutableEdge<T>*...> init_edges,
+            const std::tuple<edges::Mutable<T>*...>& init_edges,
             std::index_sequence<I...> /* unused */
         )
             : core(init_core)
@@ -73,9 +72,9 @@ namespace nil::gate
         }
 
         template <typename U>
-        void initialize_edge(BatchEdge<U>& e, MutableEdge<U>* data_edge)
+        void initialize_edge(edges::Batch<U>& e, edges::Mutable<U>* data_edge)
         {
-            e.edge = static_cast<detail::DataEdge<U>*>(data_edge);
+            e.edge = static_cast<detail::edges::Data<U>*>(data_edge);
             e.tasks = &batch_tasks;
         }
 
@@ -83,7 +82,7 @@ namespace nil::gate
         const Core* core = nullptr;
         detail::Tasks* tasks = nullptr;
         detail::ICallable<void(const Core*)>* commit = nullptr;
-        std::tuple<BatchEdge<T>...> edges;
+        std::tuple<edges::Batch<T>...> edges;
     };
 
     template <std::size_t index, typename... T>

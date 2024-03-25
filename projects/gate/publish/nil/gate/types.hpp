@@ -1,39 +1,19 @@
 #pragma once
 
-#include "MEdge.hpp"
-#include "REdge.hpp"
+#include "edges/Compatible.hpp"
+#include "edges/Mutable.hpp"
+#include "edges/ReadOnly.hpp"
 
 #include <tuple>
 
 namespace nil::gate
 {
-    /**
-     *  namespace ng = nil::gate;
-     *  std::tuple<O...> Node::operator()(I...)
-     *      ng::inputs<I...>
-     *      ng::outputs<O...>
-     *      ng::sync_outputs<O...>
-     *      ng::async_outputs<>
-     *
-     *  std::tuple<O...> Node::operator()(ng::async_outputs<A...>, I...)
-     *      ng::inputs<I...>
-     *      ng::outputs<O..., A...>
-     *      ng::sync_outputs<O...>
-     *      ng::async_outputs<A...>
-     *
-     *  std::tuple<O...> Node::operator()(ng::async_outputs<A...>, const ng::Core&, I...)
-     *      ng::inputs<I...>
-     *      ng::outputs<O..., A...>
-     *      ng::sync_outputs<O...>
-     *      ng::async_outputs<A...>
-     */
-
     template <typename... T>
-    using inputs = std::tuple<ReadOnlyEdge<T>*...>;
+    using inputs = std::tuple<edges::Compatible<T>...>;
     template <typename... T>
-    using sync_outputs = std::tuple<ReadOnlyEdge<T>*...>;
+    using sync_outputs = std::tuple<edges::ReadOnly<T>*...>;
     template <typename... T>
-    using async_outputs = std::tuple<MutableEdge<T>*...>;
+    using async_outputs = std::tuple<edges::Mutable<T>*...>;
     template <typename... T>
-    using outputs = std::tuple<ReadOnlyEdge<T>*...>;
+    using outputs = std::tuple<edges::ReadOnly<T>*...>;
 }

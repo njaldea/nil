@@ -1,8 +1,8 @@
 #pragma once
 
-#include "IEdge.hpp"
+#include "../IEdge.hpp"
 
-namespace nil::gate
+namespace nil::gate::edges
 {
     /**
      * @brief Readable Edge type returned by Core::node.
@@ -10,16 +10,16 @@ namespace nil::gate
      * @tparam T
      */
     template <typename T>
-    class ReadOnlyEdge: public IEdge
+    class ReadOnly: public IEdge
     {
     public:
-        ReadOnlyEdge() = default;
-        ~ReadOnlyEdge() noexcept override = default;
+        ReadOnly() = default;
+        ~ReadOnly() noexcept override = default;
 
-        ReadOnlyEdge(ReadOnlyEdge&&) = delete;
-        ReadOnlyEdge(const ReadOnlyEdge&) = delete;
-        ReadOnlyEdge& operator=(ReadOnlyEdge&&) = delete;
-        ReadOnlyEdge& operator=(const ReadOnlyEdge&) = delete;
+        ReadOnly(ReadOnly&&) = delete;
+        ReadOnly(const ReadOnly&) = delete;
+        ReadOnly& operator=(ReadOnly&&) = delete;
+        ReadOnly& operator=(const ReadOnly&) = delete;
 
         // For edges created for a Node, make sure to call core.run() before accessing value.
         // For edges created on its own, it should always have a value due to Core's api.

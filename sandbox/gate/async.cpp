@@ -1,6 +1,9 @@
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
 
+#include <nil/gate/bias/compatibility.hpp>
+#include <nil/gate/bias/edgify.hpp>
+
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/strand.hpp>
 
@@ -20,6 +23,11 @@ std::tuple<float> deferred(nil::gate::async_outputs<int> z, const nil::gate::Cor
     return {432.0f};
 }
 
+std::reference_wrapper<const float> switcher(bool a, const float& l, const float& b)
+{
+    return a ? std::ref(l) : std::ref(b);
+}
+
 void foo(int v)
 {
     std::cout << "foo: " << v << std::endl;
@@ -32,10 +40,15 @@ int main()
     const auto printer_i = [](int v) { std::cout << "printer<int>: " << v << std::endl; };
     const auto printer_f = [](float v) { std::cout << "printer<float>: " << v << std::endl; };
 
+    auto ref = 100.f;
     auto* a = core.edge(false);
+    auto* l = core.edge(std::cref(ref));
+    auto* r = core.edge(200.f);
     const auto [f, x] = core.node(&deferred, {9000}, {a});
+    const auto [fs] = core.node(&switcher, {a, l, r});
     core.node(printer_i, {x});
-    core.node(printer_f, {f});
+
+    core.node(printer_f, {fs});
     core.node(&foo, {x});
 
     boost::asio::io_context context;

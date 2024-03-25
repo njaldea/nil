@@ -14,13 +14,10 @@ set(
         publish/nil/gate/Batch.hpp
         publish/nil/gate/Core.hpp
         publish/nil/gate/IEdge.hpp
-        publish/nil/gate/BEdge.hpp
-        publish/nil/gate/MEdge.hpp
-        publish/nil/gate/REdge.hpp
         publish/nil/gate/types.hpp
         publish/nil/gate/api/uniform.hpp
-        publish/nil/gate/nodes/Asynctify.hpp
-        publish/nil/gate/nodes/Scoped.hpp
+        publish/nil/gate/bias/compatibility.hpp
+        publish/nil/gate/bias/edgify.hpp
         publish/nil/gate/detail/DataEdge.hpp
         publish/nil/gate/detail/ICallable.hpp
         publish/nil/gate/detail/INode.hpp
@@ -31,6 +28,11 @@ set(
         publish/nil/gate/detail/traits/types.hpp
         publish/nil/gate/detail/validation/edge.hpp
         publish/nil/gate/detail/validation/node.hpp
+        publish/nil/gate/edges/Batch.hpp
+        publish/nil/gate/edges/Compatible.hpp
+        publish/nil/gate/edges/Mutable.hpp
+        publish/nil/gate/edges/ReadOnly.hpp
+        publish/nil/gate/nodes/Scoped.hpp
 )
 
 add_library(${PROJECT_NAME} INTERFACE ${HEADERS})

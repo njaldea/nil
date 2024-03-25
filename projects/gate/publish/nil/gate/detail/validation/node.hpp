@@ -13,6 +13,9 @@
 //       -  should not be pointer
 //       -  if it has operator*, it should be a const type
 //       -  if non-copy-able, it should be const ref
+//       -  disallow referrence_wrapper as an input
+//   -  allow reference_wrapper to const as an ouput
+//   -  but disallow reference_wrapper for core.edge instantiation
 
 namespace nil::gate::detail
 {

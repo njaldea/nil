@@ -1,6 +1,8 @@
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
 
+#include <nil/gate/bias/edgify.hpp>
+
 #include <iostream>
 
 template <typename U>

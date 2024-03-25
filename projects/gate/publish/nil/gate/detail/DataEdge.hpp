@@ -1,13 +1,13 @@
 #pragma once
 
-#include "../MEdge.hpp"
+#include "../edges/Mutable.hpp"
 #include "INode.hpp"
 #include "Tasks.hpp"
 
 #include <optional>
 #include <vector>
 
-namespace nil::gate::detail
+namespace nil::gate::detail::edges
 {
     /**
      * @brief Edge type returned by Core::edge.
@@ -16,12 +16,12 @@ namespace nil::gate::detail
      * @tparam T
      */
     template <typename T>
-    class DataEdge final: public MutableEdge<T>
+    class Data final: public nil::gate::edges::Mutable<T>
     {
     public:
         // this is called when instantiated from Node
-        DataEdge()
-            : MutableEdge<T>()
+        Data()
+            : nil::gate::edges::Mutable<T>()
             , data(std::nullopt)
             , tasks(nullptr)
             , depth_value(0u)
@@ -29,21 +29,20 @@ namespace nil::gate::detail
         }
 
         // this is called when instantiated from Core
-        template <typename... Args>
-        explicit DataEdge(Tasks* init_tasks, Args&&... args)
-            : MutableEdge<T>()
-            , data(std::make_optional<Args>(std::forward<Args>(args))...)
+        explicit Data(nil::gate::detail::Tasks* init_tasks, T init_data)
+            : nil::gate::edges::Mutable<T>()
+            , data(std::make_optional<T>(std::move(init_data)))
             , tasks(init_tasks)
             , depth_value(0u)
         {
         }
 
-        ~DataEdge() noexcept override = default;
+        ~Data() noexcept override = default;
 
-        DataEdge(DataEdge&&) = delete;
-        DataEdge(const DataEdge&) = delete;
-        DataEdge& operator=(DataEdge&&) = delete;
-        DataEdge& operator=(const DataEdge&) = delete;
+        Data(Data&&) = delete;
+        Data(const Data&) = delete;
+        Data& operator=(Data&&) = delete;
+        Data& operator=(const Data&) = delete;
 
         const T& value() const override
         {
@@ -112,14 +111,14 @@ namespace nil::gate::detail
 
     private:
         std::optional<T> data;
-        Tasks* tasks;
+        nil::gate::detail::Tasks* tasks;
         std::uint64_t depth_value;
         std::vector<detail::INode*> outs;
     };
 
     template <typename U>
-    DataEdge<U>* as_data(MutableEdge<U>* edge)
+    Data<U>* as_data(nil::gate::edges::Mutable<U>* edge)
     {
-        return static_cast<DataEdge<U>*>(edge);
+        return static_cast<Data<U>*>(edge);
     }
 }

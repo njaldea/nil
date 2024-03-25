@@ -1,21 +1,21 @@
 #pragma once
 
-#include "detail/DataEdge.hpp"
-#include "detail/ICallable.hpp"
+#include "../detail/DataEdge.hpp"
+#include "../detail/ICallable.hpp"
 
-namespace nil::gate
+namespace nil::gate::edges
 {
     template <typename T>
-    class BatchEdge final
+    class Batch final
     {
     public:
-        BatchEdge() = default;
-        ~BatchEdge() noexcept = default;
+        Batch() = default;
+        ~Batch() noexcept = default;
 
-        BatchEdge(BatchEdge&&) = delete;
-        BatchEdge(const BatchEdge&) = delete;
-        BatchEdge& operator=(BatchEdge&&) = delete;
-        BatchEdge& operator=(const BatchEdge&) = delete;
+        Batch(Batch&&) = delete;
+        Batch(const Batch&) = delete;
+        Batch& operator=(Batch&&) = delete;
+        Batch& operator=(const Batch&) = delete;
 
         const T& value() const
         {
@@ -41,7 +41,7 @@ namespace nil::gate
             ));
         }
 
-        detail::DataEdge<T>* edge = nullptr;
+        detail::edges::Data<T>* edge = nullptr;
         std::vector<std::unique_ptr<detail::ICallable<void()>>>* tasks = nullptr;
     };
 }

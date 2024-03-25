@@ -115,7 +115,7 @@ namespace nil::gate::detail
             : instance(std::move(init_instance))
             , inputs(init_inputs)
         {
-            (..., initialize_input(static_cast<DataEdge<I>*>(get<i_indices>(inputs))));
+            (..., initialize_input(get<i_indices>(inputs)));
 
             (get<s_indices>(sync_outputs).set_depth(cached_depth), ...);
             (get<a_indices>(async_outputs).set_depth(0u), ...);
@@ -142,20 +142,20 @@ namespace nil::gate::detail
                     return instance(
                         async_edges(typename async_output_t::make_index_sequence()),
                         *core,
-                        get<i_indices>(inputs)->value()...
+                        get<i_indices>(inputs).value()...
                     );
                 }
                 else
                 {
                     return instance(
                         async_edges(typename async_output_t::make_index_sequence()),
-                        get<i_indices>(inputs)->value()...
+                        get<i_indices>(inputs).value()...
                     );
                 }
             }
             else
             {
-                return instance(get<i_indices>(inputs)->value()...);
+                return instance(get<i_indices>(inputs).value()...);
             }
         }
 
@@ -192,10 +192,10 @@ namespace nil::gate::detail
         }
 
         template <typename U>
-        void initialize_input(DataEdge<U>* edge)
+        void initialize_input(nil::gate::edges::Compatible<U>& edge)
         {
-            edge->attach_output(this);
-            cached_depth = std::max(cached_depth, edge->depth());
+            edge.attach_output(this);
+            cached_depth = std::max(cached_depth, edge.depth());
         }
 
         EState state = EState::Pending;

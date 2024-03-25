@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../traits/edgify.hpp"
 #include "../../types.hpp"
 #include "../DataEdge.hpp"
 #include "../validation/edge.hpp"
@@ -15,6 +16,9 @@ namespace nil::gate
 
 namespace nil::gate::detail::traits
 {
+    template <typename T>
+    using edgify_t = gate::traits::edgify_t<T>;
+
     template <typename A>
     struct async_checker
     {
@@ -87,8 +91,8 @@ namespace nil::gate::detail::traits
     template <typename... I>
     struct node_inputs<types<I...>>
     {
-        using type = types<edgify_t<I>...>;
-        using edges = nil::gate::inputs<edgify_t<I>...>;
+        using type = types<edgify_t<std::decay_t<I>>...>;
+        using edges = nil::gate::inputs<edgify_t<std::decay_t<I>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(I)>;
         static constexpr auto size = sizeof...(I);
         static constexpr bool is_valid = (true && ... && node_validate<I>::value);
@@ -100,10 +104,10 @@ namespace nil::gate::detail::traits
     template <typename... S>
     struct node_sync_outputs<types<S...>>
     {
-        using type = types<edgify_t<S>...>;
-        using tuple = std::tuple<edgify_t<S>...>;
-        using edges = nil::gate::sync_outputs<edgify_t<S>...>;
-        using data_edges = std::tuple<DataEdge<edgify_t<S>>...>;
+        using type = types<edgify_t<std::decay_t<S>>...>;
+        using tuple = std::tuple<edgify_t<std::decay_t<S>>...>;
+        using edges = nil::gate::sync_outputs<edgify_t<std::decay_t<S>>...>;
+        using data_edges = std::tuple<detail::edges::Data<edgify_t<std::decay_t<S>>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(S)>;
         static constexpr auto size = sizeof...(S);
         static constexpr bool is_valid
@@ -116,10 +120,10 @@ namespace nil::gate::detail::traits
     template <typename... A>
     struct node_async_outputs<types<A...>>
     {
-        using type = types<edgify_t<A>...>;
-        using tuple = std::tuple<edgify_t<A>...>;
-        using edges = nil::gate::async_outputs<edgify_t<A>...>;
-        using data_edges = std::tuple<DataEdge<edgify_t<A>>...>;
+        using type = types<edgify_t<std::decay_t<A>>...>;
+        using tuple = std::tuple<edgify_t<std::decay_t<A>>...>;
+        using edges = nil::gate::async_outputs<edgify_t<std::decay_t<A>>...>;
+        using data_edges = std::tuple<detail::edges::Data<edgify_t<std::decay_t<A>>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(A)>;
         static constexpr auto size = sizeof...(A);
         static constexpr bool is_valid = (true && ... && edge_validate<A>::value);
@@ -131,13 +135,13 @@ namespace nil::gate::detail::traits
     template <typename... S, typename... A>
     struct node_outputs<types<S...>, types<A...>>
     {
-        using type = types<edgify_t<S>..., edgify_t<A>...>;
+        using type = types<edgify_t<std::decay_t<S>>..., edgify_t<std::decay_t<A>>...>;
         using edges = std::conditional_t<
             sizeof...(S) + sizeof...(A) == 0,
             void,
             nil::gate::outputs<
-                typename edge_validate<S>::type...,
-                typename edge_validate<A>::type...> //
+                edgify_t<std::decay_t<S>>...,
+                edgify_t<std::decay_t<A>>...> //
             >;
         using make_index_sequence = std::make_index_sequence<sizeof...(S) + sizeof...(A)>;
         static constexpr auto size = sizeof...(S) + sizeof...(A);
