@@ -30,5 +30,6 @@
     "--background-index",
     "--query-driver=/**/*"
   ],
-  "editor.stickyScroll.defaultModel": "foldingProviderModel"
+  "editor.stickyScroll.defaultModel": "foldingProviderModel",
+  "gitlens.codeLens.enabled": false
 }
