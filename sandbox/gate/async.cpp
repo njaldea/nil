@@ -1,8 +1,7 @@
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
 
-#include <nil/gate/bias/compatibility.hpp>
-#include <nil/gate/bias/edgify.hpp>
+#include <nil/gate/bias/nil.hpp>
 
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/strand.hpp>
@@ -10,7 +9,7 @@
 #include <iostream>
 #include <thread>
 
-std::tuple<float> deferred(nil::gate::async_outputs<int> z, const nil::gate::Core& core, bool a)
+float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core& core, bool a)
 {
     std::cout << "deferred: " << a << std::endl;
     if (a)
@@ -18,9 +17,9 @@ std::tuple<float> deferred(nil::gate::async_outputs<int> z, const nil::gate::Cor
         auto [zz] = core.batch(z);
         // this will be triggered on next core.run()
         zz->set_value(zz->value() + 100);
-        return {321.0f};
+        return 321.0f;
     }
-    return {432.0f};
+    return 432.0f;
 }
 
 std::reference_wrapper<const float> switcher(bool a, const float& l, const float& b)

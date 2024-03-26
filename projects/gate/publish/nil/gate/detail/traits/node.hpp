@@ -1,9 +1,9 @@
 #pragma once
 
 #include "../../traits/edgify.hpp"
+#include "../../traits/is_edge_type_valid.hpp"
 #include "../../types.hpp"
 #include "../DataEdge.hpp"
-#include "../validation/edge.hpp"
 #include "../validation/node.hpp"
 #include "callable.hpp"
 
@@ -18,6 +18,8 @@ namespace nil::gate::detail::traits
 {
     template <typename T>
     using edgify_t = gate::traits::edgify_t<T>;
+    template <typename T>
+    using is_edge_type_valid = gate::traits::is_edge_type_valid<T>;
 
     template <typename A>
     struct async_checker
@@ -126,7 +128,7 @@ namespace nil::gate::detail::traits
         using data_edges = std::tuple<detail::edges::Data<edgify_t<std::decay_t<A>>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(A)>;
         static constexpr auto size = sizeof...(A);
-        static constexpr bool is_valid = (true && ... && edge_validate<A>::value);
+        static constexpr bool is_valid = (true && ... && is_edge_type_valid<A>::value);
     };
 
     template <typename S, typename A>

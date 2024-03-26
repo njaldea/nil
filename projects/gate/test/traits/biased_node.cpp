@@ -1,6 +1,8 @@
 // #include <nil/gate/detail/traits/node.hpp>
 #include <nil/gate.hpp>
 
+#include <nil/gate/bias/nil.hpp>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -121,9 +123,9 @@ TEST(gate, traits_sync_output)
 
         using expected_t = nil::gate::detail::traits::types<
             int,
-            std::unique_ptr<int>,
-            std::shared_ptr<int>,
-            std::optional<int>,
+            std::unique_ptr<const int>,
+            std::shared_ptr<const int>,
+            std::optional<const int>,
             int,
             std::unique_ptr<const int>,
             std::shared_ptr<const int>,
@@ -188,6 +190,10 @@ TEST(gate, traits_async_output)
         ASSERT_FALSE(SUT<TC<void(async_outputs<int*>)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(async_outputs<int&>)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(async_outputs<const int>)>>::is_valid);
+
+        ASSERT_FALSE(SUT<TC<void(async_outputs<std::unique_ptr<int>>)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(async_outputs<std::shared_ptr<int>>)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(async_outputs<std::optional<int>>)>>::is_valid);
 
         ASSERT_FALSE(SUT<TC<void(async_outputs<std::unique_ptr<int>&>)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(async_outputs<std::shared_ptr<int>&>)>>::is_valid);

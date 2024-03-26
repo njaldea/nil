@@ -21,6 +21,7 @@
         - [compatibility](#compatibility)
         - [edgify](#edgify)
         - [bias](#bias)
+        - [notes](#notes-personal-suggestions)
 
 ## Supported Graph
 
@@ -642,16 +643,47 @@ int main()
 }
 ```
 
+### is_edge_type_valid
+
+This trait is intended for cases where you want to detect and prevent creation of edges that should not be edges.
+
+By default, all of the edge types are valid except for the following:
+- T is a pointer type
+- T is a reference type
+- T is const
+
+With reference to `edgify`, if a type is converted from one type to another, it should be a good idea to disable the original type.
+
+See [biased](#bias) section for more information of `nil/gate`'s suggested rules.
+
 ### bias
 
 `nil/gate` provides a very opinionated setup from these header:
-- [compatibility](publish/nil/gate/bias/compatibility.hpp)
-    - covers conversion between `T` and `std::reference_wrapper<const T>`
-- [edgify](publish/nil/gate/bias/edgify.hpp)
-    - covers the following types:
-        - `std::unique_ptr<T>` to `std::unique_ptr<const T>`
-        - `std::shared_ptr<T>` to `std::shared_ptr<const T>`
-        - `std::optional<T>` to `std::optional<const T>`
-        - `std::reference_wrapper<T>` to `std::reference_wrapper<const T>`
+ - [`#include <nil/gate/bias/compatibility.hpp>`](publish/nil/gate/bias/compatibility.hpp)
+     - covers conversion between `T` and `std::reference_wrapper<const T>`
+ - [`#include <nil/gate/bias/edgify.hpp>`](publish/nil/gate/bias/edgify.hpp)
+     - covers the following types:
+         - `std::unique_ptr<T>` to `std::unique_ptr<const T>`
+         - `std::shared_ptr<T>` to `std::shared_ptr<const T>`
+         - `std::optional<T>` to `std::optional<const T>`
+         - `std::reference_wrapper<T>` to `std::reference_wrapper<const T>`
+ - [`#include <nil/gate/bias/is_edge_type_valid.hpp>`](publish/nil/gate/bias/is_edge_type_valid.hpp)
+     - disables the original types converted bvy `bias/edgify.hpp`
+         - `std::unique_ptr<T>`
+         - `std::shared_ptr<T>`
+         - `std::optional<T>`
+         - `std::reference_wrapper<T>`
+ - [`#include <nil/gate/bias/nil.hpp>`](publish/nil/gate/bias/nil.hpp)
+     - this is a helper header to conform with the author's suggested setup
+     - applies all of the author's biases
 
 These are not included from `nil/gate.hpp` and users must opt-in to apply these rules to their graphs.
+
+### NOTES: personal suggestions
+
+- When implementing your own `edgify<T>` traits, avoid converting `T` to something different that is not related to `T`.
+    - This will produce weird behavior when defining nodes.
+    - `edgify<T>` is mainly intended for things with indirections like pointer-like objects.
+- When implementing your own `compatibility` traits, beware of returning a reference type
+    - If returning a temporary, you should return an object that will own the data (not a reference).
+    - If returning a non-reference type, take note that the conversion will be done everytime the node is triggered.

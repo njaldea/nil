@@ -18,6 +18,11 @@ set(
         publish/nil/gate/api/uniform.hpp
         publish/nil/gate/bias/compatibility.hpp
         publish/nil/gate/bias/edgify.hpp
+        publish/nil/gate/bias/is_edge_type_valid.hpp
+        publish/nil/gate/bias/nil.hpp
+        publish/nil/gate/traits/compatibility.hpp
+        publish/nil/gate/traits/edgify.hpp
+        publish/nil/gate/traits/is_edge_type_valid.hpp
         publish/nil/gate/detail/DataEdge.hpp
         publish/nil/gate/detail/ICallable.hpp
         publish/nil/gate/detail/INode.hpp
@@ -26,7 +31,6 @@ set(
         publish/nil/gate/detail/traits/callable.hpp
         publish/nil/gate/detail/traits/node.hpp
         publish/nil/gate/detail/traits/types.hpp
-        publish/nil/gate/detail/validation/edge.hpp
         publish/nil/gate/detail/validation/node.hpp
         publish/nil/gate/edges/Batch.hpp
         publish/nil/gate/edges/Compatible.hpp
