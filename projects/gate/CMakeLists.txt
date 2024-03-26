@@ -31,7 +31,7 @@ set(
         publish/nil/gate/detail/traits/callable.hpp
         publish/nil/gate/detail/traits/node.hpp
         publish/nil/gate/detail/traits/types.hpp
-        publish/nil/gate/detail/validation/node.hpp
+        publish/nil/gate/detail/validation.hpp
         publish/nil/gate/edges/Batch.hpp
         publish/nil/gate/edges/Compatible.hpp
         publish/nil/gate/edges/Mutable.hpp

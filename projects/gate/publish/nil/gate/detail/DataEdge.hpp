@@ -60,7 +60,7 @@ namespace nil::gate::detail::edges
             tasks->push(make_callable(
                 [this, new_data = std::move(new_data)]() mutable
                 {
-                    if (!data.has_value() || !std::equal_to()(*data, new_data))
+                    if (!data.has_value() || !(*data == new_data))
                     {
                         if (exec(std::move(new_data)))
                         {
@@ -73,7 +73,7 @@ namespace nil::gate::detail::edges
 
         bool exec(T new_data)
         {
-            if (!data.has_value() || !std::equal_to<T>()(data.value(), new_data))
+            if (!data.has_value() || !(data.value() == new_data))
             {
                 data.emplace(std::move(new_data));
                 return true;

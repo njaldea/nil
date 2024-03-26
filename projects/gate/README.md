@@ -42,9 +42,10 @@ It owns and holds all of the nodes and edges registered to it through its API.
 
 Edges represents a Single Input - Multiple Output connection.
 
-Requirements of the type for the edge:
-- if a smart pointer, it should be pointing to a const
-- equal comparable (compatible to `std::equal_to`)
+Edges are only created through the following:
+- returned by `Core::edge`
+- output of the Node returned by `Core::node`
+- returned by `Core::batch`
 
 ### `edges::ReadOnly`
 
@@ -72,7 +73,7 @@ int main()
 
 ### `edges::Mutable`
 
-`edges::Mutable` is an `edges::ReadOnly`. `set_value` is the only added API to it.
+This type of edge is also an `edges::ReadOnly`.
 
 NOTE: `set_value` will only take effect on next `Core::run()`.
 
@@ -99,34 +100,34 @@ int main()
 
 ### `edges::Batch`
 
-`edges::Batch` is similar to `edges::Mutable` with the exact same API. These are created when batches are created.
+This type of edge is similar to `edges::Mutable` with the exact same API. These are created when batches are created.
 
 See [Batch](#batch) for more detail.
 
 ### `edges::Compatible`
 
-`edges::Compatible` is used as a wrapper to `edges::ReadOnly` to be used as an input of a node.
+This type of edge is used as a wrapper to `edges::ReadOnly` to be used as an input of a node.
+
+This is intended to be created from `edges::ReadOnly` and is not intended for users to instantiate by themselves.
 
 See [traits](#traits) for more detail how to create compatible edges
 
 ### `nil::gate::Core::edge`
 
-Here are the list of available `edge()` signature available to `Core`
+Here are the list of available `edge()` signature available to `Core`:
 
 ```cpp
 // value will be moved to the data inside the edge
 nil::gate::edges::Mutable<T>* Core::edge(T value);
 ```
 
-requirements for `T`:
-1. non-const
-2. non-pointer and non-reference
-4. compatible to `std::equal_to`
+Requirements of the type for the edge:
+- has `operator==`
 
 ## Node
 
-In simple terms, a Node is just an object that is Callable (with `operator()`).
-Its signature represents the Inputs and Outputs of the Node.
+A Node is just an object that is Callable (with `operator()`).
+Its signature represents the Inputs and Outputs of the Node with some optional special arguments.
 
 NOTE: currently only free function and `T::operator() const` is supported.
 
@@ -135,11 +136,8 @@ NOTE: currently only free function and `T::operator() const` is supported.
 ```cpp
 #include <nil/gate.hpp>
 
-class Node
-{
-    void operator()(float) const;
-    //              ┗━━━ all arguments are treated as an input
-};
+void free_function_node(float);
+//                      ┗━━━ all arguments are treated as an input
 
 int main()
 {
@@ -147,9 +145,9 @@ int main()
     auto edge_f = core.edge(200.f);
     //   ┗━━━ nil::gate::edges::Mutable<float>*
 
-    core.node(Node(), { edge_f });
-    //                ┣━━━ nil::gate::inputs<float>
-    //                ┗━━━ std::tuple<nil::gate::edges::Compatible<float>, ...>;
+    core.node(&free_function_node, { edge_f });
+    //                             ┣━━━ nil::gate::inputs<float>
+    //                             ┗━━━ std::tuple<nil::gate::edges::Compatible<float>, ...>;
 }
 ```
 
@@ -217,37 +215,6 @@ int main()
         auto [ edge_f ] = outputs;
         //     ┗━━━ nil::gate::edges::ReadOnly<float>*
     }
-}
-```
-
-### Free functions
-
-A node does not need to be a `struct`/`class` that contains a call operator. A function pointer is also a valid node.
-
-```cpp
-// struct Node
-// {
-//     void operator()() const;
-// };
-// is identical to:
-void free_function_node();
-void free_function_node_with_async(
-    nil::gate::async_output<float> asyncs
-);
-
-int main()
-{
-    nil::gate::Core core;
-
-    // T will automatically be deduced
-    core.node(&free_function_node);
-
-    // If it has async_outputs:
-    nil::gate::outputs<float> = core.node(free_function_node_with_asyncm, { 100.0f });
-    //                 ┃                                                  ┗━━━ initial value of the async edges
-    //                 ┗━━━ all async outputs is appended to the end of all sync outputs
-
-    // all information about `Input`, `Sync Output`, `Async Output` are also applicable.
 }
 ```
 
@@ -320,7 +287,7 @@ nil::gate::outputs<S..., A...> Core::node<T>(T instance, std::tuple<A...>, nil::
 
 Calling run will execute the nodes in proper order executing the nodes based on their inputs.
 
-Before running all necessary nodes, it will also resolve all calls to `edges::Mutable::set_value` updating the values held by the edges to the latest valu
+Before running all necessary nodes, it will also resolve all calls to `edges::Mutable::set_value` updating the values held by the edges.
 
 NOTE: first call to `Core::run()` will execute all the nodes. succeeding calls will only execute nodes that expects new data from their inputs.
 
@@ -425,7 +392,7 @@ int main()
 ## Commit
 
 This is a hook that will be called during the following:
-- call to `Core::commit()`
+- manual call to `Core::commit()`
 - destruction of a `Batch<T...>`
 
 ```cpp
@@ -491,7 +458,7 @@ int main()
 
 ### edgify
 
-`nil::gate::traits::edgify` is a trait dictating how the type `T` is going to be interpreted for the edge creation.
+This trait dictates how the type `T` is going to be interpreted for the edge creation.
 
 The default trait behavior is that `T` provided to edgify will be the same type for the edge type.
 
@@ -546,7 +513,7 @@ int main()
 }
 ```
 
-When graph building, the data owned by the edges should only be modified by the library.
+When building a graph, it is ideal that the data owned by the edges is only be modified by the library (not the nodes).
 Allowing the node to modify the object referred through indirection will make the graph execution non-deterministic.
 
 This feature is intended for users to opt-in as the library will not be able to cover all of the types that has indirection.
@@ -555,7 +522,7 @@ See [biased](#bias) section for more information of `nil/gate`'s suggested rules
 
 ### compatibility
 
-`nil::gate::traits::compatibility` is a trait dictating if an edge could be used even if the type of the edge does not match with the expected input edge of the node.
+This trait dictates if an edge could be used even if the type of the edge does not match with the expected input edge of the node.
 
 Here is an example of when this is going to be used:
 
@@ -583,7 +550,7 @@ int main()
     //           ┗━━━━━━━━ nil::gate::edges::ReadOnly<std::reference_wrapper<const int>>*
 
     core.node(&consumer, { out });
-    //                     ┗━━━━━━━━ This will produce a compilation failure
+    //                     ┗━━━━━━━━ This will produce a compilation failure.
     //                               ReadOnly<std::reference_wrapper<const int>>
     //                               is not compatible to ReadOnly<int>
 }
@@ -652,7 +619,24 @@ By default, all of the edge types are valid except for the following:
 - T is a reference type
 - T is const
 
-With reference to `edgify`, if a type is converted from one type to another, it should be a good idea to disable the original type.
+```cpp
+#include <nil/gate.hpp>
+
+namespace nil::gate::traits
+{
+    template <typename T>
+    struct is_edge_type_valid<std::reference_wrapper<T>>: std::false_type
+    {
+    };
+
+    template <typename T>
+    struct is_edge_type_valid<std::reference_wrapper<const T>>: std::true_type
+    {
+    };
+}
+```
+
+With reference to `edgify`, if a type is converted from one type to another, it is a good idea to disable the original type.
 
 See [biased](#bias) section for more information of `nil/gate`'s suggested rules.
 
