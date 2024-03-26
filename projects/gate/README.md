@@ -22,6 +22,7 @@
         - [edgify](#edgify)
         - [bias](#bias)
         - [notes](#notes-personal-suggestions)
+- [Errors](#errors)
 
 ## Supported Graph
 
@@ -671,3 +672,36 @@ These are not included from `nil/gate.hpp` and users must opt-in to apply these 
 - When implementing your own `compatibility` traits, beware of returning a reference type
     - If returning a temporary, you should return an object that will own the data (not a reference).
     - If returning a non-reference type, take note that the conversion will be done everytime the node is triggered.
+
+## Errors
+
+The library tries its best to provide undestandable error messages as much as possible.
+
+The example below is a result of having and invalid `Core` signature. `Core` should always be `const Core&`.
+
+```cpp
+float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core core, bool a);
+//                                              ┗━━━━━━━━ this should always be `const nil::gate::Core&`
+```
+
+### gcc
+
+```bash
+./nil/gate/Core.hpp:50:26: error: use of deleted function ‘nil::gate::errors::Error::Error(nil::gate::errors::Check<false>)’
+   50 |             Error core = Check<traits::input_resolver_t::is_core_valid>();
+```
+
+### clang
+
+```bash
+./nil/gate/Core.hpp:50:26: fatal error: conversion function from 'Check<traits::input_resolver_t::is_core_valid>' to 'Error' invokes a deleted function
+   50 |             Error core = Check<traits::input_resolver_t::is_core_valid>();
+```
+
+These are the errors detected with similar error message:
+ -  any input type is invalid
+ -  any sync output type is invalid
+ -  any async output type is invalid
+ -  async_outputs is invalid
+ -  core argument is invalid
+ -  input `edges::Readable<T>*` is not compatible to the expected input edge of the node

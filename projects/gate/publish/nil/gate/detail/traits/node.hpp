@@ -36,20 +36,22 @@ namespace nil::gate::detail::traits
     template <typename... A>
     struct async_resolver<nil::gate::async_outputs<A...>>
     {
-        using types = types<A...>;
+        using types = nil::gate::detail::traits::types<A...>;
     };
 
     template <typename I>
     struct input_resolver;
 
     template <typename... I>
-    struct input_resolver<types<I...>>
+    struct input_resolver<nil::gate::detail::traits::types<I...>>
     {
-        using inputs = types<I...>;
-        using asyncs = types<>;
+        using inputs = nil::gate::detail::traits::types<I...>;
+        using asyncs = nil::gate::detail::traits::types<>;
         static constexpr bool has_async = false;
         static constexpr bool has_core = false;
-        static constexpr bool is_valid = true;
+        static constexpr bool is_async_valid = true;
+        static constexpr bool is_core_valid = true;
+        static constexpr bool is_valid = is_async_valid && is_core_valid;
     };
 
     template <typename T>
@@ -60,37 +62,38 @@ namespace nil::gate::detail::traits
 
     template <typename First, typename... I>
         requires async_checker<std::decay_t<First>>::is_async
-    struct input_resolver<types<First, I...>>
+    struct input_resolver<nil::gate::detail::traits::types<First, I...>>
     {
-        using inputs = types<I...>;
+        using inputs = nil::gate::detail::traits::types<I...>;
         using asyncs = async_resolver<std::decay_t<First>>::types;
         static constexpr bool has_async = true;
         static constexpr bool has_core = false;
-        static constexpr bool is_valid //
-            = is_vanilla_v<First> || is_const_reference_v<First>;
+        static constexpr bool is_async_valid = is_vanilla_v<First> || is_const_reference_v<First>;
+        static constexpr bool is_core_valid = true;
+        static constexpr bool is_valid = is_async_valid && is_core_valid;
     };
 
     template <typename First, typename Second, typename... I>
         requires async_checker<std::decay_t<First>>::is_async
         && std::is_same_v<nil::gate::Core, std::decay_t<Second>>
-    struct input_resolver<types<First, Second, I...>>
+    struct input_resolver<nil::gate::detail::traits::types<First, Second, I...>>
     {
-        using inputs = types<I...>;
+        using inputs = nil::gate::detail::traits::types<I...>;
         using asyncs = async_resolver<std::decay_t<First>>::types;
         static constexpr bool has_async = true;
         static constexpr bool has_core = true;
-        static constexpr bool is_valid     //
-            = is_const_reference_v<Second> //
-            && (is_vanilla_v<First> || is_const_reference_v<First>);
+        static constexpr bool is_async_valid = is_vanilla_v<First> || is_const_reference_v<First>;
+        static constexpr bool is_core_valid = is_const_reference_v<Second>;
+        static constexpr bool is_valid = is_async_valid && is_core_valid;
     };
 
     template <typename T>
     struct node_inputs;
 
     template <typename... I>
-    struct node_inputs<types<I...>>
+    struct node_inputs<nil::gate::detail::traits::types<I...>>
     {
-        using type = types<edgify_t<std::decay_t<I>>...>;
+        using type = nil::gate::detail::traits::types<edgify_t<std::decay_t<I>>...>;
         using edges = nil::gate::inputs<edgify_t<std::decay_t<I>>...>;
         using make_index_sequence = std::make_index_sequence<sizeof...(I)>;
         static constexpr auto size = sizeof...(I);
@@ -101,9 +104,9 @@ namespace nil::gate::detail::traits
     struct node_sync_outputs;
 
     template <typename... S>
-    struct node_sync_outputs<types<S...>>
+    struct node_sync_outputs<nil::gate::detail::traits::types<S...>>
     {
-        using type = types<edgify_t<std::decay_t<S>>...>;
+        using type = nil::gate::detail::traits::types<edgify_t<std::decay_t<S>>...>;
         using tuple = std::tuple<edgify_t<std::decay_t<S>>...>;
         using edges = nil::gate::sync_outputs<edgify_t<std::decay_t<S>>...>;
         using data_edges = std::tuple<detail::edges::Data<edgify_t<std::decay_t<S>>>...>;
@@ -117,9 +120,9 @@ namespace nil::gate::detail::traits
     struct node_async_outputs;
 
     template <typename... A>
-    struct node_async_outputs<types<A...>>
+    struct node_async_outputs<nil::gate::detail::traits::types<A...>>
     {
-        using type = types<edgify_t<std::decay_t<A>>...>;
+        using type = nil::gate::detail::traits::types<edgify_t<std::decay_t<A>>...>;
         using tuple = std::tuple<edgify_t<std::decay_t<A>>...>;
         using edges = nil::gate::async_outputs<edgify_t<std::decay_t<A>>...>;
         using data_edges = std::tuple<detail::edges::Data<edgify_t<std::decay_t<A>>>...>;
@@ -132,9 +135,14 @@ namespace nil::gate::detail::traits
     struct node_outputs;
 
     template <typename... S, typename... A>
-    struct node_outputs<types<S...>, types<A...>>
+    struct node_outputs<
+        nil::gate::detail::traits::types<S...>,
+        nil::gate::detail::traits::types<A...>>
     {
-        using type = types<edgify_t<std::decay_t<S>>..., edgify_t<std::decay_t<A>>...>;
+        using type = nil::gate::detail::traits::types<
+            edgify_t<std::decay_t<S>>...,
+            edgify_t<std::decay_t<A>>... //
+            >;
         using edges = std::conditional_t<
             sizeof...(S) + sizeof...(A) == 0,
             void,

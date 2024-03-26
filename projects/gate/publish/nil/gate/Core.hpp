@@ -3,6 +3,7 @@
 #include "Batch.hpp"
 #include "detail/Node.hpp"
 #include "edges/Mutable.hpp"
+#include "errors.hpp"
 #include "traits/edgify.hpp"
 
 #include "detail/traits/node.hpp"
@@ -36,6 +37,20 @@ namespace nil::gate::concepts
 
 namespace nil::gate
 {
+    namespace errors
+    {
+        template <typename T>
+        struct Errors
+        {
+            using traits = nil::gate::detail::traits::node<T>;
+            Error inputs = Check<traits::inputs::is_valid>();
+            Error sync_outputs = Check<traits::sync_outputs::is_valid>();
+            Error async_outputs = Check<traits::async_outputs::is_valid>();
+            Error asyncs = Check<traits::input_resolver_t::is_async_valid>();
+            Error core = Check<traits::input_resolver_t::is_core_valid>();
+        };
+    }
+
     class Core final
     {
         template <typename T>
@@ -56,21 +71,30 @@ namespace nil::gate
 
         /// starting from this point - node
 
-        // [TODO] expand and create specializations to emit proper error messages
-        template <typename>
-        struct Error
-        {
-            Error() = delete;
-        };
-
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, Error<T> = {});
+        outputs_t<T> node(
+            T instance,
+            errors::Errors<T> = errors::Errors<T>() //
+        );
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, inputs_t<T> edges, Error<T> = {});
+        outputs_t<T> node(
+            T instance,
+            inputs_t<T> edges,
+            errors::Errors<T> = errors::Errors<T>() //
+        );
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_init, inputs_t<T> edges, Error<T> = {});
+        outputs_t<T> node(
+            T instance,
+            asyncs_t<T> async_init,
+            inputs_t<T> edges,
+            errors::Errors<T> = errors::Errors<T>()
+        );
         template <concepts::is_node_invalid T>
-        outputs_t<T> node(T instance, asyncs_t<T> async_init, Error<T> = {});
+        outputs_t<T> node(
+            T instance,
+            asyncs_t<T> async_init,
+            errors::Errors<T> = errors::Errors<T>() //
+        );
 
         template <concepts::has_input_no_async T>
         outputs_t<T> node(T instance, inputs_t<T> input_edges)

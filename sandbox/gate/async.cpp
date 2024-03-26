@@ -22,9 +22,9 @@ float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core& core, boo
     return 432.0f;
 }
 
-std::reference_wrapper<const float> switcher(bool a, const float& l, const float& b)
+std::reference_wrapper<const float> switcher(bool a, const float& l, const float& r)
 {
-    return a ? std::ref(l) : std::ref(b);
+    return a ? std::ref(l) : std::ref(r);
 }
 
 void foo(int v)

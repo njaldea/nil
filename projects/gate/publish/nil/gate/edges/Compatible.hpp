@@ -2,6 +2,7 @@
 
 #include "../IEdge.hpp"
 #include "../detail/DataEdge.hpp"
+#include "../errors.hpp"
 #include "../traits/compatibility.hpp"
 
 namespace nil::gate::detail
@@ -9,20 +10,42 @@ namespace nil::gate::detail
     class INode;
 }
 
+namespace nil::gate::errors
+{
+    template <typename T, typename U, typename = void>
+    struct is_compatible
+    {
+        static constexpr bool value = false;
+    };
+
+    template <typename T, typename U>
+    struct is_compatible<
+        T,
+        U,
+        std::void_t<decltype(traits::compatibility<T, U>::convert(std::declval<U>()))>>
+    {
+        static constexpr bool value = true;
+    };
+
+    template <typename T, typename U>
+    struct CompatibilityError
+    {
+        Error compatibility = Check<is_compatible<T, U>::value>();
+    };
+}
+
 namespace nil::gate::edges
 {
-    template <typename T, typename U>
-    concept is_compatible = requires(T a, U b) { traits::compatibility<T, U>::convert(b); };
-
     template <typename T>
     class Compatible final
     {
     public:
         template <typename U>
-        Compatible(edges::ReadOnly<U>* init_edge) = delete;
+            requires(!errors::is_compatible<T, U>::value)
+        Compatible(edges::ReadOnly<U>* init_edge, errors::CompatibilityError<T, U> = {}) = delete;
 
         template <typename U>
-            requires is_compatible<T, U>
+            requires(errors::is_compatible<T, U>::value)
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         Compatible(edges::ReadOnly<U>* init_edge)
             : edge(init_edge)
