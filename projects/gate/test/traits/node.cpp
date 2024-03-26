@@ -1,4 +1,3 @@
-// #include <nil/gate/detail/traits/node.hpp>
 #include <nil/gate.hpp>
 
 #include <gmock/gmock.h>
@@ -52,6 +51,11 @@ TEST(gate, traits_input)
             int,
             const int,
             const int&,
+            const std::unique_ptr<int>&,
+            const std::shared_ptr<int>&,
+            const std::optional<int>&,
+            std::shared_ptr<int>,
+            std::optional<int>,
             const std::unique_ptr<const int>&,
             const std::shared_ptr<const int>&,
             const std::optional<const int>&,
@@ -60,7 +64,7 @@ TEST(gate, traits_input)
         )>;
         using type = SUT<test_t>;
 
-        ASSERT_EQ(type::inputs::size, 8);
+        ASSERT_EQ(type::inputs::size, 13);
         ASSERT_TRUE( //
             (std::is_same_v<
                 type::inputs::type,
@@ -68,6 +72,11 @@ TEST(gate, traits_input)
                     int,
                     int,
                     int,
+                    std::unique_ptr<int>,
+                    std::shared_ptr<int>,
+                    std::optional<int>,
+                    std::shared_ptr<int>,
+                    std::optional<int>,
                     std::unique_ptr<const int>,
                     std::shared_ptr<const int>,
                     std::optional<const int>,
@@ -84,20 +93,24 @@ TEST(gate, traits_input)
         ASSERT_FALSE(SUT<TC<void(int&)>>::is_valid);
 
         ASSERT_FALSE(SUT<TC<void(std::unique_ptr<int>)>>::is_valid);
-        ASSERT_FALSE(SUT<TC<void(std::shared_ptr<int>)>>::is_valid);
-        ASSERT_FALSE(SUT<TC<void(std::optional<int>)>>::is_valid);
 
         ASSERT_FALSE(SUT<TC<void(std::unique_ptr<int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::shared_ptr<int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::optional<int>&)>>::is_valid);
 
-        ASSERT_FALSE(SUT<TC<void(const std::unique_ptr<int>&)>>::is_valid);
-        ASSERT_FALSE(SUT<TC<void(const std::shared_ptr<int>&)>>::is_valid);
-        ASSERT_FALSE(SUT<TC<void(const std::optional<int>&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::unique_ptr<int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::shared_ptr<int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::optional<int>&&)>>::is_valid);
+
+        ASSERT_FALSE(SUT<TC<void(std::unique_ptr<const int>)>>::is_valid);
 
         ASSERT_FALSE(SUT<TC<void(std::unique_ptr<const int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::shared_ptr<const int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::optional<const int>&)>>::is_valid);
+
+        ASSERT_FALSE(SUT<TC<void(std::unique_ptr<const int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::shared_ptr<const int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::optional<const int>&&)>>::is_valid);
     }
 }
 

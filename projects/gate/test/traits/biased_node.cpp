@@ -97,9 +97,17 @@ TEST(gate, traits_input)
         ASSERT_FALSE(SUT<TC<void(const std::shared_ptr<int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(const std::optional<int>&)>>::is_valid);
 
+        ASSERT_FALSE(SUT<TC<void(const std::unique_ptr<int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(const std::shared_ptr<int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(const std::optional<int>&&)>>::is_valid);
+
         ASSERT_FALSE(SUT<TC<void(std::unique_ptr<const int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::shared_ptr<const int>&)>>::is_valid);
         ASSERT_FALSE(SUT<TC<void(std::optional<const int>&)>>::is_valid);
+
+        ASSERT_FALSE(SUT<TC<void(std::unique_ptr<const int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::shared_ptr<const int>&&)>>::is_valid);
+        ASSERT_FALSE(SUT<TC<void(std::optional<const int>&&)>>::is_valid);
     }
 }
 
