@@ -688,14 +688,14 @@ float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core core, bool
 
 ```bash
 ./nil/gate/Core.hpp:50:26: error: use of deleted function ‘nil::gate::errors::Error::Error(nil::gate::errors::Check<false>)’
-   50 |             Error core = Check<traits::input_resolver_t::is_core_valid>();
+   50 |             Error core = Check<traits::arg_core::is_valid>();
 ```
 
 ### clang
 
 ```bash
-./nil/gate/Core.hpp:50:26: fatal error: conversion function from 'Check<traits::input_resolver_t::is_core_valid>' to 'Error' invokes a deleted function
-   50 |             Error core = Check<traits::input_resolver_t::is_core_valid>();
+./nil/gate/Core.hpp:50:26: fatal error: conversion function from 'Check<traits::arg_core::is_valid>' to 'Error' invokes a deleted function
+   50 |             Error core = Check<traits::arg_core::is_valid>();
 ```
 
 These are the errors detected with similar error message:

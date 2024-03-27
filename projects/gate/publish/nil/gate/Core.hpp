@@ -46,8 +46,8 @@ namespace nil::gate
             Error inputs = Check<traits::inputs::is_valid>();
             Error sync_outputs = Check<traits::sync_outputs::is_valid>();
             Error async_outputs = Check<traits::async_outputs::is_valid>();
-            Error asyncs = Check<traits::input_resolver_t::is_async_valid>();
-            Error core = Check<traits::input_resolver_t::is_core_valid>();
+            Error arg_asyncs = Check<traits::arg_async::is_valid>();
+            Error arg_core = Check<traits::arg_core::is_valid>();
         };
     }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <tuple>
+
 namespace nil::gate::detail::traits
 {
     /**
@@ -13,4 +15,16 @@ namespace nil::gate::detail::traits
     {
         static constexpr auto size = sizeof...(T);
     };
+
+    template <typename T>
+    struct typify;
+
+    template <template <typename> typename B, typename... T>
+    struct typify<std::tuple<B<T>*...>>
+    {
+        using type = types<T...>;
+    };
+
+    template <typename T>
+    using typify_t = typify<T>::type;
 }

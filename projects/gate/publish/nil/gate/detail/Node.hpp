@@ -161,7 +161,7 @@ namespace nil::gate::detail
 
         template <std::size_t... s_indices>
         auto forward_to_output(
-            sync_output_t::tuple& result,
+            auto& result,
             std::index_sequence<s_indices...> /* unused */
         )
         {
