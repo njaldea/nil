@@ -20,9 +20,10 @@ namespace nil::service::ws
 
         ~Impl() override = default;
 
-        Impl(Impl&&) = delete;
+        Impl(Impl&&) noexcept = delete;
+        Impl& operator=(Impl&&) noexcept = delete;
+
         Impl(const Impl&) = delete;
-        Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
         void send(const std::string& id, std::vector<std::uint8_t> data)

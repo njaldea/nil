@@ -42,9 +42,11 @@ namespace nil::gate::nodes
                 }
 
                 OnDestroy() = delete;
-                OnDestroy(OnDestroy&&) = delete;
+
+                OnDestroy(OnDestroy&&) noexcept = delete;
+                OnDestroy& operator=(OnDestroy&&) noexcept = delete;
+
                 OnDestroy(const OnDestroy&) = delete;
-                OnDestroy& operator=(OnDestroy&&) = delete;
                 OnDestroy& operator=(const OnDestroy&) = delete;
 
                 detail::ICallable<void()>* post;

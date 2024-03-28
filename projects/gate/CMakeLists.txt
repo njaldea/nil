@@ -13,6 +13,7 @@ set(
         publish/nil/gate.hpp
         publish/nil/gate/Batch.hpp
         publish/nil/gate/Core.hpp
+        publish/nil/gate/INode.hpp
         publish/nil/gate/IEdge.hpp
         publish/nil/gate/types.hpp
         publish/nil/gate/api/uniform.hpp
@@ -25,7 +26,6 @@ set(
         publish/nil/gate/traits/is_edge_type_valid.hpp
         publish/nil/gate/detail/DataEdge.hpp
         publish/nil/gate/detail/ICallable.hpp
-        publish/nil/gate/detail/INode.hpp
         publish/nil/gate/detail/Node.hpp
         publish/nil/gate/detail/Tasks.hpp
         publish/nil/gate/detail/traits/callable.hpp

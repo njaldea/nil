@@ -24,9 +24,10 @@ namespace nil::cli
 
         ~Impl() noexcept = default;
 
-        Impl(Impl&&) = delete;
+        Impl(Impl&&) noexcept = delete;
+        Impl& operator=(Impl&&) noexcept = delete;
+
         Impl(const Impl&) = delete;
-        Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
         std::string usage;

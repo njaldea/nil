@@ -19,9 +19,10 @@ namespace nil::service
             ICallable() = default;
             virtual ~ICallable() noexcept = default;
 
-            ICallable(ICallable&&) = delete;
+            ICallable(ICallable&&) noexcept = delete;
+            ICallable& operator=(ICallable&&) noexcept = delete;
+
             ICallable(const ICallable&) = delete;
-            ICallable& operator=(ICallable&&) = delete;
             ICallable& operator=(const ICallable&) = delete;
 
             virtual void call(const std::string&, Args... args) = 0;
@@ -48,9 +49,9 @@ namespace nil::service
 
                 ~Callable() noexcept override = default;
 
-                Callable(Callable&&) = delete;
+                Callable(Callable&&) noexcept = delete;
                 Callable(const Callable&) = delete;
-                Callable& operator=(Callable&&) = delete;
+                Callable& operator=(Callable&&) noexcept = delete;
                 Callable& operator=(const Callable&) = delete;
 
                 void call(const std::string& id, Args... args) override
@@ -85,9 +86,9 @@ namespace nil::service
         virtual ~IService() noexcept = default;
 
         IService() = default;
-        IService(IService&&) = delete;
+        IService(IService&&) noexcept = delete;
         IService(const IService&) = delete;
-        IService& operator=(IService&&) = delete;
+        IService& operator=(IService&&) noexcept = delete;
         IService& operator=(const IService&) = delete;
 
         /**

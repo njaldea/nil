@@ -7,6 +7,10 @@
 
 #include <tuple>
 
+#ifdef NIL_GATE_CHECKS
+#include <cassert>
+#endif
+
 namespace nil::gate
 {
     class Core;
@@ -33,19 +37,20 @@ namespace nil::gate
 
         ~Batch() noexcept
         {
-            if (nullptr != tasks)
-            {
-                tasks->push_batch(std::move(batch_tasks));
-            }
+#ifdef NIL_GATE_CHECKS
+            assert(nullptr != tasks);
+#endif
+            tasks->push_batch(std::move(batch_tasks));
             if (nullptr != commit)
             {
                 commit->call(core);
             }
         }
 
-        Batch(Batch&&) = delete;
+        Batch(Batch&&) noexcept = delete;
+        Batch& operator=(Batch&&) noexcept = delete;
+
         Batch(const Batch&) = delete;
-        Batch& operator=(Batch&&) = delete;
         Batch& operator=(const Batch&) = delete;
 
         template <std::size_t index>
@@ -76,6 +81,10 @@ namespace nil::gate
         {
             e.edge = static_cast<detail::edges::Data<U>*>(data_edge);
             e.tasks = &batch_tasks;
+
+#ifdef NIL_GATE_CHECKS
+            assert(e.edge->validate(tasks));
+#endif
         }
 
         std::vector<std::unique_ptr<detail::ICallable<void()>>> batch_tasks;

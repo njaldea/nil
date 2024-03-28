@@ -20,9 +20,11 @@ namespace gui
         ~Link() noexcept = default;
 
         Link() = delete;
-        Link(Link&&) = delete;
+
+        Link(Link&&) noexcept = delete;
+        Link& operator=(Link&&) noexcept = delete;
+
         Link(const Link&) = delete;
-        Link& operator=(Link&&) = delete;
         Link& operator=(const Link&) = delete;
 
         void render() const;

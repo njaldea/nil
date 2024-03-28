@@ -13,9 +13,10 @@ namespace nil::gate::detail
         ICallable() = default;
         virtual ~ICallable() noexcept = default;
 
-        ICallable(ICallable&&) = delete;
+        ICallable(ICallable&&) noexcept = delete;
+        ICallable& operator=(ICallable&&) noexcept = delete;
+
         ICallable(const ICallable&) = delete;
-        ICallable& operator=(ICallable&&) = delete;
         ICallable& operator=(const ICallable&) = delete;
 
         virtual R call(A...) = 0;
@@ -32,9 +33,9 @@ namespace nil::gate::detail
             }
 
             ~Callable() noexcept override = default;
-            Callable(Callable&&) = delete;
+            Callable(Callable&&) noexcept = delete;
             Callable(const Callable&) = delete;
-            Callable& operator=(Callable&&) = delete;
+            Callable& operator=(Callable&&) noexcept = delete;
             Callable& operator=(const Callable&) = delete;
 
             void call() override

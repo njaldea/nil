@@ -27,9 +27,10 @@ namespace nil::service::udp
         explicit Server(Options options);
         ~Server() noexcept override;
 
-        Server(Server&&) = delete;
+        Server(Server&&) noexcept = delete;
+        Server& operator=(Server&&) noexcept = delete;
+
         Server(const Server&) = delete;
-        Server& operator=(Server&&) = delete;
         Server& operator=(const Server&) = delete;
 
         void run() override;

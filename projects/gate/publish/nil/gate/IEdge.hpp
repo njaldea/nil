@@ -8,9 +8,10 @@ namespace nil::gate
         IEdge() = default;
         virtual ~IEdge() noexcept = default;
 
-        IEdge(IEdge&&) = delete;
+        IEdge(IEdge&&) noexcept = delete;
+        IEdge& operator=(IEdge&&) noexcept = delete;
+
         IEdge(const IEdge&) = delete;
-        IEdge& operator=(IEdge&&) = delete;
         IEdge& operator=(const IEdge&) = delete;
     };
 }

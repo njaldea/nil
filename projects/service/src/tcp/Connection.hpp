@@ -14,9 +14,10 @@ namespace nil::service::tcp
         IImpl() = default;
         virtual ~IImpl() noexcept = default;
 
-        IImpl(IImpl&&) = delete;
+        IImpl(IImpl&&) noexcept = delete;
+        IImpl& operator=(IImpl&&) noexcept = delete;
+
         IImpl(const IImpl&) = delete;
-        IImpl& operator=(IImpl&&) = delete;
         IImpl& operator=(const IImpl&) = delete;
 
         virtual void message(
@@ -33,9 +34,9 @@ namespace nil::service::tcp
         Connection(std::uint64_t buffer, boost::asio::ip::tcp::socket socket, IImpl& impl);
         ~Connection() noexcept;
 
-        Connection(Connection&&) = delete;
+        Connection(Connection&&) noexcept = delete;
         Connection(const Connection&) = delete;
-        Connection& operator=(Connection&&) = delete;
+        Connection& operator=(Connection&&) noexcept = delete;
         Connection& operator=(const Connection&) = delete;
 
         void write(const std::uint8_t* data, std::uint64_t size);

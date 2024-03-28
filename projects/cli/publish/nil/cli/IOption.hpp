@@ -9,9 +9,10 @@ namespace nil::cli
         IOption() = default;
         virtual ~IOption() noexcept = default;
 
-        IOption(IOption&&) = delete;
+        IOption(IOption&&) noexcept = delete;
+        IOption& operator=(IOption&&) noexcept = delete;
+
         IOption(const IOption&) = delete;
-        IOption& operator=(IOption&&) = delete;
         IOption& operator=(const IOption&) = delete;
 
         virtual void apply(const Impl& impl) const = 0;

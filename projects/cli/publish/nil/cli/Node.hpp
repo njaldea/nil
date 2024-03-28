@@ -54,10 +54,11 @@ namespace nil::cli
         explicit Node(std::unique_ptr<Command> command);
         ~Node() noexcept;
 
+        Node(Node&&) noexcept = delete;
+        Node& operator=(Node&&) noexcept = delete;
+
         Node(const Node&) = delete;
-        Node(Node&&) = delete;
         Node& operator=(const Node&) = delete;
-        Node& operator=(Node&&) = delete;
 
         /**
          * @brief add nil::cli::Command as subnode

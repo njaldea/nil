@@ -21,9 +21,10 @@ namespace nil::service::udp
 
         ~Impl() noexcept = default;
 
-        Impl(Impl&&) = delete;
+        Impl(Impl&&) noexcept = delete;
+        Impl& operator=(Impl&&) noexcept = delete;
+
         Impl(const Impl&) = delete;
-        Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
         std::string id() const
@@ -177,9 +178,9 @@ namespace nil::service::udp
             ~Connection() noexcept = default;
 
             Connection(const Connection&) = delete;
-            Connection(Connection&&) = delete;
+            Connection(Connection&&) noexcept = delete;
             Connection& operator=(const Connection&) = delete;
-            Connection& operator=(Connection&&) = delete;
+            Connection& operator=(Connection&&) noexcept = delete;
 
             boost::asio::ip::udp::endpoint endpoint;
             boost::asio::steady_timer timer;

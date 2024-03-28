@@ -150,8 +150,8 @@ private:
 ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
     ext::GraphState state;
-    state.core = {};
-    state.core.set_commit( //
+    state.core = std::make_unique<nil::gate::Core>();
+    state.core->set_commit( //
         [&executor, is_paused = state.paused](auto& core)
         {
             executor.push(
@@ -210,7 +210,7 @@ auto make_control_update(ext::GraphState& graph_state, Executor& executor, EPrio
                 if (it != graph_state.control_edges.end())
                 {
                     it->second.set_value(message.value());
-                    graph_state.core.commit();
+                    graph_state.core->commit();
                 }
             }
         );
@@ -376,7 +376,7 @@ int EXT::run(const nil::cli::Options& options) const
                 [&graph_state, &executor]() {
                     executor.push(
                         {EPriority::Run, 0},
-                        [&graph_state]() { graph_state.core.commit(); }
+                        [&graph_state]() { graph_state.core->commit(); }
                     );
                 }
             )

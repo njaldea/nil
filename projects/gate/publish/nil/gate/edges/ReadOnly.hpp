@@ -16,9 +16,10 @@ namespace nil::gate::edges
         ReadOnly() = default;
         ~ReadOnly() noexcept override = default;
 
-        ReadOnly(ReadOnly&&) = delete;
+        ReadOnly(ReadOnly&&) noexcept = delete;
+        ReadOnly& operator=(ReadOnly&&) noexcept = delete;
+
         ReadOnly(const ReadOnly&) = delete;
-        ReadOnly& operator=(ReadOnly&&) = delete;
         ReadOnly& operator=(const ReadOnly&) = delete;
 
         // For edges created for a Node, make sure to call core.run() before accessing value.

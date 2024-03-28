@@ -94,7 +94,7 @@ namespace ext
             }
         };
 
-        nil::gate::Core core;
+        std::unique_ptr<nil::gate::Core> core;
         std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
         std::function<void(std::uint64_t)> activate;
@@ -182,7 +182,7 @@ namespace ext
                 state.control_edges.emplace(
                     id,
                     GraphState::RelaxedEdge{
-                        state.core.edge<decltype(std::declval<C>().value)>(control.value)
+                        state.core->edge<decltype(std::declval<C>().value)>(control.value)
                     }
                 );
             }
@@ -225,7 +225,7 @@ namespace ext
 
                 [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node(
                     T(args...),
-                    state.core,
+                    *state.core,
                     std::move(a),
                     typename nil::gate::detail::traits::node<T>::inputs::edges(
                         state.internal_edges.at(i.at(i_indices))...,
@@ -412,10 +412,12 @@ namespace ext
         }
 
         ~App() = default;
+
+        App(App&&) noexcept = delete;
+        App& operator=(App&&) noexcept = delete;
+
         App(const App&) = delete;
-        App(App&&) = delete;
         App& operator=(const App&) = delete;
-        App& operator=(App&&) = delete;
 
         template <typename T>
         App& add_pin(const Pin<T>& pin)
@@ -429,7 +431,7 @@ namespace ext
                 {
                     graph_state         //
                         .internal_edges //
-                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core.edge(T())});
+                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core->edge(T())});
                 }
             );
             state.feedback_node_factories.push_back(
@@ -453,7 +455,7 @@ namespace ext
                                 if (output->value() != v)
                                 {
                                     output->set_value(v);
-                                    graph_state->core.commit();
+                                    graph_state->core->commit();
                                 }
                             }
                         }
@@ -493,7 +495,7 @@ namespace ext
                                     if (async_output->value() != v)
                                     {
                                         async_output->set_value(std::move(v));
-                                        graph_state->core.commit();
+                                        graph_state->core->commit();
                                     }
                                 }
                             );
@@ -503,7 +505,7 @@ namespace ext
                         nil::gate::edges::Mutable<T>* async_output;
                     };
 
-                    auto e = graph_state.core.edge(T());
+                    auto e = graph_state.core->edge(T());
                     graph_state         //
                         .internal_edges //
                         .emplace(id, ext::GraphState::RelaxedEdge{e});

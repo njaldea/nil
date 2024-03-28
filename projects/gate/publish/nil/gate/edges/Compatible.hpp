@@ -5,7 +5,7 @@
 #include "../errors.hpp"
 #include "../traits/compatibility.hpp"
 
-namespace nil::gate::detail
+namespace nil::gate
 {
     class INode;
 }
@@ -50,21 +50,23 @@ namespace nil::gate::edges
         Compatible(edges::ReadOnly<U>* init_edge)
             : edge(init_edge)
             , attach_output_impl( //
-                  +[](IEdge* e, detail::INode* node)
+                  +[](IEdge* e, INode* node)
                   { static_cast<detail::edges::Data<U>*>(e)->attach_output(node); }
               )
-            , depth_impl( //
-                  +[](IEdge* e)
-                  {
-                      using type = detail::edges::Data<U>;
-                      return static_cast<type*>(e)->depth();
-                  }
+            , is_pending_impl( //
+                  +[](IEdge* e) -> bool
+                  { return static_cast<detail::edges::Data<U>*>(e)->is_pending(); }
+              )
+            , validate_impl( //
+                  +[](IEdge* e, detail::Tasks* tasks) -> bool
+                  { return static_cast<detail::edges::Data<U>*>(e)->validate(tasks); }
               )
             , value_impl( //
                   +[](IEdge* e) -> const T&
                   {
-                      using type = edges::ReadOnly<U>;
-                      return traits::compatibility<T, U>::convert(static_cast<type*>(e)->value());
+                      using compat = traits::compatibility<T, U>;
+                      using type = detail::edges::Data<U>;
+                      return compat::convert(static_cast<type*>(e)->value());
                   }
               )
         {
@@ -72,9 +74,10 @@ namespace nil::gate::edges
 
         ~Compatible() noexcept = default;
 
-        Compatible(Compatible&&) = delete;
+        Compatible(Compatible&&) noexcept = delete;
+        Compatible& operator=(Compatible&&) noexcept = delete;
+
         Compatible(const Compatible&) = default;
-        Compatible& operator=(Compatible&&) = delete;
         Compatible& operator=(const Compatible&) = default;
 
         const T& value() const
@@ -82,19 +85,26 @@ namespace nil::gate::edges
             return value_impl(edge);
         }
 
-        void attach_output(detail::INode* node)
+        void attach_output(INode* node)
         {
             return attach_output_impl(edge, node);
         }
 
-        std::uint64_t depth() const
+        bool is_pending() const
         {
-            return depth_impl(edge);
+            return is_pending_impl(edge);
         }
 
+        bool validate(detail::Tasks* tasks) const
+        {
+            return validate_impl(edge, tasks);
+        }
+
+    private:
         nil::gate::IEdge* edge = nullptr;
-        void (*attach_output_impl)(IEdge*, detail::INode*);
-        std::uint64_t (*depth_impl)(IEdge*);
+        void (*attach_output_impl)(IEdge*, INode*);
+        bool (*is_pending_impl)(IEdge*);
+        bool (*validate_impl)(IEdge*, detail::Tasks* tasks);
         const T& (*value_impl)(IEdge*);
     };
 }

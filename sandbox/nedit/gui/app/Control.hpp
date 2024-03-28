@@ -22,9 +22,10 @@ namespace gui
         Control() = delete;
         virtual ~Control() noexcept = default;
 
-        Control(Control&&) = delete;
+        Control(Control&&) noexcept = delete;
+        Control& operator=(Control&&) noexcept = delete;
+
         Control(const Control&) = delete;
-        Control& operator=(Control&&) = delete;
         Control& operator=(const Control&) = delete;
 
         virtual void render(bool interactive_controls) = 0;

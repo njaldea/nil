@@ -27,9 +27,11 @@ namespace nil::service
         struct Callable final: detail::ICallable<const void*, std::uint64_t>
         {
             Callable() = delete;
-            Callable(Callable&&) = delete;
+
+            Callable(Callable&&) noexcept = delete;
+            Callable& operator=(Callable&&) noexcept = delete;
+
             Callable(const Callable&) = delete;
-            Callable& operator=(Callable&&) = delete;
             Callable& operator=(const Callable&) = delete;
 
             explicit Callable(T init_handler)

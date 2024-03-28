@@ -24,9 +24,10 @@ namespace nil::service::udp
 
         ~Impl() noexcept = default;
 
-        Impl(Impl&&) = delete;
+        Impl(Impl&&) noexcept = delete;
+        Impl& operator=(Impl&&) noexcept = delete;
+
         Impl(const Impl&) = delete;
-        Impl& operator=(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
 
         void publish(std::vector<std::uint8_t> data)

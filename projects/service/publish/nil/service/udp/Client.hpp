@@ -28,9 +28,10 @@ namespace nil::service::udp
         explicit Client(Options options);
         ~Client() noexcept override;
 
-        Client(Client&&) = delete;
+        Client(Client&&) noexcept = delete;
+        Client& operator=(Client&&) noexcept = delete;
+
         Client(const Client&) = delete;
-        Client& operator=(Client&&) = delete;
         Client& operator=(const Client&) = delete;
 
         void run() override;

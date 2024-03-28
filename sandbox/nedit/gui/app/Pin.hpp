@@ -20,9 +20,10 @@ namespace gui
             bool init_flipped);
         ~Pin() noexcept = default;
 
-        Pin(Pin&&) = default;
+        Pin(Pin&&) noexcept = default;
+        Pin& operator=(Pin&&) noexcept = delete;
+
         Pin(const Pin&) = delete;
-        Pin& operator=(Pin&&) = delete;
         Pin& operator=(const Pin&) = delete;
 
         void render() const;

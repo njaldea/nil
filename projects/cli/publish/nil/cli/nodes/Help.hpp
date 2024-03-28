@@ -14,9 +14,10 @@ namespace nil::cli::nodes
         explicit Help(std::ostream& init_os);
         ~Help() noexcept override = default;
 
-        Help(Help&&) = delete;
+        Help(Help&&) noexcept = delete;
+        Help& operator=(Help&&) noexcept = delete;
+
         Help(const Help&) = delete;
-        Help& operator=(Help&&) = delete;
         Help& operator=(const Help&) = delete;
 
         OptionInfo options() const override;

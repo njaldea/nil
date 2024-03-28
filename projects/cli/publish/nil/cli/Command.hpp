@@ -18,9 +18,10 @@ namespace nil::cli
 
         virtual ~Command() noexcept = default;
 
-        Command(Command&&) = delete;
+        Command(Command&&) noexcept = delete;
+        Command& operator=(Command&&) noexcept = delete;
+
         Command(const Command&) = delete;
-        Command& operator=(Command&&) = delete;
         Command& operator=(const Command&) = delete;
 
         /**

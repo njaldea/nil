@@ -23,10 +23,11 @@ namespace nil::service::tcp
 
         ~Impl() override = default;
 
+        Impl(Impl&&) noexcept = delete;
+        Impl& operator=(Impl&&) noexcept = delete;
+
         Impl(const Impl&) = delete;
-        Impl(Impl&&) = delete;
         Impl& operator=(const Impl&) = delete;
-        Impl& operator=(Impl&&) = delete;
 
         void send(const std::string& id, std::vector<std::uint8_t> data)
         {

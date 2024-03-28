@@ -16,10 +16,11 @@ namespace nil::gate::edges
         Mutable() = default;
         ~Mutable() noexcept override = default;
 
-        Mutable(Mutable&&) = delete;
+        Mutable(Mutable&&) noexcept = delete;
+        Mutable& operator=(Mutable&&) noexcept = delete;
+
         Mutable(const Mutable&) = delete;
-        Mutable<T>& operator=(Mutable&&) = delete;
-        Mutable<T>& operator=(const Mutable&) = delete;
+        Mutable& operator=(const Mutable&) = delete;
 
         virtual void set_value(T new_data) = 0;
     };

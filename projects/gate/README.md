@@ -290,7 +290,7 @@ Calling run will execute the nodes in proper order executing the nodes based on 
 
 Before running all necessary nodes, it will also resolve all calls to `edges::Mutable::set_value` updating the values held by the edges.
 
-NOTE: first call to `Core::run()` will execute all the nodes. succeeding calls will only execute nodes that expects new data from their inputs.
+NOTE: First call to `Core::run()` will execute all the nodes. Succeeding calls will only execute nodes that expects new data from their inputs.
 
 ```cpp
 struct Node
@@ -705,3 +705,11 @@ These are the errors detected with similar error message:
  -  async_outputs is invalid
  -  core argument is invalid
  -  input `edges::Readable<T>*` is not compatible to the expected input edge of the node
+
+## TODO
+
+- allow parallelized execution of nodes
+- allow a way to disregard node state
+    - force execution
+- connect two edges together without creating a node
+    - this will allow easier feedback loop

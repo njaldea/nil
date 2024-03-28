@@ -1,8 +1,12 @@
 #pragma once
 
-#include "INode.hpp"
+#include "../INode.hpp"
 #include "Tasks.hpp"
 #include "traits/node.hpp"
+
+#ifdef NIL_GATE_CHECKS
+#include <cassert>
+#endif
 
 namespace nil::gate
 {
@@ -23,12 +27,14 @@ namespace nil::gate::detail
         template <typename... Args>
         Node(
             Tasks* init_tasks,
+            Core* init_core,
             const typename input_t::edges& init_inputs,
             typename async_output_t::tuple init_asyncs,
             T init_instance
         )
             : Node(
                   init_tasks,
+                  init_core,
                   init_inputs,
                   std::move(init_asyncs),
                   typename input_t::type(),
@@ -42,34 +48,31 @@ namespace nil::gate::detail
 
         ~Node() noexcept override = default;
 
-        Node(Node&&) = delete;
+        Node(Node&&) noexcept = delete;
+        Node& operator=(Node&&) noexcept = delete;
+
         Node(const Node&) = delete;
-        Node& operator=(Node&&) = delete;
         Node& operator=(const Node&) = delete;
 
-        void exec(const Core* core) override
+        void exec() override
         {
-            if (state == EState::Pending)
+            if constexpr (traits::callable<T>::tag == traits::EReturnType::Void)
             {
-                if constexpr (traits::callable<T>::tag == traits::EReturnType::Void)
+                call(typename input_t::make_index_sequence());
+            }
+            if constexpr (traits::callable<T>::tag == traits::EReturnType::Tuple)
+            {
+                forward_to_output(
+                    call(typename input_t::make_index_sequence()),
+                    typename sync_output_t::make_index_sequence()
+                );
+            }
+            if constexpr (traits::callable<T>::tag == traits::EReturnType::Mono)
+            {
+                auto result = call(typename input_t::make_index_sequence());
+                if constexpr (sync_output_t::size == 1)
                 {
-                    call(core, typename input_t::make_index_sequence());
-                    state = EState::Done;
-                }
-                else if constexpr (traits::callable<T>::tag == traits::EReturnType::Tuple)
-                {
-                    auto result = call(core, typename input_t::make_index_sequence());
-                    state = EState::Done;
-                    forward_to_output(result, typename sync_output_t::make_index_sequence());
-                }
-                else if constexpr (traits::callable<T>::tag == traits::EReturnType::Mono)
-                {
-                    auto result = call(core, typename input_t::make_index_sequence());
-                    state = EState::Done;
-                    if constexpr (sync_output_t::size == 1)
-                    {
-                        get<0>(sync_outputs).exec(std::move(result));
-                    }
+                    get<0>(sync_outputs).exec(std::move(result));
                 }
             }
         }
@@ -83,9 +86,13 @@ namespace nil::gate::detail
             }
         }
 
-        std::uint64_t depth() const override
+        void done() override
         {
-            return cached_depth;
+            if (state != EState::Done)
+            {
+                state = EState::Done;
+                done(typename sync_output_t::make_index_sequence());
+            }
         }
 
         typename output_t::edges output_edges()
@@ -96,6 +103,16 @@ namespace nil::gate::detail
             );
         }
 
+        bool is_pending() const override
+        {
+            return state == EState::Pending;
+        }
+
+        bool is_ready() const override
+        {
+            return this->are_inputs_ready(typename input_t::make_index_sequence());
+        }
+
     private:
         template <
             typename... I,
@@ -104,6 +121,7 @@ namespace nil::gate::detail
             std::size_t... a_indices>
         Node(
             [[maybe_unused]] Tasks* tasks,
+            Core* init_core,
             const typename input_t::edges& init_inputs,
             [[maybe_unused]] typename async_output_t::tuple init_asyncs,
             traits::types<I...> /* unused */,
@@ -113,12 +131,10 @@ namespace nil::gate::detail
             T init_instance
         )
             : instance(std::move(init_instance))
+            , core(init_core)
             , inputs(init_inputs)
         {
-            (..., initialize_input(get<i_indices>(inputs)));
-
-            (get<s_indices>(sync_outputs).set_depth(cached_depth), ...);
-            (get<a_indices>(async_outputs).set_depth(0u), ...);
+            (..., initialize_input(tasks, get<i_indices>(inputs)));
 
             (get<s_indices>(sync_outputs).attach_tasks(tasks), ...);
             (get<a_indices>(async_outputs).attach_tasks(tasks), ...);
@@ -127,18 +143,36 @@ namespace nil::gate::detail
         }
 
         template <std::size_t... s_indices>
+        void forward_to_output(
+            auto result,
+            std::index_sequence<s_indices...> /* unused */
+        )
+        {
+            (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
+        }
+
+        template <std::size_t... s_indices>
         void pend(std::index_sequence<s_indices...> /* unused */)
         {
             (get<s_indices>(sync_outputs).pend(), ...);
         }
 
+        template <std::size_t... s_indices>
+        void done(std::index_sequence<s_indices...> /* unused */)
+        {
+            (get<s_indices>(sync_outputs).done(), ...);
+        }
+
         template <std::size_t... i_indices>
-        auto call(const Core* core, std::index_sequence<i_indices...> /* unused */)
+        auto call(std::index_sequence<i_indices...> /* unused */)
         {
             if constexpr (traits::node<T>::has_async)
             {
                 if constexpr (traits::node<T>::has_core)
                 {
+#ifdef NIL_GATE_CHECKS
+                    assert(nullptr != core);
+#endif
                     return instance(
                         async_edges(typename async_output_t::make_index_sequence()),
                         *core,
@@ -157,15 +191,6 @@ namespace nil::gate::detail
             {
                 return instance(get<i_indices>(inputs).value()...);
             }
-        }
-
-        template <std::size_t... s_indices>
-        auto forward_to_output(
-            auto& result,
-            std::index_sequence<s_indices...> /* unused */
-        )
-        {
-            (get<s_indices>(sync_outputs).exec(std::move(get<s_indices>(result))), ...);
         }
 
         template <std::size_t... a_indices>
@@ -192,19 +217,29 @@ namespace nil::gate::detail
         }
 
         template <typename U>
-        void initialize_input(nil::gate::edges::Compatible<U>& edge)
+        void initialize_input(
+            [[maybe_unused]] detail::Tasks* tasks,
+            nil::gate::edges::Compatible<U>& edge
+        )
         {
             edge.attach_output(this);
-            cached_depth = std::max(cached_depth, edge.depth());
+#ifdef NIL_GATE_CHECKS
+            assert(edge.validate(tasks));
+#endif
+        }
+
+        template <std::size_t... i_indices>
+        bool are_inputs_ready(std::index_sequence<i_indices...> /* unused */) const
+        {
+            return (true && ... && !std::get<i_indices>(inputs).is_pending());
         }
 
         EState state = EState::Pending;
 
         T instance;
+        Core* core;
         typename input_t::edges inputs;
         typename sync_output_t::data_edges sync_outputs;
         typename async_output_t::data_edges async_outputs;
-
-        std::uint64_t cached_depth = 0u;
     };
 }

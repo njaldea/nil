@@ -34,9 +34,10 @@ namespace nil::service::ws
         );
         ~Connection() noexcept;
 
-        Connection(Connection&&) = delete;
+        Connection(Connection&&) noexcept = delete;
+        Connection& operator=(Connection&&) noexcept = delete;
+
         Connection(const Connection&) = delete;
-        Connection& operator=(Connection&&) = delete;
         Connection& operator=(const Connection&) = delete;
 
         void write(const std::uint8_t* data, std::uint64_t size);

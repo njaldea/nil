@@ -20,34 +20,34 @@ namespace nil::gate::api::uniform
         {
             return core.node(std::move(instance), std::move(async_initializers), inputs);
         }
-        else if constexpr (has_output && has_input && !has_async)
+        if constexpr (has_output && has_input && !has_async)
         {
             return core.node(std::move(instance), inputs);
         }
-        else if constexpr (has_output && !has_input && has_async)
+        if constexpr (has_output && !has_input && has_async)
         {
             return core.node(std::move(instance), std::move(async_initializers));
         }
-        else if constexpr (has_output && !has_input && !has_async)
+        if constexpr (has_output && !has_input && !has_async)
         {
             return core.node(std::move(instance));
         }
-        else if constexpr (!has_output && has_input && has_async)
+        if constexpr (!has_output && has_input && has_async)
         {
             core.node(std::move(instance), std::move(async_initializers), inputs);
             return std::tuple<>();
         }
-        else if constexpr (!has_output && has_input && !has_async)
+        if constexpr (!has_output && has_input && !has_async)
         {
             core.node(std::move(instance), inputs);
             return std::tuple<>();
         }
-        else if constexpr (!has_output && !has_input && has_async)
+        if constexpr (!has_output && !has_input && has_async)
         {
             core.node(std::move(instance), std::move(async_initializers));
             return std::tuple<>();
         }
-        else if constexpr (!has_output && !has_input && !has_async)
+        if constexpr (!has_output && !has_input && !has_async)
         {
             core.node(std::move(instance));
             return std::tuple<>();

@@ -8,6 +8,10 @@
 
 #include "detail/traits/node.hpp"
 
+#ifdef NIL_GATE_CHECKS
+#include <cassert>
+#endif
+
 namespace nil::gate::concepts
 {
     template <typename T>
@@ -43,14 +47,30 @@ namespace nil::gate
         struct Errors
         {
             using traits = nil::gate::detail::traits::node<T>;
+            Error arg_asyncs = Check<traits::arg_async::is_valid>();
+            Error arg_core = Check<traits::arg_core::is_valid>();
             Error inputs = Check<traits::inputs::is_valid>();
             Error sync_outputs = Check<traits::sync_outputs::is_valid>();
             Error async_outputs = Check<traits::async_outputs::is_valid>();
-            Error arg_asyncs = Check<traits::arg_async::is_valid>();
-            Error arg_core = Check<traits::arg_core::is_valid>();
         };
     }
 
+    //  TODO:
+    //      Figure out what is the best way to make this movable so that
+    //  users are not forced to use std::unique_ptr when returning
+    //  from method/functions.
+    //
+    //      The current approach is to edges and nodes a reference to the tasks
+    //  which is owned by Core. if Core is moved, tasks object is moved too.
+    //      Each node also has a reference to Core. if Core is moved, the pointer
+    //  held by the Node becomes invalidated and needs to be reset to the
+    //  new Core.
+    //
+    //      A possible approach is to simply have a context object that owns the
+    //  Tasks and a reference to Core. Core will not be copy-able (due to tasks's mutex)
+    //  but at least nodes/edges will not need to have more convoluted setup.
+    //
+    //
     class Core final
     {
         template <typename T>
@@ -64,9 +84,10 @@ namespace nil::gate
         Core() = default;
         ~Core() noexcept = default;
 
-        Core(Core&&) = default;
+        Core(Core&&) noexcept = delete;
+        Core& operator=(Core&&) noexcept = delete;
+
         Core(const Core&) = delete;
-        Core& operator=(Core&&) = default;
         Core& operator=(const Core&) = delete;
 
         /// starting from this point - node
@@ -101,6 +122,7 @@ namespace nil::gate
         {
             auto n = std::make_unique<detail::Node<T>>(
                 tasks.get(),
+                this,
                 input_edges,
                 asyncs_t<T>(),
                 std::move(instance)
@@ -114,6 +136,7 @@ namespace nil::gate
         {
             auto n = std::make_unique<detail::Node<T>>(
                 tasks.get(),
+                this,
                 inputs_t<T>(),
                 asyncs_t<T>(),
                 std::move(instance)
@@ -127,6 +150,7 @@ namespace nil::gate
         {
             auto n = std::make_unique<detail::Node<T>>(
                 tasks.get(),
+                this,
                 input_edges,
                 std::move(async_init),
                 std::move(instance)
@@ -140,6 +164,7 @@ namespace nil::gate
         {
             auto n = std::make_unique<detail::Node<T>>(
                 tasks.get(),
+                this,
                 inputs_t<T>(),
                 std::move(async_init),
                 std::move(instance)
@@ -151,24 +176,27 @@ namespace nil::gate
         /// starting from this point - edge
 
         template <typename T>
-        edges::Mutable<traits::edgify_t<std::decay_t<T>>>* edge(T value)
+        auto* edge(T value)
         {
-            auto e = std::make_unique<detail::edges::Data<traits::edgify_t<std::decay_t<T>>>>(
-                tasks.get(),
-                std::move(value)
-            );
+            using type = traits::edgify_t<std::decay_t<T>>;
+            auto e = std::make_unique<detail::edges::Data<type>>(tasks.get(), std::move(value));
             auto r = required_edges.emplace_back(std::move(e)).get();
-            return static_cast<edges::Mutable<traits::edgify_t<std::decay_t<T>>>*>(r);
+            return static_cast<edges::Mutable<type>*>(r);
         }
 
         void run() const
         {
 #ifdef NIL_GATE_CHECKS
-            if (!tasks)
-            {
-                return;
-            }
+            assert(nullptr != tasks);
 #endif
+            //  TODO:
+            //      Flushing should be debounced and be done only when no nodes are running
+            //      For parallel execution:
+            //          pending/ready and done should be in one strand
+            //          exec should not need any strand
+            //      For single thread:
+            //          is_ready is not necessary to be checked
+
             for (const auto& d : tasks->flush())
             {
                 d->call();
@@ -176,25 +204,23 @@ namespace nil::gate
 
             for (const auto& node : owned_nodes)
             {
-                node->exec(this);
+                if (node->is_pending() && node->is_ready())
+                {
+                    node->exec();
+                    node->done();
+                }
             }
         }
 
         template <typename... T>
         Batch<T...> batch(edges::Mutable<T>*... edges) const
         {
-#ifdef NIL_GATE_CHECKS
-            // [TODO] validate if the edges has the same tasks object
-#endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), {edges...});
         }
 
         template <typename... T>
         Batch<T...> batch(std::tuple<edges::Mutable<T>*...> edges) const
         {
-#ifdef NIL_GATE_CHECKS
-            // [TODO] validate if the edges has the same tasks object
-#endif
             return Batch<T...>(this, tasks.get(), commit_cb.get(), edges);
         }
 
@@ -211,7 +237,7 @@ namespace nil::gate
         {
             struct Callable: detail::ICallable<void(const Core*)>
             {
-                explicit Callable(CB&& init_cb)
+                explicit Callable(CB init_cb)
                     : cb(std::move(init_cb))
                 {
                 }
@@ -230,7 +256,7 @@ namespace nil::gate
     private:
         std::unique_ptr<detail::Tasks> tasks = std::make_unique<detail::Tasks>();
         std::unique_ptr<detail::ICallable<void(const Core*)>> commit_cb;
-        std::vector<std::unique_ptr<detail::INode>> owned_nodes;
+        std::vector<std::unique_ptr<INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
     };
 }

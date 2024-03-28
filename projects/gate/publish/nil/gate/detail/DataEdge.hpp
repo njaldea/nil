@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../INode.hpp"
 #include "../edges/Mutable.hpp"
-#include "INode.hpp"
 #include "Tasks.hpp"
 
 #include <optional>
@@ -22,26 +22,27 @@ namespace nil::gate::detail::edges
         // this is called when instantiated from Node
         Data()
             : nil::gate::edges::Mutable<T>()
+            , state(EState::Pending)
             , data(std::nullopt)
             , tasks(nullptr)
-            , depth_value(0u)
         {
         }
 
         // this is called when instantiated from Core
         explicit Data(nil::gate::detail::Tasks* init_tasks, T init_data)
             : nil::gate::edges::Mutable<T>()
+            , state(EState::Done)
             , data(std::make_optional<T>(std::move(init_data)))
             , tasks(init_tasks)
-            , depth_value(0u)
         {
         }
 
         ~Data() noexcept override = default;
 
-        Data(Data&&) = delete;
+        Data(Data&&) noexcept = delete;
+        Data& operator=(Data&&) noexcept = delete;
+
         Data(const Data&) = delete;
-        Data& operator=(Data&&) = delete;
         Data& operator=(const Data&) = delete;
 
         const T& value() const override
@@ -51,21 +52,13 @@ namespace nil::gate::detail::edges
 
         void set_value(T new_data) override
         {
-#ifdef NIL_GATE_CHECKS
-            if (!tasks)
-            {
-                return;
-            }
-#endif
             tasks->push(make_callable(
                 [this, new_data = std::move(new_data)]() mutable
                 {
-                    if (!data.has_value() || !(*data == new_data))
+                    if (exec(std::move(new_data)))
                     {
-                        if (exec(std::move(new_data)))
-                        {
-                            pend();
-                        }
+                        pend();
+                        done();
                     }
                 }
             ));
@@ -83,9 +76,21 @@ namespace nil::gate::detail::edges
 
         void pend()
         {
-            for (auto* out : this->outs)
+            if (state != EState::Pending)
             {
-                out->pend();
+                state = EState::Pending;
+                for (auto* out : this->outs)
+                {
+                    out->pend();
+                }
+            }
+        }
+
+        void done()
+        {
+            if (state != EState::Done)
+            {
+                state = EState::Done;
             }
         }
 
@@ -99,21 +104,27 @@ namespace nil::gate::detail::edges
             tasks = new_tasks;
         }
 
-        void set_depth(std::uint64_t value)
+        bool is_pending() const
         {
-            depth_value = value;
+            return state == EState::Pending;
         }
 
-        std::uint64_t depth() const
+        bool validate(nil::gate::detail::Tasks* reference_tasks) const
         {
-            return depth_value;
+            return tasks == reference_tasks;
         }
 
     private:
+        enum class EState
+        {
+            Done = 0b0001,
+            Pending = 0b0010
+        };
+
+        EState state;
         std::optional<T> data;
         nil::gate::detail::Tasks* tasks;
-        std::uint64_t depth_value;
-        std::vector<detail::INode*> outs;
+        std::vector<INode*> outs;
     };
 
     template <typename U>
