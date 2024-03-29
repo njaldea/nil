@@ -1,11 +1,14 @@
 #pragma once
 
 #include "Batch.hpp"
-#include "detail/Node.hpp"
-#include "edges/Mutable.hpp"
+#include "Diffs.hpp"
+#include "Runner.hpp"
 #include "errors.hpp"
+
+#include "edges/Mutable.hpp"
 #include "traits/edgify.hpp"
 
+#include "detail/Node.hpp"
 #include "detail/traits/node.hpp"
 
 #ifdef NIL_GATE_CHECKS
@@ -60,14 +63,14 @@ namespace nil::gate
     //  users are not forced to use std::unique_ptr when returning
     //  from method/functions.
     //
-    //      The current approach is to edges and nodes a reference to the tasks
-    //  which is owned by Core. if Core is moved, tasks object is moved too.
+    //      The current approach is to edges and nodes a reference to the diffs
+    //  which is owned by Core. if Core is moved, diffs object is moved too.
     //      Each node also has a reference to Core. if Core is moved, the pointer
     //  held by the Node becomes invalidated and needs to be reset to the
     //  new Core.
     //
     //      A possible approach is to simply have a context object that owns the
-    //  Tasks and a reference to Core. Core will not be copy-able (due to tasks's mutex)
+    //  Diffs and a reference to Core. Core will not be copy-able (due to diffs's mutex)
     //  but at least nodes/edges will not need to have more convoluted setup.
     //
     //
@@ -121,7 +124,7 @@ namespace nil::gate
         outputs_t<T> node(T instance, inputs_t<T> input_edges)
         {
             auto n = std::make_unique<detail::Node<T>>(
-                tasks.get(),
+                diffs.get(),
                 this,
                 input_edges,
                 asyncs_t<T>(),
@@ -135,7 +138,7 @@ namespace nil::gate
         outputs_t<T> node(T instance)
         {
             auto n = std::make_unique<detail::Node<T>>(
-                tasks.get(),
+                diffs.get(),
                 this,
                 inputs_t<T>(),
                 asyncs_t<T>(),
@@ -149,7 +152,7 @@ namespace nil::gate
         outputs_t<T> node(T instance, asyncs_t<T> async_init, inputs_t<T> input_edges)
         {
             auto n = std::make_unique<detail::Node<T>>(
-                tasks.get(),
+                diffs.get(),
                 this,
                 input_edges,
                 std::move(async_init),
@@ -163,7 +166,7 @@ namespace nil::gate
         outputs_t<T> node(T instance, asyncs_t<T> async_init)
         {
             auto n = std::make_unique<detail::Node<T>>(
-                tasks.get(),
+                diffs.get(),
                 this,
                 inputs_t<T>(),
                 std::move(async_init),
@@ -179,49 +182,21 @@ namespace nil::gate
         auto* edge(T value)
         {
             using type = traits::edgify_t<std::decay_t<T>>;
-            auto e = std::make_unique<detail::edges::Data<type>>(tasks.get(), std::move(value));
+            auto e = std::make_unique<detail::edges::Data<type>>(diffs.get(), std::move(value));
             auto r = required_edges.emplace_back(std::move(e)).get();
             return static_cast<edges::Mutable<type>*>(r);
-        }
-
-        void run() const
-        {
-#ifdef NIL_GATE_CHECKS
-            assert(nullptr != tasks);
-#endif
-            //  TODO:
-            //      Flushing should be debounced and be done only when no nodes are running
-            //      For parallel execution:
-            //          pending/ready and done should be in one strand
-            //          exec should not need any strand
-            //      For single thread:
-            //          is_ready is not necessary to be checked
-
-            for (const auto& d : tasks->flush())
-            {
-                d->call();
-            }
-
-            for (const auto& node : owned_nodes)
-            {
-                if (node->is_pending() && node->is_ready())
-                {
-                    node->exec();
-                    node->done();
-                }
-            }
         }
 
         template <typename... T>
         Batch<T...> batch(edges::Mutable<T>*... edges) const
         {
-            return Batch<T...>(this, tasks.get(), commit_cb.get(), {edges...});
+            return Batch<T...>(this, diffs.get(), commit_cb.get(), {edges...});
         }
 
         template <typename... T>
         Batch<T...> batch(std::tuple<edges::Mutable<T>*...> edges) const
         {
-            return Batch<T...>(this, tasks.get(), commit_cb.get(), edges);
+            return Batch<T...>(this, diffs.get(), commit_cb.get(), edges);
         }
 
         void commit() const
@@ -235,7 +210,7 @@ namespace nil::gate
         template <typename CB>
         void set_commit(CB cb) noexcept
         {
-            struct Callable: detail::ICallable<void(const Core*)>
+            struct Callable: ICallable<void(const Core*)>
             {
                 explicit Callable(CB init_cb)
                     : cb(std::move(init_cb))
@@ -253,10 +228,25 @@ namespace nil::gate
             commit_cb = std::make_unique<Callable>(std::move(cb));
         }
 
+        void run() const
+        {
+#ifdef NIL_GATE_CHECKS
+            assert(nullptr != diffs);
+#endif
+            runner->flush(diffs->flush());
+            runner->run(owned_nodes);
+        }
+
+        void set_runner(std::unique_ptr<IRunner> new_runner) noexcept
+        {
+            runner = std::move(new_runner);
+        }
+
     private:
-        std::unique_ptr<detail::Tasks> tasks = std::make_unique<detail::Tasks>();
-        std::unique_ptr<detail::ICallable<void(const Core*)>> commit_cb;
+        std::unique_ptr<Diffs> diffs = std::make_unique<Diffs>();
+        std::unique_ptr<ICallable<void(const Core*)>> commit_cb;
         std::vector<std::unique_ptr<INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
+        std::unique_ptr<IRunner> runner = std::make_unique<Runner>();
     };
 }

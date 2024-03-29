@@ -1,7 +1,7 @@
 #pragma once
 
+#include "../Diffs.hpp"
 #include "../INode.hpp"
-#include "Tasks.hpp"
 #include "traits/node.hpp"
 
 #ifdef NIL_GATE_CHECKS
@@ -26,14 +26,14 @@ namespace nil::gate::detail
     public:
         template <typename... Args>
         Node(
-            Tasks* init_tasks,
+            Diffs* init_diffs,
             Core* init_core,
             const typename input_t::edges& init_inputs,
             typename async_output_t::tuple init_asyncs,
             T init_instance
         )
             : Node(
-                  init_tasks,
+                  init_diffs,
                   init_core,
                   init_inputs,
                   std::move(init_asyncs),
@@ -120,7 +120,7 @@ namespace nil::gate::detail
             std::size_t... s_indices,
             std::size_t... a_indices>
         Node(
-            [[maybe_unused]] Tasks* tasks,
+            [[maybe_unused]] Diffs* diffs,
             Core* init_core,
             const typename input_t::edges& init_inputs,
             [[maybe_unused]] typename async_output_t::tuple init_asyncs,
@@ -134,10 +134,10 @@ namespace nil::gate::detail
             , core(init_core)
             , inputs(init_inputs)
         {
-            (..., initialize_input(tasks, get<i_indices>(inputs)));
+            (..., initialize_input(diffs, get<i_indices>(inputs)));
 
-            (get<s_indices>(sync_outputs).attach_tasks(tasks), ...);
-            (get<a_indices>(async_outputs).attach_tasks(tasks), ...);
+            (get<s_indices>(sync_outputs).attach(diffs), ...);
+            (get<a_indices>(async_outputs).attach(diffs), ...);
 
             (get<a_indices>(async_outputs).exec(std::move(get<a_indices>(init_asyncs))), ...);
         }
@@ -217,14 +217,11 @@ namespace nil::gate::detail
         }
 
         template <typename U>
-        void initialize_input(
-            [[maybe_unused]] detail::Tasks* tasks,
-            nil::gate::edges::Compatible<U>& edge
-        )
+        void initialize_input([[maybe_unused]] Diffs* diffs, nil::gate::edges::Compatible<U>& edge)
         {
-            edge.attach_output(this);
+            edge.attach(this);
 #ifdef NIL_GATE_CHECKS
-            assert(edge.validate(tasks));
+            assert(edge.validate(diffs));
 #endif
         }
 

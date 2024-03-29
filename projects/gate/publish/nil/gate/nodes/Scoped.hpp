@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../detail/ICallable.hpp"
+#include "../ICallable.hpp"
+
 #include "../detail/traits/callable.hpp"
 
 namespace nil::gate::nodes
@@ -13,8 +14,8 @@ namespace nil::gate::nodes
     {
         template <typename Pre, typename Post, typename... Args>
         Scoped(Pre init_pre, Post init_post, Args&&... args)
-            : pre(detail::make_callable(std::move(init_pre)))
-            , post(detail::make_callable(std::move(init_post)))
+            : pre(make_callable(std::move(init_pre)))
+            , post(make_callable(std::move(init_post)))
             , node{std::forward<Args>(args)...}
         {
         }
@@ -31,7 +32,7 @@ namespace nil::gate::nodes
         {
             struct OnDestroy final
             {
-                explicit OnDestroy(detail::ICallable<void()>* init_post)
+                explicit OnDestroy(ICallable<void()>* init_post)
                     : post(init_post)
                 {
                 }
@@ -49,7 +50,7 @@ namespace nil::gate::nodes
                 OnDestroy(const OnDestroy&) = delete;
                 OnDestroy& operator=(const OnDestroy&) = delete;
 
-                detail::ICallable<void()>* post;
+                ICallable<void()>* post;
             };
 
             pre->call();
@@ -58,8 +59,8 @@ namespace nil::gate::nodes
             return node.operator()(args...);
         }
 
-        std::unique_ptr<detail::ICallable<void()>> pre;
-        std::unique_ptr<detail::ICallable<void()>> post;
+        std::unique_ptr<ICallable<void()>> pre;
+        std::unique_ptr<ICallable<void()>> post;
         T node;
     };
 }

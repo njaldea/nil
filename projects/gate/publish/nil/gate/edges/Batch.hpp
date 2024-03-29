@@ -1,7 +1,8 @@
 #pragma once
 
+#include "../ICallable.hpp"
+
 #include "../detail/DataEdge.hpp"
-#include "../detail/ICallable.hpp"
 
 #ifdef NIL_GATE_CHECKS
 #include <cassert>
@@ -34,9 +35,9 @@ namespace nil::gate::edges
         {
 #ifdef NIL_GATE_CHECKS
             assert(nullptr != edge);
-            assert(nullptr != tasks);
+            assert(nullptr != diffs);
 #endif
-            tasks->push_back(detail::make_callable(
+            diffs->push_back(make_callable(
                 [e = edge, d = std::move(new_data)]() mutable
                 {
                     if (e->exec(d))
@@ -49,6 +50,6 @@ namespace nil::gate::edges
         }
 
         detail::edges::Data<T>* edge = nullptr;
-        std::vector<std::unique_ptr<detail::ICallable<void()>>>* tasks = nullptr;
+        std::vector<std::unique_ptr<ICallable<void()>>>* diffs = nullptr;
     };
 }

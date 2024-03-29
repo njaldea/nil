@@ -1,8 +1,8 @@
 #pragma once
 
+#include "../Diffs.hpp"
 #include "../INode.hpp"
 #include "../edges/Mutable.hpp"
-#include "Tasks.hpp"
 
 #include <optional>
 #include <vector>
@@ -24,16 +24,16 @@ namespace nil::gate::detail::edges
             : nil::gate::edges::Mutable<T>()
             , state(EState::Pending)
             , data(std::nullopt)
-            , tasks(nullptr)
+            , diffs(nullptr)
         {
         }
 
         // this is called when instantiated from Core
-        explicit Data(nil::gate::detail::Tasks* init_tasks, T init_data)
+        explicit Data(nil::gate::Diffs* init_diffs, T init_data)
             : nil::gate::edges::Mutable<T>()
             , state(EState::Done)
             , data(std::make_optional<T>(std::move(init_data)))
-            , tasks(init_tasks)
+            , diffs(init_diffs)
         {
         }
 
@@ -52,7 +52,7 @@ namespace nil::gate::detail::edges
 
         void set_value(T new_data) override
         {
-            tasks->push(make_callable(
+            diffs->push(make_callable(
                 [this, new_data = std::move(new_data)]() mutable
                 {
                     if (exec(std::move(new_data)))
@@ -94,14 +94,14 @@ namespace nil::gate::detail::edges
             }
         }
 
-        void attach_output(INode* node)
+        void attach(INode* node)
         {
             outs.push_back(node);
         }
 
-        void attach_tasks(Tasks* new_tasks)
+        void attach(Diffs* new_diffs)
         {
-            tasks = new_tasks;
+            diffs = new_diffs;
         }
 
         bool is_pending() const
@@ -109,9 +109,9 @@ namespace nil::gate::detail::edges
             return state == EState::Pending;
         }
 
-        bool validate(nil::gate::detail::Tasks* reference_tasks) const
+        bool validate(nil::gate::Diffs* reference_diffs) const
         {
-            return tasks == reference_tasks;
+            return diffs == reference_diffs;
         }
 
     private:
@@ -123,7 +123,7 @@ namespace nil::gate::detail::edges
 
         EState state;
         std::optional<T> data;
-        nil::gate::detail::Tasks* tasks;
+        nil::gate::Diffs* diffs;
         std::vector<INode*> outs;
     };
 

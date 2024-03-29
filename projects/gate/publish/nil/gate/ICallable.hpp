@@ -2,7 +2,7 @@
 
 #include <memory>
 
-namespace nil::gate::detail
+namespace nil::gate
 {
     template <typename CB>
     struct ICallable;
@@ -33,9 +33,11 @@ namespace nil::gate::detail
             }
 
             ~Callable() noexcept override = default;
+
             Callable(Callable&&) noexcept = delete;
-            Callable(const Callable&) = delete;
             Callable& operator=(Callable&&) noexcept = delete;
+
+            Callable(const Callable&) = delete;
             Callable& operator=(const Callable&) = delete;
 
             void call() override

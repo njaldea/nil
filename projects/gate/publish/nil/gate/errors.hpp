@@ -9,12 +9,11 @@ namespace nil::gate::errors
 
     struct Error
     {
-        Error(Check<false> tag) = delete;
+        Error(Check<false> /* tag */) = delete;
 
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
-        Error(Check<true> tag)
+        Error(Check<true> /* tag */)
         {
-            (void)tag;
         }
     };
 }

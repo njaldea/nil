@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Diffs.hpp"
+#include "ICallable.hpp"
+
 #include "detail/DataEdge.hpp"
-#include "detail/ICallable.hpp"
-#include "detail/Tasks.hpp"
 #include "edges/Batch.hpp"
 
 #include <tuple>
@@ -21,13 +22,13 @@ namespace nil::gate
     public:
         Batch(
             const Core* init_core,
-            detail::Tasks* init_tasks,
-            detail::ICallable<void(const Core*)>* init_commit,
+            Diffs* init_diffs,
+            ICallable<void(const Core*)>* init_commit,
             const std::tuple<edges::Mutable<T>*...>& init_edges
         )
             : Batch(
                   init_core,
-                  init_tasks,
+                  init_diffs,
                   init_commit,
                   init_edges,
                   std::make_index_sequence<sizeof...(T)>()
@@ -38,9 +39,9 @@ namespace nil::gate
         ~Batch() noexcept
         {
 #ifdef NIL_GATE_CHECKS
-            assert(nullptr != tasks);
+            assert(nullptr != diffs);
 #endif
-            tasks->push_batch(std::move(batch_tasks));
+            diffs->push_batch(std::move(batch_diffs));
             if (nullptr != commit)
             {
                 commit->call(core);
@@ -63,13 +64,13 @@ namespace nil::gate
         template <std::size_t... I>
         Batch(
             const Core* init_core,
-            detail::Tasks* init_tasks,
-            detail::ICallable<void(const Core*)>* init_commit,
+            Diffs* init_diffs,
+            ICallable<void(const Core*)>* init_commit,
             const std::tuple<edges::Mutable<T>*...>& init_edges,
             std::index_sequence<I...> /* unused */
         )
             : core(init_core)
-            , tasks(init_tasks)
+            , diffs(init_diffs)
             , commit(init_commit)
             , edges()
         {
@@ -80,17 +81,17 @@ namespace nil::gate
         void initialize_edge(edges::Batch<U>& e, edges::Mutable<U>* data_edge)
         {
             e.edge = static_cast<detail::edges::Data<U>*>(data_edge);
-            e.tasks = &batch_tasks;
+            e.diffs = &batch_diffs;
 
 #ifdef NIL_GATE_CHECKS
-            assert(e.edge->validate(tasks));
+            assert(e.edge->validate(diffs));
 #endif
         }
 
-        std::vector<std::unique_ptr<detail::ICallable<void()>>> batch_tasks;
+        std::vector<std::unique_ptr<ICallable<void()>>> batch_diffs;
         const Core* core = nullptr;
-        detail::Tasks* tasks = nullptr;
-        detail::ICallable<void(const Core*)>* commit = nullptr;
+        Diffs* diffs = nullptr;
+        ICallable<void(const Core*)>* commit = nullptr;
         std::tuple<edges::Batch<T>...> edges;
     };
 

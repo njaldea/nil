@@ -49,17 +49,17 @@ namespace nil::gate::edges
         // NOLINTNEXTLINE(hicpp-explicit-conversions)
         Compatible(edges::ReadOnly<U>* init_edge)
             : edge(init_edge)
-            , attach_output_impl( //
+            , attach_impl( //
                   +[](IEdge* e, INode* node)
-                  { static_cast<detail::edges::Data<U>*>(e)->attach_output(node); }
+                  { static_cast<detail::edges::Data<U>*>(e)->attach(node); }
+              )
+            , validate_impl( //
+                  +[](IEdge* e, Diffs* diffs) -> bool
+                  { return static_cast<detail::edges::Data<U>*>(e)->validate(diffs); }
               )
             , is_pending_impl( //
                   +[](IEdge* e) -> bool
                   { return static_cast<detail::edges::Data<U>*>(e)->is_pending(); }
-              )
-            , validate_impl( //
-                  +[](IEdge* e, detail::Tasks* tasks) -> bool
-                  { return static_cast<detail::edges::Data<U>*>(e)->validate(tasks); }
               )
             , value_impl( //
                   +[](IEdge* e) -> const T&
@@ -85,9 +85,9 @@ namespace nil::gate::edges
             return value_impl(edge);
         }
 
-        void attach_output(INode* node)
+        void attach(INode* node)
         {
-            return attach_output_impl(edge, node);
+            return attach_impl(edge, node);
         }
 
         bool is_pending() const
@@ -95,16 +95,16 @@ namespace nil::gate::edges
             return is_pending_impl(edge);
         }
 
-        bool validate(detail::Tasks* tasks) const
+        bool validate(Diffs* diffs) const
         {
-            return validate_impl(edge, tasks);
+            return validate_impl(edge, diffs);
         }
 
     private:
         nil::gate::IEdge* edge = nullptr;
-        void (*attach_output_impl)(IEdge*, INode*);
+        void (*attach_impl)(IEdge*, INode*);
+        bool (*validate_impl)(IEdge*, Diffs* diffs);
         bool (*is_pending_impl)(IEdge*);
-        bool (*validate_impl)(IEdge*, detail::Tasks* tasks);
         const T& (*value_impl)(IEdge*);
     };
 }

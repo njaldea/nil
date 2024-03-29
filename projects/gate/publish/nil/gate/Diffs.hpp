@@ -6,43 +6,43 @@
 
 #include "ICallable.hpp"
 
-namespace nil::gate::detail
+namespace nil::gate
 {
-    class Tasks final
+    class Diffs final
     {
     public:
-        Tasks() = default;
-        ~Tasks() noexcept = default;
+        Diffs() = default;
+        ~Diffs() noexcept = default;
 
-        Tasks(Tasks&&) noexcept = delete;
-        Tasks& operator=(Tasks&&) noexcept = delete;
+        Diffs(Diffs&&) noexcept = delete;
+        Diffs& operator=(Diffs&&) noexcept = delete;
 
-        Tasks(const Tasks&) = delete;
-        Tasks& operator=(const Tasks&) = delete;
+        Diffs(const Diffs&) = delete;
+        Diffs& operator=(const Diffs&) = delete;
 
         void push_batch(std::vector<std::unique_ptr<ICallable<void()>>> cbs)
         {
             std::lock_guard g(mutex);
             for (auto&& cb : cbs)
             {
-                tasks.push_back(std::move(cb));
+                diffs.push_back(std::move(cb));
             }
         }
 
         void push(std::unique_ptr<ICallable<void()>> cb)
         {
             std::lock_guard g(mutex);
-            tasks.push_back(std::move(cb));
+            diffs.push_back(std::move(cb));
         }
 
         std::vector<std::unique_ptr<ICallable<void()>>> flush()
         {
             std::lock_guard g(mutex);
-            return std::exchange(tasks, {});
+            return std::exchange(diffs, {});
         }
 
     private:
-        std::vector<std::unique_ptr<ICallable<void()>>> tasks;
+        std::vector<std::unique_ptr<ICallable<void()>>> diffs;
         std::mutex mutex;
     };
 }
