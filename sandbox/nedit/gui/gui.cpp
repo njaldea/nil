@@ -383,6 +383,7 @@ int GUI::run(const nil::cli::Options& options) const
     );
 
     std::string path = options.param("file");
+    bool loaded = false;
 
     auto* context = ax::NodeEditor::CreateEditor();
     while (glfwWindowShouldClose(window) == 0)
@@ -413,7 +414,7 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::InputText("###file", &path);
         ImGui::PopItemWidth();
         ImGui::BeginDisabled(!app.allow_editing);
-        if (ImGui::Button("load") && std::filesystem::exists(path))
+        if ((!loaded || ImGui::Button("load")) && std::filesystem::exists(path))
         {
             try
             {
@@ -421,6 +422,7 @@ int GUI::run(const nil::cli::Options& options) const
                 nil::nedit::proto::State tmp;
                 tmp.ParseFromIstream(&file);
                 app.changed = true;
+                loaded = true;
                 service.publish(nil::nedit::proto::message_type::State, tmp);
             }
             catch (const std::exception& e)

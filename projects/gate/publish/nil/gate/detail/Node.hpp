@@ -15,7 +15,7 @@ namespace nil::gate
 
 namespace nil::gate::detail
 {
-    template <typename T, typename = void>
+    template <typename T>
     class Node final: public INode
     {
         using input_t = typename detail::traits::node<T>::inputs;

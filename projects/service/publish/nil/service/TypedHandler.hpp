@@ -1,7 +1,7 @@
 #pragma once
 
+#include "IService.hpp"
 #include "codec.hpp"
-#include "nil/service/IService.hpp"
 
 #include <string>
 #include <unordered_map>

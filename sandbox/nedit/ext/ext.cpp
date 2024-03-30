@@ -154,7 +154,7 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
     ext::GraphState state;
     state.core = std::make_unique<nil::gate::Core>();
-    state.core->set_runner(std::make_unique<Runner>(20));
+    state.core->set_runner(std::make_unique<nil::gate::runners::Asio>(20));
     state.core->set_commit( //
         [&executor, is_paused = state.paused](auto& core)
         {

@@ -23,6 +23,7 @@ set(
         publish/nil/gate/bias/edgify.hpp
         publish/nil/gate/bias/is_edge_type_valid.hpp
         publish/nil/gate/bias/nil.hpp
+        publish/nil/gate/runners/immediate.hpp
         publish/nil/gate/traits/compatibility.hpp
         publish/nil/gate/traits/edgify.hpp
         publish/nil/gate/traits/is_edge_type_valid.hpp

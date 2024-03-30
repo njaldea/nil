@@ -23,7 +23,6 @@ set(
         ext/ext.cpp
         ext/app/install.cpp
         ext/app/Control.cpp
-        ext/app/Runner.cpp
         gui/gui.cpp
         gui/app/App.cpp
         gui/app/Link.cpp
@@ -41,7 +40,6 @@ set(
         ext/app/install.hpp
         ext/app/App.hpp
         ext/app/Control.hpp
-        ext/app/Runner.hpp
         gui/gui.hpp
         gui/app/App.hpp
         gui/app/Link.hpp

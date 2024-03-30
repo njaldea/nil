@@ -1,8 +1,6 @@
 #pragma once
 
 #include "Control.hpp"
-#include "nil/gate/edges/Compatible.hpp"
-#include "nil/gate/edges/ReadOnly.hpp"
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>

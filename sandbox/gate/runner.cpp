@@ -1,17 +1,14 @@
-#include "nil/gate/runners/asio.hpp"
-#include "nil/gate/types.hpp"
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
+#include <nil/gate/runners/boost_asio.hpp>
+#include <nil/gate/types.hpp>
 
 #include <nil/gate/bias/nil.hpp>
 
 #include <boost/asio/executor_work_guard.hpp>
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/strand.hpp>
 
+#include <format>
 #include <iostream>
-#include <set>
-#include <sstream>
 #include <thread>
 
 int main()
@@ -23,28 +20,21 @@ int main()
     auto [e2_i] = core.node(
         [](int v)
         {
-            std::cout << "Main: " << v << std::endl;
+            std::cout << std::format("Main: {}\n", v) << std::flush;
             return v + 10;
         },
         {e1_i}
     );
 
     core.node(
-        [](int b1, int b2)
-        {
-            std::ostringstream ss;
-            ss << "First: " << b1 << ":" << b2 << '\n';
-            std::cout << ss.str() << std::flush;
-        },
+        [](int b1, int b2) { std::cout << std::format("First: {} : {}\n", b1, b2) << std::flush; },
         {e1_i, e2_i}
     );
 
     auto [r] = core.node(
         [](nil::gate::async_outputs<int> a, const nil::gate::Core& c, int b1, int b2)
         {
-            std::ostringstream ss;
-            ss << "Second: " << b1 << ":" << b2 << '\n';
-            std::cout << ss.str() << std::flush;
+            std::cout << std::format("Second: {} : {}\n", b1, b2) << std::flush;
             if (b1 % 2 == 0)
             {
                 auto [aa] = c.batch(a);
