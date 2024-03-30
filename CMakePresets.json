@@ -12,10 +12,14 @@
             "binaryDir": "${sourceDir}/.build",
             "environment": {
                 "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-                "CMAKE_BUILD_PARALLEL_LEVEL": "8"
+                "CMAKE_BUILD_PARALLEL_LEVEL": "8",
+                "VCPKG_BINARY_SOURCES": "default"
             },
             "cacheVariables": {
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/.build/out"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/.build/out",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/triplets",
+                "VCPKG_TARGET_TRIPLET": "nil-libcxx",
+                "VCPKG_HOST_TRIPLET": "nil-libcxx"
             },
             "generator": "Ninja"
         },

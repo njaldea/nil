@@ -1,10 +1,10 @@
 #pragma once
 
-#include "IRunner.hpp"
+#include "../IRunner.hpp"
 
-namespace nil::gate
+namespace nil::gate::runners
 {
-    class Runner final: public IRunner
+    class Immediate final: public IRunner
     {
     public:
         void flush(std::vector<std::unique_ptr<ICallable<void()>>> diffs) override

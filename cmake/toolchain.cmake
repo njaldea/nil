@@ -37,5 +37,13 @@ elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    add_link_options("-fuse-ld=lld-18")
+    add_link_options(-fuse-ld=lld-18)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
+
+#   TODO:
+#    -  repo is currently setup using clang 18
+#    -  ubuntu 22 default gcc (libstdc++) is at version 11
+#    -  only one sandbox is requiring libc++ (due to stl <format>)
+#    -  for all libraries exported by this repo, libc++ should not be necessary
+#    -  a custom triplet for vcpkg is created for this purpose

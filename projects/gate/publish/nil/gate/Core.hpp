@@ -2,8 +2,8 @@
 
 #include "Batch.hpp"
 #include "Diffs.hpp"
-#include "Runner.hpp"
 #include "errors.hpp"
+#include "runners/immediate.hpp"
 
 #include "edges/Mutable.hpp"
 #include "traits/edgify.hpp"
@@ -247,6 +247,6 @@ namespace nil::gate
         std::unique_ptr<ICallable<void(const Core*)>> commit_cb;
         std::vector<std::unique_ptr<INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
-        std::unique_ptr<IRunner> runner = std::make_unique<Runner>();
+        std::unique_ptr<IRunner> runner = std::make_unique<runners::Immediate>();
     };
 }

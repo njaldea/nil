@@ -1,9 +1,11 @@
 #include "ext.hpp"
-#include "../codec.hpp" // IWYU pragma: keep
 #include "app/install.hpp"
 #include "app/sort_nodes.hpp"
 
+#include "../codec.hpp" // IWYU pragma: keep
+
 #include <nil/dev.hpp>
+#include <nil/gate/runners/boost_asio.hpp>
 #include <nil/service/TypedHandler.hpp>
 #include <nil/service/tcp/Server.hpp>
 #include <nil/utils/traits/identity.hpp>
@@ -17,6 +19,7 @@
 
 #include <array>
 #include <iostream>
+#include <memory>
 #include <thread>
 
 nil::cli::OptionInfo EXT::options() const
@@ -151,6 +154,7 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
 {
     ext::GraphState state;
     state.core = std::make_unique<nil::gate::Core>();
+    state.core->set_runner(std::make_unique<Runner>(20));
     state.core->set_commit( //
         [&executor, is_paused = state.paused](auto& core)
         {
@@ -322,7 +326,8 @@ int EXT::run(const nil::cli::Options& options) const
                             }
                             else
                             {
-                                std::cout << "incomplete input... not supported" << std::endl;
+                                std::cout << "incomplete input... not supported\n" << std::flush;
+                                service.send(id, proto::message_type::State, info);
                                 return;
                             }
                         }

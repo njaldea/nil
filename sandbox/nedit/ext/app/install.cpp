@@ -2,6 +2,7 @@
 
 #include "Control.hpp"
 
+#include <format>
 #include <iostream>
 
 namespace ext
@@ -11,7 +12,7 @@ namespace ext
     {
         std::tuple<T> operator()(const T& value) const
         {
-            std::cout << "Input[" << name << "]: " << '<' << value << '>' << std::endl;
+            std::cout << std::format("Input[{}]: <{}>\n", name, value) << std::flush;
             return {value};
         }
 
@@ -22,7 +23,7 @@ namespace ext
     {
         std::tuple<int> operator()(int l, int r) const
         {
-            std::cout << l << " + " << r << std::endl;
+            std::cout << std::format("Add: {} + {} = {}\n", l, r, l + r) << std::flush;
             return {l + r};
         }
     };
@@ -31,7 +32,7 @@ namespace ext
     {
         std::tuple<int> operator()(int l, int r) const
         {
-            std::cout << l << " * " << r << std::endl;
+            std::cout << std::format("Mul: {} * {} = {}\n", l, r, l * r) << std::flush;
             return {l * r};
         }
     };
@@ -40,7 +41,7 @@ namespace ext
     {
         std::tuple<int> operator()(bool l, int r) const
         {
-            std::cout << l << " ! " << r << std::endl;
+            std::cout << std::format("Inv: {} => {}\n", l ? 'T' : 'F', l ? -r : r) << std::flush;
             return {l ? -r : r};
         }
     };
@@ -50,7 +51,7 @@ namespace ext
     {
         void operator()(const T& v) const
         {
-            std::cout << "Consume: " << v << std::endl;
+            std::cout << std::format("Consume: {}\n", v) << std::flush;
         }
     };
 

@@ -508,7 +508,7 @@ namespace ext
                     auto e = graph_state.core->edge(T());
                     graph_state         //
                         .internal_edges //
-                        .emplace(id, ext::GraphState::RelaxedEdge{e});
+                        .emplace(s_ids[0], ext::GraphState::RelaxedEdge{e});
                     auto factory = detail::api::factory(
                         Node<Delay, MinMax<float>>{
                             "delay",

@@ -8,6 +8,9 @@
 #include <iostream>
 #include <thread>
 
+// hardcoded assuming that the binary is ran inside `.build` folder
+constexpr auto default_file = "../sandbox/nedit/state.dump";
+
 class InOne final: public nil::cli::Command
 {
 public:
@@ -15,7 +18,8 @@ public:
     {
         return nil::cli::Builder()
             .flag("help", {.skey = 'h', .msg = "this help"})
-            // .number("port", {.skey = 'p', .msg = "port", .fallback = 1101})
+            .number("port", {.skey = 'p', .msg = "use port", .fallback = 1101})
+            .param("file", {.skey = 'f', .msg = "file to load", .fallback = default_file})
             .build();
     }
 
@@ -26,15 +30,18 @@ public:
             options.help(std::cout);
             return 0;
         }
-        const auto args = std::array<const char*, 1>({"app_name"});
+        const auto port = std::to_string(options.number("port"));
+        const auto file = options.param("file");
         std::thread ext(
             [&]()
             {
+                const std::array args = {"app_name", "-p", port.c_str()};
                 auto root = nil::cli::Node::root<EXT>();
                 root.run(args.size(), args.data());
             }
         );
 
+        const std::array args = {"app_name", "-p", port.c_str(), "-f", file.c_str()};
         auto root = nil::cli::Node::root<GUI>();
         root.run(args.size(), args.data());
         ext.join();

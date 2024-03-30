@@ -34,6 +34,7 @@ nil::cli::OptionInfo GUI::options() const
     return nil::cli::Builder()
         .flag("help", {.skey = 'h', .msg = "this help"})
         .number("port", {.skey = 'p', .msg = "port", .fallback = 1101})
+        .param("file", {.skey = 'f', .msg = "load file on boot", .fallback = ""})
         .build();
 }
 
@@ -381,7 +382,7 @@ int GUI::run(const nil::cli::Options& options) const
         }
     );
 
-    std::string path = (std::filesystem::current_path() / "state.dump").string();
+    std::string path = options.param("file");
 
     auto* context = ax::NodeEditor::CreateEditor();
     while (glfwWindowShouldClose(window) == 0)
