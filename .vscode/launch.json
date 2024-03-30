@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LLDB launch",
+            "type": "lldb",
+            "program": "${workspaceFolder}/.build/bin/${input:target}",
+            "cwd": "${workspaceFolder}/.build",
+            "args": ["${input:args}"],
+            "request": "launch"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "target",
+            "description": "description target",
+            "type": "pickString",
+            "options": [
+                "sandbox_cli",
+                "sandbox_gate_async",
+                "sandbox_gate_basic",
+                "sandbox_gate_runner",
+                "sandbox_nedit",
+                "sandbox_pulse",
+                "sandbox_service"
+            ]
+        },
+        {
+            "id": "args",
+            "description": "description args",
+            "type": "promptString",
+            "default": ""
+        }
+    ]
+}
