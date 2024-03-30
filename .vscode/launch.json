@@ -2,18 +2,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "LLDB launch",
             "type": "lldb",
-            "program": "${workspaceFolder}/.build/bin/${input:target}",
+            "request": "launch",
+            "name": "LLDB launch",
             "cwd": "${workspaceFolder}/.build",
-            "args": ["${input:args}"],
-            "request": "launch"
+            "program": "${workspaceFolder}/.build/bin/${input:target}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "LLDB launch (with args)",
+            "cwd": "${workspaceFolder}/.build",
+            "program": "${workspaceFolder}/.build/bin/${input:target}",
+            "args": ["${input:args}"]
         }
     ],
     "inputs": [
         {
             "id": "target",
-            "description": "description target",
+            "description": "select executable",
             "type": "pickString",
             "options": [
                 "sandbox_cli",
@@ -27,9 +34,8 @@
         },
         {
             "id": "args",
-            "description": "description args",
+            "description": "argumets to use",
             "type": "promptString",
-            "default": ""
         }
     ]
 }

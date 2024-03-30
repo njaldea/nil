@@ -19,3 +19,8 @@
 | [pulse](projects/pulse/README.md)     | Reactive Variable (Observables)           |
 | [service](projects/service/README.md) | Communication library (udp/tcp/websocket) |
 
+## Sandboxe (WIP)
+
+| name  | description               | video                                                                                  |
+| ----- | ------------------------- | -------------------------------------------------------------------------------------- |
+| nedit | example usage of nil/gate | [![nedit](https://img.youtube.com/vi/dJhKzhqXHnM/0.jpg)](https://youtu.be/dJhKzhqXHnM) |

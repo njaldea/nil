@@ -371,6 +371,13 @@ int GUI::run(const nil::cli::Options& options) const
             )
     );
 
+    std::string path = options.param("file");
+    bool loaded = true;
+
+    service.on_connect(                                                                        //
+        [&loaded, &app]() { app.before_render.emplace_back([&loaded]() { loaded = false; }); } //
+    );
+
     std::thread comm([&service]() { service.run(); });
 
     glfwSetFramebufferSizeCallback(
@@ -381,9 +388,6 @@ int GUI::run(const nil::cli::Options& options) const
             draw(w);
         }
     );
-
-    std::string path = options.param("file");
-    bool loaded = false;
 
     auto* context = ax::NodeEditor::CreateEditor();
     while (glfwWindowShouldClose(window) == 0)
@@ -414,7 +418,7 @@ int GUI::run(const nil::cli::Options& options) const
         ImGui::InputText("###file", &path);
         ImGui::PopItemWidth();
         ImGui::BeginDisabled(!app.allow_editing);
-        if ((!loaded || ImGui::Button("load")) && std::filesystem::exists(path))
+        if ((ImGui::Button("load") || !loaded) && std::filesystem::exists(path))
         {
             try
             {
