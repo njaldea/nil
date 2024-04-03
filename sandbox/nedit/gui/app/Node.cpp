@@ -57,7 +57,7 @@ namespace
         ax::NodeEditor::BeginNode(id);
         if (!label.empty())
         {
-            ImGui::TextColored(ImVec4(0, 0, 0, 1), "%s", label.data());
+            ImGui::Text("%s", label.data());
         }
         const auto width = label.empty() ? 30 : ImGui::GetItemRectSize().x;
         render(pins_a);

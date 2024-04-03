@@ -12,6 +12,6 @@ namespace gui
 
     void Link::render() const
     {
-        ax::NodeEditor::Link(id.value, entry->id.value, exit->id.value);
+        ax::NodeEditor::Link(id.value, entry->id.value, exit->id.value, entry->icon->color);
     }
 }

@@ -178,7 +178,7 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
         }
     );
 
-    state.activate = [&service](std::uint64_t id)
+    state.node_activate = [&service](std::uint64_t id)
     {
         nil::nedit::proto::NodeState message;
         message.set_id(id);
@@ -187,7 +187,7 @@ ext::GraphState make_state(nil::service::IService& service, Executor& executor)
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     };
 
-    state.deactivate = [&service](std::uint64_t id)
+    state.node_deactivate = [&service](std::uint64_t id)
     {
         nil::nedit::proto::NodeState message;
         message.set_id(id);

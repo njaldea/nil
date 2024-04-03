@@ -44,7 +44,7 @@ namespace nil::cli
             }
             catch (const std::exception&)
             {
-                throw std::out_of_range("[nil][cli][" + k + "] is invalid");
+                throw std::out_of_range("[nil][cli]: option \"" + k + "\" is unknown");
             }
         }
     };

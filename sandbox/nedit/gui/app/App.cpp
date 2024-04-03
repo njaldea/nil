@@ -264,11 +264,12 @@ namespace gui
     void App::push_style()
     {
         namespace ax_ne = ax::NodeEditor;
+
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0, 0, 0, 1));
         ax_ne::PushStyleColor(ax_ne::StyleColor_NodeBg, ImColor(255, 255, 255, 255));
         ax_ne::PushStyleColor(ax_ne::StyleColor_NodeBorder, ImColor(255, 255, 255, 0));
 
         ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.75f);
-
         ax_ne::PushStyleVar(ax_ne::StyleVar_NodeBorderWidth, 0.0f);
         ax_ne::PushStyleVar(ax_ne::StyleVar_NodePadding, ImVec4(4, 4, 4, 4));
         ax_ne::PushStyleVar(ax_ne::StyleVar_NodeRounding, 2.0f);
@@ -290,6 +291,7 @@ namespace gui
         ax_ne::PopStyleVar(7);
         ImGui::PopStyleVar(1);
         ax_ne::PopStyleColor(2);
+        ImGui::PopStyleColor(1);
     }
 
     void App::edit_create()

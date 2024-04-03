@@ -55,7 +55,9 @@ namespace gui
         if (ax::NodeEditor::GetHoveredPin().Get() == id.value)
         {
             ax::NodeEditor::Suspend();
-            ImGui::SetTooltip("%s[%s]", is_input ? "i" : "o", label.data());
+            ImGui::BeginTooltip();
+            ImGui::TextColored(ImVec4(1, 1, 1, 1), "%s[%s]", is_input ? "i" : "o", label.data());
+            ImGui::EndTooltip();
             ax::NodeEditor::Resume();
         }
 

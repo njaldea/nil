@@ -95,8 +95,8 @@ namespace ext
         std::unique_ptr<nil::gate::Core> core;
         std::unordered_map<std::uint64_t, RelaxedEdge> control_edges;
         std::unordered_map<std::uint64_t, RelaxedEdge> internal_edges;
-        std::function<void(std::uint64_t)> activate;
-        std::function<void(std::uint64_t)> deactivate;
+        std::function<void(std::uint64_t)> node_activate;
+        std::function<void(std::uint64_t)> node_deactivate;
         std::shared_ptr<bool> paused = std::make_shared<bool>(false);
 
         std::function<void(const void*, float, std::function<void()>)> post;
@@ -318,8 +318,8 @@ namespace ext
                         std::make_index_sequence<input_count>(),
                         std::make_index_sequence<output_t::size>(),
                         std::make_index_sequence<sizeof...(Controls)>(),
-                        [&state, id]() { state.activate(id); },
-                        [&state, id]() { state.deactivate(id); },
+                        [&state, id]() { state.node_activate(id); },
+                        [&state, id]() { state.node_deactivate(id); },
                         args...
                     );
                 };

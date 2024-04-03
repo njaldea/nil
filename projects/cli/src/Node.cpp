@@ -30,7 +30,7 @@ namespace nil::cli
     {
         if (find(key) != nullptr)
         {
-            throw std::invalid_argument("[nil][cli][" + key + "] already exists");
+            throw std::invalid_argument("[nil][cli]: option \"" + key + "\" already exists");
         }
 
         SubNode subnode{
