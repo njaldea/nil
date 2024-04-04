@@ -179,9 +179,9 @@ namespace ext
             {
                 state.control_edges.emplace(
                     id,
-                    GraphState::RelaxedEdge{
+                    GraphState::RelaxedEdge(
                         state.core->edge<decltype(std::declval<C>().value)>(control.value)
-                    }
+                    )
                 );
             }
 
@@ -429,7 +429,7 @@ namespace ext
                 {
                     graph_state         //
                         .internal_edges //
-                        .emplace(id, ext::GraphState::RelaxedEdge{graph_state.core->edge(T())});
+                        .emplace(id, ext::GraphState::RelaxedEdge(graph_state.core->edge(T())));
                 }
             );
             state.feedback_node_factories.push_back(
@@ -506,7 +506,7 @@ namespace ext
                     auto e = graph_state.core->edge(T());
                     graph_state         //
                         .internal_edges //
-                        .emplace(s_ids[0], ext::GraphState::RelaxedEdge{e});
+                        .emplace(s_ids[0], ext::GraphState::RelaxedEdge(e));
                     auto factory = detail::api::factory(
                         Node<Delay, MinMax<float>>{
                             "delay",

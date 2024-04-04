@@ -16,6 +16,54 @@ nil::cli::OptionInfo CMD::options() const
         .build();
 }
 
+template <typename T>
+struct Input
+{
+    T operator()(const T& value) const
+    {
+        std::cout << std::format("Input[{}]: <{}>\n", name, value) << std::flush;
+        return value;
+    }
+
+    std::string name;
+};
+
+struct Add
+{
+    int operator()(int l, int r) const
+    {
+        std::cout << std::format("Add: {} + {} = {}\n", l, r, l + r) << std::flush;
+        return l + r;
+    }
+};
+
+struct Mul
+{
+    int operator()(int l, int r) const
+    {
+        std::cout << std::format("Mul: {} * {} = {}\n", l, r, l * r) << std::flush;
+        return l * r;
+    }
+};
+
+struct Inverter
+{
+    int operator()(bool l, int r) const
+    {
+        std::cout << std::format("Inv: {} => {}\n", l ? 'T' : 'F', l ? -r : r) << std::flush;
+        return l ? -r : r;
+    }
+};
+
+template <typename T>
+struct Consume
+{
+    void operator()(const T& v) const
+    {
+        std::cout << std::format("Consume: {}\n", v) << std::flush;
+    }
+};
+
 int CMD::run(const nil::cli::Options& options) const
 {
     if (options.flag("help"))
@@ -36,10 +84,32 @@ int CMD::run(const nil::cli::Options& options) const
 
     GraphInfo info = populate(state);
 
-    std::cout << std::flush;
-
     Service service;
-    service.install();
+
+    {
+        service.add_type(false);
+        service.add_type(0);
+        service.add_type(0.0f);
+        service.add_type(std::string());
+
+        service.add_node(Input<bool>("b"), false);
+        service.add_node(Input<int>("i"), 1);
+        service.add_node(Input<float>("f"), 0.0f);
+        service.add_node(Input<std::string>("i"), std::string());
+
+        service.add_node(Inverter());
+
+        service.add_node(Add());
+        service.add_node(Add(), 0);
+        service.add_node(Mul());
+        service.add_node(Mul(), 0);
+
+        service.add_node(Consume<bool>());
+        service.add_node(Consume<int>());
+        service.add_node(Consume<float>());
+        service.add_node(Consume<std::string>());
+    }
+
     service.populate(info);
     service.run();
 
