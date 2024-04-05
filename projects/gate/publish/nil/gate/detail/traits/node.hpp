@@ -38,10 +38,10 @@ namespace nil::gate::detail::traits
     {
         using inputs = nil::gate::detail::traits::types<I...>;
         using asyncs = nil::gate::detail::traits::types<>;
-        static constexpr bool has_async = false;
         static constexpr bool has_core = false;
-        static constexpr bool is_async_valid = true;
+        static constexpr bool has_async = false;
         static constexpr bool is_core_valid = true;
+        static constexpr bool is_async_valid = true;
     };
 
     template <typename T>
@@ -55,24 +55,36 @@ namespace nil::gate::detail::traits
     struct input_splitter<nil::gate::detail::traits::types<First, I...>>
     {
         using inputs = nil::gate::detail::traits::types<I...>;
-        using asyncs = nil::gate::detail::traits::typify_t<std::decay_t<First>>;
-        static constexpr bool has_async = true;
+        using asyncs = nil::gate::detail::traits::types<>;
         static constexpr bool has_core = false;
-        static constexpr bool is_async_valid = is_vanilla_v<First> || is_const_reference_v<First>;
+        static constexpr bool has_async = true;
         static constexpr bool is_core_valid = true;
+        static constexpr bool is_async_valid = is_vanilla_v<First> || is_const_reference_v<First>;
+    };
+
+    template <typename First, typename... I>
+        requires std::is_same_v<nil::gate::Core, std::decay_t<First>>
+    struct input_splitter<nil::gate::detail::traits::types<First, I...>>
+    {
+        using inputs = nil::gate::detail::traits::types<I...>;
+        using asyncs = nil::gate::detail::traits::types<>;
+        static constexpr bool has_core = true;
+        static constexpr bool has_async = false;
+        static constexpr bool is_core_valid = is_const_reference_v<First>;
+        static constexpr bool is_async_valid = true;
     };
 
     template <typename First, typename Second, typename... I>
-        requires async_checker<std::decay_t<First>>::is_async
-        && std::is_same_v<nil::gate::Core, std::decay_t<Second>>
+        requires std::is_same_v<nil::gate::Core, std::decay_t<First>>
+        && async_checker<std::decay_t<Second>>::is_async
     struct input_splitter<nil::gate::detail::traits::types<First, Second, I...>>
     {
         using inputs = nil::gate::detail::traits::types<I...>;
-        using asyncs = nil::gate::detail::traits::typify_t<std::decay_t<First>>;
-        static constexpr bool has_async = true;
+        using asyncs = nil::gate::detail::traits::typify_t<std::decay_t<Second>>;
         static constexpr bool has_core = true;
-        static constexpr bool is_async_valid = is_vanilla_v<First> || is_const_reference_v<First>;
-        static constexpr bool is_core_valid = is_const_reference_v<Second>;
+        static constexpr bool has_async = true;
+        static constexpr bool is_core_valid = is_const_reference_v<First>;
+        static constexpr bool is_async_valid = is_vanilla_v<Second> || is_const_reference_v<Second>;
     };
 
     template <typename T>

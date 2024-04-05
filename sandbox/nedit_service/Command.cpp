@@ -79,10 +79,44 @@ int CMD::run(const nil::cli::Options& options) const
     }
 
     nil::nedit::proto::State state;
-    std::ifstream fs(file, std::ios::binary);
-    state.ParseFromIstream(&fs);
 
-    GraphInfo info = populate(state);
+    {
+        std::ifstream fs(file, std::ios::binary);
+        state.ParseFromIstream(&fs);
+    }
+
+    GraphInfo info;
+
+    {
+        const auto& graph = state.graph();
+
+        for (const auto& node : graph.nodes())
+        {
+            info.add_node(
+                node.id(),
+                NodeInfo{
+                    .type = node.type(),
+                    .inputs = {node.inputs().begin(), node.inputs().end()},
+                    .outputs = {node.outputs().begin(), node.outputs().end()},
+                    .controls = {node.controls().begin(), node.controls().end()} //
+                }
+            );
+        }
+
+        for (const auto& link : graph.links())
+        {
+            info.add_link(
+                link.id(),
+                LinkInfo{
+                    .type = link.type(),
+                    .input = link.input(),
+                    .output = link.output() //
+                }
+            );
+        }
+
+        info.score();
+    }
 
     Service service;
 
@@ -110,8 +144,9 @@ int CMD::run(const nil::cli::Options& options) const
         service.add_node(Consume<std::string>());
     }
 
-    service.populate(info);
-    service.run();
+    service.instantiate(info);
+    service.start();
+    service.wait();
 
     return 0;
 }

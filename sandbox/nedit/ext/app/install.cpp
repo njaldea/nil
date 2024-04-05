@@ -71,7 +71,7 @@ namespace ext
         app.add_pin<float>({.label = "float" , .color = {{0.0f, 0.0f, 1.0f, 1.0f}}});
         app.add_pin<text> ({.label = "string", .color = {{0.0f, 1.0f, 0.5f, 1.0f}}});
         app.add_node<Input<bool> , Value<bool>  >({.label = "Input_b", .controls={{false}}}           , "b");
-        app.add_node<Input<int>  , MinMax<int>  >({.label = "Input_i", .controls={{5, 0 ,10}}}        , "i");
+        app.add_node<Input<int>  , MinMax<int>  >({.label = "Input_i", .controls={{5, 0, 10}}}        , "i");
         app.add_node<Input<float>, MinMax<float>>({.label = "Input_f", .controls={{0.5f, 0.0f, 1.0f}}}, "f");
         app.add_node<Input<text> , Value<text>  >({.label = "Input_s", .controls={{"hello world"}}}   , "s");
         // Enum (combobox) is in WIP state

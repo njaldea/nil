@@ -32,7 +32,7 @@ int main()
     );
 
     auto [r] = core.node(
-        [](nil::gate::async_outputs<int> a, const nil::gate::Core& c, int b1, int b2)
+        [](const nil::gate::Core& c, nil::gate::async_outputs<int> a, int b1, int b2)
         {
             std::cout << std::format("Second: {} : {}\n", b1, b2) << std::flush;
             if (b1 % 2 == 0)

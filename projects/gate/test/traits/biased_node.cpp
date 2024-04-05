@@ -338,7 +338,7 @@ TEST(gate, traits_output)
                 std::unique_ptr<const int>,
                 std::shared_ptr<const int>,
                 std::optional<const int>>;
-            using test_t = TC<sync_output_t(const async_output_t&, const nil::gate::Core&)>;
+            using test_t = TC<sync_output_t(const nil::gate::Core&, const async_output_t&)>;
             using type = SUT<test_t>;
 
             ASSERT_EQ(type::outputs::size, 8);

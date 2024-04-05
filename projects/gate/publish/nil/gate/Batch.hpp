@@ -41,10 +41,13 @@ namespace nil::gate
 #ifdef NIL_GATE_CHECKS
             assert(nullptr != diffs);
 #endif
-            diffs->push_batch(std::move(batch_diffs));
-            if (nullptr != commit)
+            if (!batch_diffs.empty())
             {
-                commit->call(core);
+                diffs->push_batch(std::move(batch_diffs));
+                if (nullptr != commit)
+                {
+                    commit->call(core);
+                }
             }
         }
 

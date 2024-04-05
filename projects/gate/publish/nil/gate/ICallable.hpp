@@ -22,10 +22,10 @@ namespace nil::gate
         virtual R call(A...) = 0;
     };
 
-    template <typename CB>
-    std::unique_ptr<ICallable<void()>> make_callable(CB&& cb)
+    template <typename CB, typename... Args>
+    std::unique_ptr<ICallable<void(Args...)>> make_callable(CB&& cb)
     {
-        struct Callable: ICallable<void()>
+        struct Callable: ICallable<void(Args...)>
         {
             explicit Callable(CB init_cb)
                 : cb(std::move(init_cb))
@@ -40,9 +40,9 @@ namespace nil::gate
             Callable(const Callable&) = delete;
             Callable& operator=(const Callable&) = delete;
 
-            void call() override
+            void call(Args... args) override
             {
-                cb();
+                cb(args...);
             }
 
             CB cb;

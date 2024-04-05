@@ -179,6 +179,7 @@ namespace nil::gate
         /// starting from this point - edge
 
         template <typename T>
+            requires std::is_same_v<T, std::decay_t<T>>
         auto* edge(T value)
         {
             using type = traits::edgify_t<std::decay_t<T>>;
@@ -242,11 +243,18 @@ namespace nil::gate
             runner = std::move(new_runner);
         }
 
+        void clear()
+        {
+            required_edges.clear();
+            owned_nodes.clear();
+            diffs = std::make_unique<Diffs>();
+        }
+
     private:
         std::unique_ptr<Diffs> diffs = std::make_unique<Diffs>();
-        std::unique_ptr<ICallable<void(const Core*)>> commit_cb;
         std::vector<std::unique_ptr<INode>> owned_nodes;
         std::vector<std::unique_ptr<IEdge>> required_edges;
+        std::unique_ptr<ICallable<void(const Core*)>> commit_cb;
         std::unique_ptr<IRunner> runner = std::make_unique<runners::Immediate>();
     };
 }

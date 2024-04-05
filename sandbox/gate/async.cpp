@@ -9,7 +9,7 @@
 #include <iostream>
 #include <thread>
 
-float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core& core, bool a)
+float deferred(const nil::gate::Core& core, nil::gate::async_outputs<int> z, bool a)
 {
     std::cout << "deferred: " << a << std::endl;
     if (a)

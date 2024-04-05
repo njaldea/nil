@@ -232,7 +232,7 @@ TEST(gate, traits_async_output_with_core)
             std::unique_ptr<const int>,
             std::shared_ptr<const int>,
             std::optional<const int>>;
-        using test_t = TC<void(async_output_t, const nil::gate::Core&)>;
+        using test_t = TC<void(const nil::gate::Core&, async_output_t)>;
         using type = SUT<test_t>;
 
         ASSERT_EQ(type::async_outputs::size, 4);

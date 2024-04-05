@@ -174,8 +174,8 @@ namespace nil::gate::detail
                     assert(nullptr != core);
 #endif
                     return instance(
-                        async_edges(typename async_output_t::make_index_sequence()),
                         *core,
+                        async_edges(typename async_output_t::make_index_sequence()),
                         get<i_indices>(inputs).value()...
                     );
                 }
@@ -189,7 +189,14 @@ namespace nil::gate::detail
             }
             else
             {
-                return instance(get<i_indices>(inputs).value()...);
+                if constexpr (traits::node<T>::has_core)
+                {
+                    return instance(*core, get<i_indices>(inputs).value()...);
+                }
+                else
+                {
+                    return instance(get<i_indices>(inputs).value()...);
+                }
             }
         }
 

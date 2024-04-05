@@ -221,10 +221,9 @@ int main()
 
 ### Special Arguments
 
-When using Async Outputs, you might want to batch the updates to the edges.
-Batching is a sole responsibility of `nil::gate::Core`.
+If the 1nd argument is `const nil::gate::Core&`, the `Core` owner will be passed to it.
 
-If the 2nd argument is `const nil::gate::Core&`, the `Core` owner will be passed to it.
+This can be useful when using async edges.
 
 See [Batch](#batch) section for more detail.
 
@@ -233,9 +232,9 @@ See [Batch](#batch) section for more detail.
 
 struct Node
 {
-    void operator()(nil::gate::async_output<float> asyncs, const nil::gate::Core& core) const
-    //              ┃                                      ┗━━━ this is not treated as an input
-    //              ┣━━━ this is equivalent to `std::tuple<edges::Mutable<T>*...>`
+    void operator()(const nil::gate::Core& core, nil::gate::async_output<float> asyncs) const
+    //              ┃                            ┣━━━ this is equivalent to `std::tuple<edges::Mutable<T>*...>`
+    //              ┃                            ┗━━━ this is not treated as an input
     //              ┗━━━ this is not treated as an input
     {
         auto [ edge_f ] = asyncs;
@@ -680,8 +679,8 @@ The library tries its best to provide undestandable error messages as much as po
 The example below is a result of having and invalid `Core` signature. `Core` should always be `const Core&`.
 
 ```cpp
-float deferred(nil::gate::async_outputs<int> z, const nil::gate::Core core, bool a);
-//                                              ┗━━━━━━━━ this should always be `const nil::gate::Core&`
+float deferred(const nil::gate::Core core, nil::gate::async_outputs<int> z, bool a);
+//             ┗━━━━━━━━ this should always be `const nil::gate::Core&`
 ```
 
 ### gcc
