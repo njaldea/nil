@@ -15,6 +15,6 @@ add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(pulse)
 add_subdirectory(gate)
+add_subdirectory(gatex)
 add_subdirectory(nedit)
-add_subdirectory(nedit_service)
 
