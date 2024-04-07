@@ -171,6 +171,7 @@ namespace nil::gatex
     {
         if (!thread)
         {
+            timers.clear();
             context = std::make_unique<boost::asio::io_context>();
             resume();
         }
