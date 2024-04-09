@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.gatex_proto.message_type;
+
+enum MessageType {
+    Metadata = 0;
+    Graph = 1;
+    NodeState = 2;
+    ControlUpdateB = 3;
+    ControlUpdateI = 4;
+    ControlUpdateF = 5;
+    ControlUpdateS = 6;
+    Serialize = 7;
+    Deserialize = 8;
+    Play = 9;
+    Pause = 10;
+    Run = 11;
+}

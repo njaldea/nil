@@ -216,13 +216,13 @@ namespace ext
                 std::index_sequence<i_indices...> /* unused */,
                 std::index_sequence<o_indices...> /* unused */,
                 std::index_sequence<c_indices...> /* unused */,
-                const Args&... args
+                T instance
             )
             {
                 using RE = GraphState::RelaxedEdge;
 
                 [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node(
-                    T(args...),
+                    std::move(instance),
                     *state.core,
                     std::move(a),
                     typename nil::gate::detail::traits::node<T>::inputs::edges(
@@ -309,7 +309,7 @@ namespace ext
                         );
                     }
                     constexpr auto input_count = input_t::size - sizeof...(Controls);
-                    detail::creation::create_node<nil::gate::nodes::Scoped<T>>(
+                    detail::creation::create_node(
                         state,
                         a,
                         input_ids,
@@ -318,9 +318,11 @@ namespace ext
                         std::make_index_sequence<input_count>(),
                         std::make_index_sequence<output_t::size>(),
                         std::make_index_sequence<sizeof...(Controls)>(),
-                        [&state, id]() { state.node_activate(id); },
-                        [&state, id]() { state.node_deactivate(id); },
-                        args...
+                        nil::gate::nodes::Scoped<T>(
+                            [&state, id]() { state.node_activate(id); },
+                            T(args...),
+                            [&state, id]() { state.node_deactivate(id); }
+                        )
                     );
                 };
             }

@@ -32,6 +32,7 @@ add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE sandbox_nedit_proto)
 target_link_libraries(${PROJECT_NAME} PUBLIC gate)
 target_link_libraries(${PROJECT_NAME} PUBLIC service)
+target_link_libraries(${PROJECT_NAME} PUBLIC gatex_proto)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_ASIO_NO_DEPRECATED)
 
 target_include_directories(

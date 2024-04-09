@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.gatex_proto;
+
+message Graph {
+    message Node {
+        uint64 id = 1;
+        uint64 type = 2;
+        uint64 alias = 3;
+        repeated uint64 inputs = 4;
+        repeated uint64 outputs = 5;
+        repeated uint64 controls = 6;
+    }
+
+    message Link {
+        uint64 id = 1;
+        uint64 type = 2;
+        uint64 input = 3;
+        uint64 output = 4;
+    }
+
+    repeated Node nodes = 1;
+    repeated Link links = 2;
+    bytes gui = 3;
+}

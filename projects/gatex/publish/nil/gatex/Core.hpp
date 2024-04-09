@@ -8,7 +8,10 @@
 #include <nil/gate/detail/traits/node.hpp>
 #include <nil/gate/nodes/Scoped.hpp>
 
+#include <nil/gatex_proto/identity.pb.h>
+
 #include <boost/asio.hpp>
+#include <utility>
 
 namespace nil::gatex
 {
@@ -62,8 +65,8 @@ namespace nil::gatex
                     xcore.core.node(
                         nil::gate::nodes::Scoped<FeedbackNode>(
                             [&xcore, id = node_info.id]() { xcore.activate(id); },
-                            [&xcore, id = node_info.id]() { xcore.deactivate(id); },
-                            xcore.edges.at(node_info.outputs.at(0))
+                            FeedbackNode(xcore.edges.at(node_info.outputs.at(0))),
+                            [&xcore, id = node_info.id]() { xcore.deactivate(id); }
                         ),
                         {xcore.edges.at(info.opposite_output_pin(node_info.inputs.at(0))), edge}
                     );
@@ -112,8 +115,8 @@ namespace nil::gatex
                     const auto [o] = xcore.core.node(
                         nil::gate::nodes::Scoped<Delay>(
                             [&xcore, id = node_info.id]() { xcore.activate(id); },
-                            [&xcore, id = node_info.id]() { xcore.deactivate(id); },
-                            &xcore
+                            Delay(&xcore),
+                            [&xcore, id = node_info.id]() { xcore.deactivate(id); }
                         ),
                         std::tuple<T>(),
                         {xcore.edges.at(info.opposite_output_pin(node_info.inputs.at(0))), time}
@@ -123,12 +126,18 @@ namespace nil::gatex
             };
 
             type_factories.emplace_back(std::make_unique<Type>(std::move(default_value)));
+            identity.set_types(type_factories.size());
         }
 
         template <typename T, typename... C>
             requires nil::gate::detail::traits::node<T>::is_valid
         void add_node(T instance, C... controls)
         {
+            using node_t = nil::gate::detail::traits::node<T>;
+            constexpr auto input_count = node_t::inputs::size;
+            constexpr auto output_count = node_t::outputs::size;
+            constexpr auto control_count = sizeof...(C);
+
             struct Node: INode
             {
                 explicit Node(T init_instance, C... init_c)
@@ -139,11 +148,6 @@ namespace nil::gatex
 
                 void create_node(Core& xcore, const GraphInfo& graph, const NodeInfo& node) override
                 {
-                    using node_t = nil::gate::detail::traits::node<T>;
-                    constexpr auto input_count = node_t::inputs::size;
-                    constexpr auto output_count = node_t::outputs::size;
-                    constexpr auto control_count = sizeof...(C);
-
                     xcore.make_controls(
                         node,
                         controls,
@@ -166,6 +170,12 @@ namespace nil::gatex
 
             node_factories.emplace_back(
                 std::make_unique<Node>(std::move(instance), std::move(controls)...)
+            );
+
+            add_node_identity<T>(
+                typename node_t::inputs::type(),
+                typename node_t::outputs::type(),
+                nil::gate::detail::traits::types<C...>()
             );
         }
 
@@ -202,6 +212,7 @@ namespace nil::gatex
         std::unordered_map<std::uint64_t, RelaxedEdge> edges;
         std::vector<std::unique_ptr<IType>> type_factories;
         std::vector<std::unique_ptr<INode>> node_factories;
+        std::unordered_map<const void*, std::uint64_t> type_to_index;
 
         std::unique_ptr<nil::gate::ICallable<void(std::uint64_t)>> before_hook;
         std::unique_ptr<nil::gate::ICallable<void(std::uint64_t)>> after_hook;
@@ -211,6 +222,48 @@ namespace nil::gatex
         std::unordered_map<const void*, std::unique_ptr<boost::asio::deadline_timer>> timers;
 
         std::string metadata;
+
+        nil::gatex_proto::Identity identity;
+
+        template <typename T, typename... IT, typename... OT, typename... CT>
+        void add_node_identity(
+            nil::gate::detail::traits::types<IT...> /* unused */,
+            nil::gate::detail::traits::types<OT...> /* unused */,
+            nil::gate::detail::traits::types<CT...> /* unused */
+        )
+        {
+            auto* node = identity.add_nodes();
+            const auto add_inputs = [&](std::uint64_t index)
+            {
+                if (node->inputs_size() < int(sizeof...(IT) - sizeof...(CT)))
+                {
+                    node->add_inputs(index);
+                }
+            };
+            const auto mapping = [](const void* id)
+            {
+                if (identity_v<bool> == id)
+                {
+                    return nil::gatex_proto::Identity_Node_ControlType_Bool;
+                }
+                if (identity_v<int> == id)
+                {
+                    return nil::gatex_proto::Identity_Node_ControlType_Int;
+                }
+                if (identity_v<float> == id)
+                {
+                    return nil::gatex_proto::Identity_Node_ControlType_Float;
+                }
+                if (identity_v<std::string> == id)
+                {
+                    return nil::gatex_proto::Identity_Node_ControlType_Text;
+                }
+                return nil::gatex_proto::Identity_Node_ControlType_Int;
+            };
+            (..., add_inputs(type_to_index.at(identity_v<IT>)));
+            (..., node->add_outputs(type_to_index.at(identity_v<OT>)));
+            (..., node->add_controls(mapping(identity_v<CT>)));
+        }
 
         template <typename... C, std::size_t... I>
         void make_controls(
@@ -237,8 +290,8 @@ namespace nil::gatex
                 core.node(
                     nil::gate::nodes::Scoped<T>(
                         [this, id = node.id]() { activate(id); },
-                        [this, id = node.id]() { deactivate(id); },
-                        std::move(instance)
+                        std::move(instance),
+                        [this, id = node.id]() { deactivate(id); }
                     ),
                     {
                         edges.at(graph.opposite_output_pin(node.inputs.at(I)))...,
@@ -251,8 +304,8 @@ namespace nil::gatex
                 const auto output_edges = core.node(
                     nil::gate::nodes::Scoped<T>(
                         [this, id = node.id]() { activate(id); },
-                        [this, id = node.id]() { deactivate(id); },
-                        std::move(instance)
+                        std::move(instance),
+                        [this, id = node.id]() { deactivate(id); }
                     ),
                     {
                         edges.at(graph.opposite_output_pin(node.inputs.at(I)))...,

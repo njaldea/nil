@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.gatex_proto;
+
+message ImGuiMetadata {
+    message Node {
+        uint64 id = 1;
+        float x = 6;
+        float y = 7;
+    }
+
+    repeated Node nodes = 1;
+}

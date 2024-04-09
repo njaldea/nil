@@ -12,11 +12,11 @@ namespace nil::gate::nodes
     template <typename T, typename... Inputs>
     struct Scoped<T, nil::gate::detail::traits::types<Inputs...>> final
     {
-        template <typename Pre, typename Post, typename... Args>
-        Scoped(Pre init_pre, Post init_post, Args&&... args)
+        template <typename Pre, typename Post>
+        Scoped(Pre init_pre, T init_node, Post init_post)
             : pre(make_callable(std::move(init_pre)))
             , post(make_callable(std::move(init_post)))
-            , node{std::forward<Args>(args)...}
+            , node{std::move(init_node)}
         {
         }
 

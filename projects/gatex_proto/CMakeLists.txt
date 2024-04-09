@@ -1,0 +1,1 @@
+add_subdirectory(publish/nil/gatex_proto)

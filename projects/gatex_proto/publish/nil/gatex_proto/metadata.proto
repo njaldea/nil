@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.gatex_proto;
+
+message Metadata {
+    message Pin {
+        message Color {
+            float r = 1;
+            float g = 2;
+            float b = 3;
+            float a = 4;
+        }
+
+        Color color = 1;
+        string label = 2;
+    }
+
+    message Node {
+        message Control {
+            message ToggleControl
+            {
+                string label = 1;
+            }
+
+            message SpinboxControl
+            {
+                string label = 1;
+                int32 min = 2;
+                int32 max = 3;
+            }
+
+            message SliderControl
+            {
+                string label = 1;
+                float min = 2;
+                float max = 3;
+            }
+
+            message TextControl
+            {
+                string label = 1;
+            }
+
+            message ComboBoxControl
+            {
+                string label = 1;
+                repeated string selection = 2;
+            }
+
+            oneof control {
+                ToggleControl toggle = 1;
+                SpinboxControl spinbox = 2;
+                SliderControl slider = 3;
+                TextControl text = 4;
+                ComboBoxControl combobox = 5;
+            }
+        }
+        string label = 1;
+        repeated uint64 inputs = 2;
+        repeated uint64 outputs = 3;
+        repeated Control controls = 4;
+    }
+
+    repeated Pin pins = 1;
+    repeated Node nodes = 2;
+}

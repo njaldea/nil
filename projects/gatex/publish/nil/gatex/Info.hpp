@@ -27,13 +27,11 @@ namespace nil::gatex
     {
         template <typename T>
         using map_t = std::unordered_map<std::uint64_t, T>;
-        template <typename T>
-        using const_iterator = map_t<T>::const_iterator;
 
         map_t<NodeInfo> nodes;
         map_t<LinkInfo> links;
-        map_t<const_iterator<NodeInfo>> pin_to_node;
-        map_t<const_iterator<LinkInfo>> input_pin_to_link;
+        map_t<map_t<NodeInfo>::const_iterator> pin_to_node;
+        map_t<map_t<LinkInfo>::const_iterator> input_pin_to_link;
         std::multimap<std::uint64_t, map_t<NodeInfo>::const_iterator> scores;
 
         std::string metadata;
@@ -45,5 +43,4 @@ namespace nil::gatex
         std::uint64_t opposite_output_pin(std::uint64_t input_pin) const;
         std::uint64_t link_type(std::uint64_t input_pin) const;
     };
-
 }

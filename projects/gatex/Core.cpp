@@ -4,7 +4,7 @@
 #include <nil/gate/runners/boost_asio.hpp>
 
 #include <iostream>
-#include <stdexcept>
+#include <nil/gatex_proto/identity.pb.h>
 #include <thread>
 #include <utility>
 
@@ -45,6 +45,19 @@ namespace nil::gatex
 
         node_factories.emplace_back(std::make_unique<BuiltInNode>(&Core::make_feedback));
         node_factories.emplace_back(std::make_unique<BuiltInNode>(&Core::make_delay));
+
+        {
+            auto* node = identity.add_nodes();
+            node->add_inputs(type_to_index.at(identity_v<Any>));
+            node->add_outputs(type_to_index.at(identity_v<Any>));
+            node->add_controls(nil::gatex_proto::Identity_Node_ControlType_Bool);
+        }
+        {
+            auto* node = identity.add_nodes();
+            node->add_inputs(type_to_index.at(identity_v<Any>));
+            node->add_outputs(type_to_index.at(identity_v<Any>));
+            node->add_controls(nil::gatex_proto::Identity_Node_ControlType_Float);
+        }
     }
 
     void Core::set_metadata(std::string new_metadata)

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.gatex_proto;
+
+message Identity {
+    message Node {
+        enum ControlType {
+            Bool = 0;
+            Int = 1;
+            Float = 2;
+            Text = 3;
+        }
+        repeated uint64 inputs = 1;
+        repeated uint64 outputs = 2;
+        repeated ControlType controls = 3;
+    }
+
+    uint64 types = 1;
+    repeated Node nodes = 2;
+}
