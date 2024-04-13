@@ -2,17 +2,28 @@
 
 #include "Control.hpp"
 
-#include <format>
-#include <iostream>
+#include <cstdio>
+#include <string>
 
 namespace ext
 {
+    template <typename T>
+    std::string to_string(T value)
+    {
+        return std::to_string(value);
+    }
+
+    const std::string& to_string(const std::string& value)
+    {
+        return value;
+    }
+
     template <typename T>
     struct Input
     {
         std::tuple<T> operator()(const T& value) const
         {
-            std::cout << std::format("Input[{}]: <{}>\n", name, value) << std::flush;
+            std::printf("Input[%s]: <%s>\n", name.data(), to_string(value).data());
             return {value};
         }
 
@@ -23,7 +34,7 @@ namespace ext
     {
         std::tuple<int> operator()(int l, int r) const
         {
-            std::cout << std::format("Add: {} + {} = {}\n", l, r, l + r) << std::flush;
+            std::printf("Add: %d + %d = %d\n", l, r, l + r);
             return {l + r};
         }
     };
@@ -32,7 +43,7 @@ namespace ext
     {
         std::tuple<int> operator()(int l, int r) const
         {
-            std::cout << std::format("Mul: {} * {} = {}\n", l, r, l * r) << std::flush;
+            std::printf("Mul: %d * %d = %d\n", l, r, l * r);
             return {l * r};
         }
     };
@@ -41,7 +52,7 @@ namespace ext
     {
         std::tuple<int> operator()(bool l, int r) const
         {
-            std::cout << std::format("Inv: {} => {}\n", l ? 'T' : 'F', l ? -r : r) << std::flush;
+            std::printf("Inv: %c => %d\n", l ? 'T' : 'F', l ? -r : r);
             return {l ? -r : r};
         }
     };
@@ -51,7 +62,7 @@ namespace ext
     {
         void operator()(const T& v) const
         {
-            std::cout << std::format("Consume: {}\n", v) << std::flush;
+            std::printf("Consume: %s\n", to_string(v).data());
         }
     };
 

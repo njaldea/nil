@@ -9,6 +9,8 @@
 [cc-by-nc-nd-image]: https://licensebuttons.net/l/by-nc-nd/4.0/88x31.png
 [cc-by-nc-nd-shield]: https://img.shields.io/badge/License-CC%20BY--NC--ND%204.0-lightgrey.svg
 
+This repository is tested with gcc-11 and clang-18.
+
 ## Projects (WIP)
 
 | project                               | description                               |

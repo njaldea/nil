@@ -7,7 +7,7 @@
 
 #include <boost/asio/executor_work_guard.hpp>
 
-#include <format>
+#include <cstdio>
 #include <iostream>
 #include <thread>
 
@@ -20,21 +20,18 @@ int main()
     auto [e2_i] = core.node(
         [](int v)
         {
-            std::cout << std::format("Main: {}\n", v) << std::flush;
+            std::printf("Main: %d\n", v);
             return v + 10;
         },
         {e1_i}
     );
 
-    core.node(
-        [](int b1, int b2) { std::cout << std::format("First: {} : {}\n", b1, b2) << std::flush; },
-        {e1_i, e2_i}
-    );
+    core.node([](int b1, int b2) { std::printf("First: %d : %d\n", b1, b2); }, {e1_i, e2_i});
 
     auto [r] = core.node(
         [](const nil::gate::Core& c, nil::gate::async_outputs<int> a, int b1, int b2)
         {
-            std::cout << std::format("Second: {} : {}\n", b1, b2) << std::flush;
+            std::printf("Second: %d : %d\n", b1, b2);
             if (b1 % 2 == 0)
             {
                 auto [aa] = c.batch(a);
@@ -45,15 +42,7 @@ int main()
         {e1_i, e2_i}
     );
 
-    core.node(
-        [](int i)
-        {
-            std::stringstream ss;
-            ss << "printer: " << i << '\n';
-            std::cout << ss.str() << std::flush;
-        },
-        {r}
-    );
+    core.node([](int i) { std::printf("printer: %d\n", i); }, {r});
 
     core.set_runner(std::make_unique<nil::gate::runners::Asio>(10));
     core.set_commit([](const nil::gate::Core& c) { c.run(); });

@@ -1,10 +1,9 @@
 #include <nil/gatex/Info.hpp>
 
-#include <format>
+#include <stdexcept>
 
 namespace
 {
-
     std::uint64_t populate_score(
         std::unordered_map<std::uint64_t, std::uint64_t>& cache,
         nil::gatex::GraphInfo& info,
@@ -45,7 +44,7 @@ namespace nil::gatex
         auto node_it = nodes.emplace(id, std::move(info));
         if (!node_it.second)
         {
-            throw std::runtime_error(std::format("duplicate node[{}]", id));
+            throw std::runtime_error("duplicate node[" + std::to_string(id) + "]");
         }
         const auto process = [&](const auto& pins)
         {
@@ -54,7 +53,11 @@ namespace nil::gatex
                 if (!pin_to_node.emplace(p, node_it.first).second)
                 {
                     throw std::runtime_error( //
-                        std::format("duplicate edge[{}] from node[{}]", p, id)
+                        "duplicate edge["     //
+                        + std::to_string(p)   //
+                        + "] from node["      //
+                        + std::to_string(id)  //
+                        + "]"
                     );
                 }
             }
@@ -72,12 +75,12 @@ namespace nil::gatex
         auto link_it = links.emplace(id, info);
         if (!link_it.second)
         {
-            throw std::runtime_error(std::format("duplicate link[{}]", id));
+            throw std::runtime_error("duplicate link[" + std::to_string(id) + "]");
         }
 
         if (!input_pin_to_link.emplace(info.output, link_it.first).second)
         {
-            throw std::runtime_error(std::format("duplicate link output[{}]", info.output));
+            throw std::runtime_error("duplicate link output[" + std::to_string(info.output) + "]");
         }
     }
 

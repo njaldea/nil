@@ -144,7 +144,7 @@ namespace nil::gate::detail
 
         template <std::size_t... s_indices>
         void forward_to_output(
-            auto result,
+            [[maybe_unused]] auto result,
             std::index_sequence<s_indices...> /* unused */
         )
         {

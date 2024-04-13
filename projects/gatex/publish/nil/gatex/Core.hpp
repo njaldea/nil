@@ -240,7 +240,7 @@ namespace nil::gatex
                     node->add_inputs(index);
                 }
             };
-            const auto mapping = [](const void* id)
+            [[maybe_unused]] const auto mapping = [](const void* id)
             {
                 if (identity_v<bool> == id)
                 {

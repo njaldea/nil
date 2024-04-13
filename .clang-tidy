@@ -25,7 +25,9 @@ Checks: >
   -bugprone-exception-escape,
   -hicpp-uppercase-literal-suffix,
   -hicpp-signed-bitwise,
-  -bugprone-unused-return-value
+  -bugprone-unused-return-value,
+  -hicpp-vararg,
+  -cppcoreguidelines-pro-type-vararg
 WarningsAsErrors: >
   *,
   -bugprone-easily-swappable-parameters,

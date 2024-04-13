@@ -1,7 +1,6 @@
 #include "dev.hpp"
 
-#include <format>
-#include <iostream>
+#include <cstdio>
 
 namespace nil
 {
@@ -9,28 +8,24 @@ namespace nil
     {
         if (nullptr == message)
         {
-            std::cout //
-                << std::format(
-                       "{}:{}:{}:{}\n",
-                       location.file_name(),
-                       location.line(),
-                       location.column(),
-                       location.function_name()
-                   )
-                << std::flush;
+            std::printf(
+                "%s:%d:%d:%s\n",
+                location.file_name(),
+                location.line(),
+                location.column(),
+                location.function_name()
+            );
         }
         else
         {
-            std::cout //
-                << std::format(
-                       "{}:{}:{}:{}\n{}\n",
-                       location.file_name(),
-                       location.line(),
-                       location.column(),
-                       location.function_name(),
-                       message
-                   )
-                << std::flush;
+            std::printf(
+                "%s:%d:%d:%s\n%s\n",
+                location.file_name(),
+                location.line(),
+                location.column(),
+                location.function_name(),
+                message
+            );
         }
     }
 }

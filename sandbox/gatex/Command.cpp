@@ -9,9 +9,8 @@
 #include <gen/nedit/messages/state.pb.h>
 #include <gen/nedit/messages/type.pb.h>
 
+#include <cstdio>
 #include <filesystem>
-#include <format>
-#include <fstream>
 #include <iostream>
 
 namespace nil::service
@@ -62,11 +61,22 @@ nil::cli::OptionInfo CMD::options() const
 }
 
 template <typename T>
+std::string to_string(T value)
+{
+    return std::to_string(value);
+}
+
+const std::string& to_string(const std::string& value)
+{
+    return value;
+}
+
+template <typename T>
 struct Input
 {
     T operator()(const T& value) const
     {
-        std::cout << std::format("Input[{}]: <{}>\n", name, value) << std::flush;
+        std::printf("Input[%s]: <%s>\n", name.data(), to_string(value).data());
         return value;
     }
 
@@ -77,7 +87,7 @@ struct Add
 {
     int operator()(int l, int r) const
     {
-        std::cout << std::format("Add: {} + {} = {}\n", l, r, l + r) << std::flush;
+        std::printf("Add: %d + %d = %d\n", l, r, l + r);
         return l + r;
     }
 };
@@ -86,7 +96,7 @@ struct Mul
 {
     int operator()(int l, int r) const
     {
-        std::cout << std::format("Mul: {} * {} = {}\n", l, r, l * r) << std::flush;
+        std::printf("Mul: %d * %d = %d\n", l, r, l * r);
         return l * r;
     }
 };
@@ -95,7 +105,7 @@ struct Inverter
 {
     int operator()(bool l, int r) const
     {
-        std::cout << std::format("Inv: {} => {}\n", l ? 'T' : 'F', l ? -r : r) << std::flush;
+        std::printf("Inv: %c => %d\n", l ? 'T' : 'F', l ? -r : r);
         return l ? -r : r;
     }
 };
@@ -105,7 +115,7 @@ struct Consume
 {
     void operator()(const T& v) const
     {
-        std::cout << std::format("Consume: {}\n", v) << std::flush;
+        std::printf("Consume: %s\n", to_string(v).data());
     }
 };
 

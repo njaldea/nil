@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+if [[ $0 != $BASH_SOURCE ]]; then
+    echo "do not source this script"
+    return 1
+fi
+
+SCRIPT_PATH=`(dirname $BASH_SOURCE)`
+BUILD_PATH=`(realpath ${SCRIPT_PATH}/../.build)`
+
+export CC=`(which gcc-11)`
+export CXX=`(which g++-11)`
+
+cmake               \
+    -B $BUILD_PATH  \
+    --preset debug

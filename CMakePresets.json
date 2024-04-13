@@ -17,9 +17,7 @@
             },
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/.build/out",
-                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/triplets",
-                "VCPKG_TARGET_TRIPLET": "nil-libcxx",
-                "VCPKG_HOST_TRIPLET": "nil-libcxx"
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/triplets"
             },
             "generator": "Ninja"
         },

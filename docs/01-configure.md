@@ -34,28 +34,21 @@ to enable cli:
 >     -DENABLE_FEATURE_CLI=ON
 ```
 
-### cmake presets
+## use configure scripts
 
-- since clang-18 is already setup (clang-tidy/clang-format/clangd), we can use clang as the compiler
-- export `VCPKG_ROOT`, `CC` and `CXX` for convenience
-
-```bash
-> export VCPKG_ROOT="where/you/cloned/vcpkg"
-> export CC=`(which clang-18)`
-> export CXX=`(which clang++-18)`
-```
-
-- use cmake preset
+- if you want to use gcc
 
 ```bash
-> cmake . --preset debug
+> cd <repo>
+> ./configure/gcc
 ```
 
-### rely on vscode
+- if you want to use clang
 
-- make sure that `VCPKG_ROOT` is defined and visible to vscode
-- if not, override `$env{VCPKG_ROOT}` in cmake presets
-- or manually configure cmake (from cmake presets) first
+```bash
+> cd <repo>
+> ./configure/clang
+```
 
 ## To publish a new version
 
