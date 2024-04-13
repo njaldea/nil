@@ -17,7 +17,6 @@ This repository is tested with gcc-11 and clang-18.
 | ------------------------------------- | ----------------------------------------- |
 | [cli](projects/cli/README.md)         | Simplified argument parsing library       |
 | [gate](projects/gate/README.md)       | Node execution library                    |
-| [utils](projects/utils/README.md)     | Collection of common utility libraries    |
 | [pulse](projects/pulse/README.md)     | Reactive Variable (Observables)           |
 | [service](projects/service/README.md) | Communication library (udp/tcp/websocket) |
 

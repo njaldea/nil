@@ -5,16 +5,14 @@ if [[ $0 != $BASH_SOURCE ]]; then
     return 1
 fi
 
-SCRIPT_PATH=`(dirname $BASH_SOURCE)`
-BUILD_PATH=`(realpath ${SCRIPT_PATH}/../.build)`
-
 export CC=`(which clang-18)`
 export CXX=`(which clang++-18)`
 
 # TODO: allow optional use of libc++
 
-cmake                                           \
-    -B $BUILD_PATH                              \
+SCRIPT_PATH=`(dirname $BASH_SOURCE)`
+cd `(realpath ${SCRIPT_PATH}/../.build)`
+cmake ..                                        \
     --preset debug                              \
     -DVCPKG_TARGET_TRIPLET="nil-libcxx"         \
     -DVCPKG_HOST_TRIPLET="nil-libcxx"

@@ -5,12 +5,10 @@ if [[ $0 != $BASH_SOURCE ]]; then
     return 1
 fi
 
-SCRIPT_PATH=`(dirname $BASH_SOURCE)`
-BUILD_PATH=`(realpath ${SCRIPT_PATH}/../.build)`
-
 export CC=`(which gcc-11)`
 export CXX=`(which g++-11)`
 
-cmake               \
-    -B $BUILD_PATH  \
+SCRIPT_PATH=`(dirname $BASH_SOURCE)`
+cd `(realpath ${SCRIPT_PATH}/../.build)`
+cmake ..            \
     --preset debug

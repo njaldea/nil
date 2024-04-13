@@ -5,7 +5,6 @@
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
 #include <nil/gate/api/uniform.hpp>
-#include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/state.pb.h>
 
@@ -37,6 +36,19 @@ namespace ext
         std::tuple<FirstControl, Controls...> controls;
     };
 
+    template <typename T>
+    class identity
+    {
+    private:
+        static constexpr const std::uint8_t identifier = 0;
+
+    public:
+        static constexpr auto value = static_cast<const void*>(&identifier);
+    };
+
+    template <typename T>
+    constexpr auto identity_v = identity<T>::value;
+
     struct GraphState
     {
         struct RelaxedEdge
@@ -44,7 +56,7 @@ namespace ext
             template <typename T>
             RelaxedEdge(nil::gate::edges::ReadOnly<T>* init_edge)
                 : edge(init_edge)
-                , identity(nil::utils::traits::identity_v<T>)
+                , identity(identity_v<T>)
             {
             }
 
@@ -54,7 +66,7 @@ namespace ext
             template <typename T>
             operator nil::gate::edges::Mutable<T>*() const
             {
-                if (nil::utils::traits::identity_v<T> != identity)
+                if (identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
@@ -64,7 +76,7 @@ namespace ext
             template <typename T>
             operator nil::gate::edges::ReadOnly<T>*() const
             {
-                if (nil::utils::traits::identity_v<T> != identity)
+                if (identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
@@ -74,7 +86,7 @@ namespace ext
             template <typename T>
             operator nil::gate::edges::Compatible<T>() const
             {
-                if (nil::utils::traits::identity_v<T> != identity)
+                if (identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
@@ -84,7 +96,7 @@ namespace ext
             template <typename T>
             void set_value(T value)
             {
-                if (nil::utils::traits::identity_v<T> != identity)
+                if (identity_v<T> != identity)
                 {
                     throw std::runtime_error("incompatible types");
                 }
@@ -143,8 +155,7 @@ namespace ext
             {
                 ( //
                     info.add_inputs(type_to_pin_index.at(
-                        nil::utils::traits::identity_v<
-                            std::tuple_element_t<indices, std::tuple<Inputs...>>> //
+                        identity_v<std::tuple_element_t<indices, std::tuple<Inputs...>>> //
                     )),
                     ...
                 );
@@ -157,8 +168,7 @@ namespace ext
                 nil::gate::detail::traits::types<Outputs...> /* unused */
             )
             {
-                (info.add_outputs(type_to_pin_index.at(nil::utils::traits::identity_v<Outputs>)),
-                 ...);
+                (info.add_outputs(type_to_pin_index.at(identity_v<Outputs>)), ...);
             }
 
             template <typename... Controls, std::size_t... indices>
@@ -422,8 +432,7 @@ namespace ext
         template <typename T>
         App& add_pin(const Pin<T>& pin)
         {
-            constexpr auto identity = nil::utils::traits::identity_v<T>;
-            state.type_to_pin_index.emplace(identity, state.info.types().pins_size());
+            state.type_to_pin_index.emplace(identity_v<T>, state.info.types().pins_size());
             detail::api::to_message(*state.info.mutable_types()->add_pins(), pin);
 
             state.edge_factories.push_back(

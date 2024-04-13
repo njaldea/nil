@@ -4,10 +4,6 @@ if(NOT ENABLE_FEATURE_GATE)
     return()
 endif()
 
-if(NOT ENABLE_FEATURE_UTILS)
-    message(FATAL_ERROR "gate library requires ENABLE_FEATURE_UTILS")
-endif()
-
 set(
     HEADERS
         publish/nil/gate.hpp

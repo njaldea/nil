@@ -8,7 +8,6 @@
 #include <nil/gate/runners/boost_asio.hpp>
 #include <nil/service/TypedHandler.hpp>
 #include <nil/service/tcp/Server.hpp>
-#include <nil/utils/traits/identity.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
