@@ -17,5 +17,4 @@ namespace gui
 
         ImVec4 color;
     };
-
 }

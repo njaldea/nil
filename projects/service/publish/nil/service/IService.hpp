@@ -10,7 +10,6 @@
 
 namespace nil::service
 {
-
     namespace detail
     {
         template <typename... Args>
@@ -257,5 +256,4 @@ namespace nil::service
     {
         return std::make_unique<T>(std::move(options));
     }
-
 }

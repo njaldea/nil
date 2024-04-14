@@ -252,5 +252,4 @@ namespace nil::gatex
             after_hook->call(id);
         }
     }
-
 }

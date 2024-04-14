@@ -163,5 +163,4 @@ namespace nil::gate::runners
         std::thread main_th;
         std::vector<std::thread> exec_th;
     };
-
 }

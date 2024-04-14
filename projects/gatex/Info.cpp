@@ -36,7 +36,6 @@ namespace
 
 namespace nil::gatex
 {
-
     void GraphInfo::add_node(NodeInfo info)
     {
         const auto id = info.id;

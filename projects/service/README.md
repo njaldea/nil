@@ -40,7 +40,7 @@ The classes provided by this library conforms in similar API. available protocol
 | `on_disconnect(handler)`         | register disconnect handler                |
 | `on_message(handler)`            | register message handler                   |
 | `send_raw(id, data, size)`       | send message to a specific id/connection   |
-| `publish_raw(type, data, size)`  | sends message to all connection            |
+| `publish_raw(data, size)`        | sends message to all connection            |
 | `send(id, message...)`           | send message to a specific id/connection   |
 | `publish(message...)`            | sends message to all connection            |
 
