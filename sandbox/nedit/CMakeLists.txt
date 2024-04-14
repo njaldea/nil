@@ -1,11 +1,8 @@
 project(sandbox_nedit)
 
-if(NOT ENABLE_FEATURE_CLI OR NOT ENABLE_FEATURE_SERVICE OR NOT ENABLE_FEATURE_GATE)
-    return()
-endif()
-
 add_subdirectory(messages/gen/nedit/messages)
 
+find_package(nil-gate CONFIG REQUIRED)
 find_package(glfw3 CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -56,7 +53,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE dev)
 target_link_libraries(${PROJECT_NAME} PRIVATE cli)
 target_link_libraries(${PROJECT_NAME} PRIVATE service)
-target_link_libraries(${PROJECT_NAME} PRIVATE gate)
+target_link_libraries(${PROJECT_NAME} PRIVATE nil::gate)
 target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 target_link_libraries(${PROJECT_NAME} PRIVATE OpenGL::GL)
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)

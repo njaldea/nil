@@ -29,8 +29,6 @@
                 "VCPKG_MANIFEST_FEATURES": "sandbox",
                 "ENABLE_FEATURE_CLI": "ON",
                 "ENABLE_FEATURE_PULSE": "ON",
-                "ENABLE_FEATURE_UTILS": "ON",
-                "ENABLE_FEATURE_GATE": "ON",
                 "ENABLE_FEATURE_SERVICE": "ON",
                 "ENABLE_SANDBOX": "ON",
                 "ENABLE_TEST": "OFF"

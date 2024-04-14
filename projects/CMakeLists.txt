@@ -1,6 +1,5 @@
 add_subdirectory(cli)
 add_subdirectory(service)
 add_subdirectory(pulse)
-add_subdirectory(gate)
 add_subdirectory(gatex)
 add_subdirectory(gatex_proto)

@@ -18,9 +18,7 @@ make sure to enable a feature when working on a specific target
 | ---------------------------------------- | ------------ | ----------------------------- | ----------------------------------------------------- |
 | [cli](projects/cli/README.md)            | cli          | `-DENABLE_FEATURE_CLI=ON`     | command line parser / boost::program_options          |
 | [pulse](projects/pulse/README.md)        | pulse        | `-DENABLE_FEATURE_PULSE=ON`   | straight forward implementation of reactive variables |
-| [utils](projects/utils/README.md)        | utils        | `-DENABLE_FEATURE_UTILS=ON`   | collection of common utility libraries                |
 | [service](projects/service/README.md)    | service      | `-DENABLE_FEATURE_SERVICE=ON` | event handling / boost::asio                          |
-| [gate](projects/gate/README.md)          | gate         | `-DENABLE_FEATURE_GATE=ON`    | nil-/gate js to c++                                   |
 | sandbox                                  | sandbox      | `-DENABLE_SANDBOX=ON`         | enable all features and sandbox                       |
 | tests                                    | test         | `-DENABLE_TEST=ON`            | tests / might require other targets                   |
 | clang-tidy                               |              | `-DENABLE_CLANG_TIDY=ON`      | enable clang-tidy for all source files                |

@@ -1,9 +1,5 @@
 project(sandbox_gatex)
 
-if(NOT ENABLE_FEATURE_CLI OR NOT ENABLE_FEATURE_SERVICE OR NOT ENABLE_FEATURE_GATE)
-    return()
-endif()
-
 set(
     SOURCES
         main.cpp

@@ -1,8 +1,7 @@
 {
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "description": "Collection of libraries from nil",
-    "name": "nil",
-    "builtin-baseline": "da21e45c9ae689f63aa27f3a4ee0e64fe6b16494",
+    "name": "nil-mono",
     "features": {
         "cli": {
             "description": "Simplified argument parsing (from boost::program_options)",
@@ -15,9 +14,6 @@
         },
         "pulse": {
             "description": "straight forward implementation of reactive variables"
-        },
-        "utils": {
-            "description": "collection of common utility libraries"
         },
         "service": {
             "description": "Simplified event handling (from boost::asio)",
@@ -32,26 +28,9 @@
                 }
             ]
         },
-        "gate": {
-            "description": "nil-/gate js to c++",
-            "dependencies": [
-                {
-                    "name": "nil",
-                    "features": [
-                        "utils"
-                    ]
-                }
-            ]
-        },
         "test": {
             "description": "Enable tests",
             "dependencies": [
-                {
-                    "name": "nil",
-                    "features": [
-                        "sandbox"
-                    ]
-                },
                 {
                     "name": "gtest",
                     "version>=": "1.13.0"
@@ -62,13 +41,15 @@
             "description": "sandbox additional requirements",
             "dependencies": [
                 {
-                    "name": "nil",
+                    "name": "nil-mono",
                     "features": [
                         "cli",
-                        "gate",
                         "service",
                         "pulse"
                     ]
+                },
+                {
+                    "name": "nil-gate"
                 },
                 "opengl",
                 "glfw3",
