@@ -9,11 +9,10 @@ export CC=`(which clang-18)`
 export CXX=`(which clang++-18)`
 
 SCRIPT_PATH=`(dirname $BASH_SOURCE)`
-BUILD_PATH=`(realpath $SCRIPT_PATH/../.build)`
-mkdir -p $BUILD_PATH
-cd $BUILD_PATH
-cmake ..                                            \
-    --preset ${1:-debug}                             \
+REPO_PATH=`(realpath $SCRIPT_PATH/..)`
+cd $REPO_PATH
+cmake .                                             \
+    --preset ${1:-debug}                            \
     -DVCPKG_OVERLAY_TRIPLETS="${PWD}/../triplets"   \
     -DVCPKG_TARGET_TRIPLET="nil-libcxx"             \
     -DVCPKG_HOST_TRIPLET="nil-libcxx"

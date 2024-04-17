@@ -9,8 +9,7 @@ export CC=`(which gcc-11)`
 export CXX=`(which g++-11)`
 
 SCRIPT_PATH=`(dirname $BASH_SOURCE)`
-BUILD_PATH=`(realpath $SCRIPT_PATH/../.build)`
-mkdir -p $BUILD_PATH
-cd $BUILD_PATH
-cmake ..                    \
+REPO_PATH=`(realpath $SCRIPT_PATH/..)`
+cd $REPO_PATH
+cmake .                     \
     --preset ${1:-debug}
