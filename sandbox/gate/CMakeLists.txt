@@ -1,7 +1,7 @@
 project(sandbox_gate)
 
 find_package(Boost REQUIRED)
-find_package(nil-gate CONFIG REQUIRED)
+find_package(nil COMPONENTS gate CONFIG REQUIRED)
 
 add_executable(${PROJECT_NAME}_basic basic.cpp)
 target_link_libraries(${PROJECT_NAME}_basic PRIVATE dev)

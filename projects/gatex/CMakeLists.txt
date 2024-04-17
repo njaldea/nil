@@ -1,10 +1,10 @@
 project(gatex)
 
-if(NOT ENABLE_FEATURE_CLI OR NOT ENABLE_FEATURE_SERVICE)
+if(NOT ENABLE_FEATURE_SERVICE)
     return()
 endif()
 
-find_package(nil-gate CONFIG REQUIRED)
+find_package(nil COMPONENTS gate clix CONFIG REQUIRED)
 
 set(
     SOURCES

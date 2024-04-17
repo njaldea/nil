@@ -1,12 +1,12 @@
-#include <nil/cli.hpp>
-#include <nil/cli/nodes/Help.hpp>
+#include <nil/clix.hpp>
+#include <nil/clix/nodes/Help.hpp>
 #include <nil/service.hpp>
 
 #include <iostream>
 #include <thread>
 
 template <typename Service>
-std::unique_ptr<nil::service::IService> make_service(const nil::cli::Options& options)
+std::unique_ptr<nil::service::IService> make_service(const nil::clix::Options& options)
 {
     const auto port = std::uint16_t(options.number("port"));
     constexpr auto is_server //
@@ -39,13 +39,13 @@ std::unique_ptr<nil::service::IService> make_service(const nil::cli::Options& op
 }
 
 template <typename T>
-struct Service final: nil::cli::Command
+struct Service final: nil::clix::Command
 {
     static_assert(std::is_base_of_v<nil::service::IService, T>);
 
-    nil::cli::OptionInfo options() const override
+    nil::clix::OptionInfo options() const override
     {
-        return nil::cli::Builder()
+        return nil::clix::Builder()
             .flag("help", {.skey = 'h', .msg = "this help"})
             .number(
                 "port",
@@ -119,7 +119,7 @@ struct Service final: nil::cli::Command
         }
     }
 
-    int run(const nil::cli::Options& options) const override
+    int run(const nil::clix::Options& options) const override
     {
         if (options.flag("help"))
         {
@@ -134,7 +134,7 @@ struct Service final: nil::cli::Command
 };
 
 template <typename Server, typename Client>
-void add_sub_nodes(nil::cli::Node& node)
+void add_sub_nodes(nil::clix::Node& node)
 {
     node.add<Service<Server>>("server", "server");
     node.add<Service<Client>>("client", "client");
@@ -142,8 +142,8 @@ void add_sub_nodes(nil::cli::Node& node)
 
 int main(int argc, const char** argv)
 {
-    using nil::cli::Node;
-    using nil::cli::nodes::Help;
+    using nil::clix::Node;
+    using nil::clix::nodes::Help;
     using namespace nil::service;
 
     auto root = Node::root<Help>(std::cout);

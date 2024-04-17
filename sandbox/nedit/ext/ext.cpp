@@ -21,9 +21,9 @@
 #include <memory>
 #include <thread>
 
-nil::cli::OptionInfo EXT::options() const
+nil::clix::OptionInfo EXT::options() const
 {
-    return nil::cli::Builder()
+    return nil::clix::Builder()
         .flag("help", {.skey = 'h', .msg = "this help"})
         .number("port", {.skey = 'p', .msg = "port", .fallback = 1101})
         .build();
@@ -220,7 +220,7 @@ auto make_control_update(ext::GraphState& graph_state, Executor& executor, EPrio
     };
 }
 
-int EXT::run(const nil::cli::Options& options) const
+int EXT::run(const nil::clix::Options& options) const
 {
     if (options.flag("help"))
     {

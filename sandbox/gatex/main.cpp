@@ -2,5 +2,5 @@
 
 int main(int argc, char** argv)
 {
-    return nil::cli::Node::root<CMD>().run(argc, argv);
+    return nil::clix::Node::root<CMD>().run(argc, argv);
 }

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <nil/cli.hpp>
+#include <nil/clix.hpp>
 
-struct CMD: nil::cli::Command
+struct CMD: nil::clix::Command
 {
-    nil::cli::OptionInfo options() const override;
-    int run(const nil::cli::Options& options) const override;
+    nil::clix::OptionInfo options() const override;
+    int run(const nil::clix::Options& options) const override;
 };

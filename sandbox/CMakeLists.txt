@@ -11,7 +11,7 @@ if(NOT ENABLE_SANDBOX)
 endif()
 
 add_subdirectory(dev)
-add_subdirectory(cli)
+add_subdirectory(clix)
 add_subdirectory(service)
 add_subdirectory(pulse)
 add_subdirectory(gate)

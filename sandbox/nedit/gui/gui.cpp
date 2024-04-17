@@ -29,9 +29,9 @@
 #include <thread>
 #include <vector>
 
-nil::cli::OptionInfo GUI::options() const
+nil::clix::OptionInfo GUI::options() const
 {
-    return nil::cli::Builder()
+    return nil::clix::Builder()
         .flag("help", {.skey = 'h', .msg = "this help"})
         .number("port", {.skey = 'p', .msg = "port", .fallback = 1101})
         .param("file", {.skey = 'f', .msg = "load file on boot", .fallback = ""})
@@ -289,7 +289,7 @@ auto process_state(
     return tmp;
 }
 
-int GUI::run(const nil::cli::Options& options) const
+int GUI::run(const nil::clix::Options& options) const
 {
     if (options.flag("help"))
     {

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <nil/cli.hpp>
+#include <nil/clix.hpp>
 
-struct GUI: nil::cli::Command
+struct GUI: nil::clix::Command
 {
-    nil::cli::OptionInfo options() const override;
+    nil::clix::OptionInfo options() const override;
 
-    int run(const nil::cli::Options& options) const override;
+    int run(const nil::clix::Options& options) const override;
 
     void play() const;
 };

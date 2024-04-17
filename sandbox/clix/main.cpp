@@ -1,19 +1,19 @@
-#include <nil/cli.hpp>
+#include <nil/clix.hpp>
 
 #include <iostream>
 
 template <int V>
-struct Command final: nil::cli::Command
+struct Command final: nil::clix::Command
 {
     std::string usage() const override
     {
         return " >  <binary> [OPTIONS...]";
     }
 
-    nil::cli::OptionInfo options() const override
+    nil::clix::OptionInfo options() const override
     {
         // clang-format off
-        return nil::cli::Builder()
+        return nil::clix::Builder()
             .flag  ("help",   { .skey ='h', .msg = "show this help"                                        })
             .flag  ("spawn",  { .skey ='s', .msg = "spawn"                                                 })
             .number("thread", { .skey ='t', .msg = "number of threads"                                     })
@@ -24,7 +24,7 @@ struct Command final: nil::cli::Command
         // clang-format on
     }
 
-    int run(const nil::cli::Options& options) const override
+    int run(const nil::clix::Options& options) const override
     {
         if (options.flag("help"))
         {
@@ -47,7 +47,7 @@ struct Command final: nil::cli::Command
 
 int main(int argc, const char** argv)
 {
-    auto root = nil::cli::Node::root<Command<0>>();
+    auto root = nil::clix::Node::root<Command<0>>();
     root.add<Command<1>>("hello", "command for 1:hello") //
         .add<Command<2>>("world", "command for 2:world");
     root.add<Command<3>>("another", "command for 3:another") //

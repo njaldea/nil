@@ -1,10 +1,10 @@
 #pragma once
 
-#include <nil/cli.hpp>
+#include <nil/clix.hpp>
 
-struct EXT: nil::cli::Command
+struct EXT: nil::clix::Command
 {
-    nil::cli::OptionInfo options() const override;
+    nil::clix::OptionInfo options() const override;
 
-    int run(const nil::cli::Options& options) const override;
+    int run(const nil::clix::Options& options) const override;
 };

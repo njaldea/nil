@@ -1,5 +1,7 @@
 project(sandbox_gatex)
 
+find_package(nil COMPONENTS clix CONFIG REQUIRED)
+
 set(
     SOURCES
         main.cpp
@@ -11,10 +13,11 @@ set(
         Command.hpp
 )
 
+
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE sandbox_nedit_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE dev)
-target_link_libraries(${PROJECT_NAME} PRIVATE cli)
+target_link_libraries(${PROJECT_NAME} PRIVATE nil::clix)
 target_link_libraries(${PROJECT_NAME} PRIVATE service)
 target_link_libraries(${PROJECT_NAME} PRIVATE gatex)
 target_compile_definitions(${PROJECT_NAME} PRIVATE BOOST_ASIO_NO_DEPRECATED)

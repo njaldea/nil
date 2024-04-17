@@ -3,15 +3,6 @@
     "description": "Collection of libraries from nil",
     "name": "nil-mono",
     "features": {
-        "cli": {
-            "description": "Simplified argument parsing (from boost::program_options)",
-            "dependencies": [
-                {
-                    "name": "boost-program-options",
-                    "version>=": "1.82.0"
-                }
-            ]
-        },
         "pulse": {
             "description": "straight forward implementation of reactive variables"
         },
@@ -43,13 +34,13 @@
                 {
                     "name": "nil-mono",
                     "features": [
-                        "cli",
                         "service",
                         "pulse"
                     ]
                 },
                 {
-                    "name": "nil-gate"
+                    "name": "nil",
+                    "features": ["gate", "clix"]
                 },
                 "opengl",
                 "glfw3",

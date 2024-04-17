@@ -52,9 +52,9 @@ namespace nil::service
     };
 }
 
-nil::cli::OptionInfo CMD::options() const
+nil::clix::OptionInfo CMD::options() const
 {
-    return nil::cli::Builder()
+    return nil::clix::Builder()
         .flag("help", {.skey = 'h', .msg = "this help"})
         .number("port", {.skey = 'p', .msg = "use port", .fallback = 1101})
         .build();
@@ -119,7 +119,7 @@ struct Consume
     }
 };
 
-int CMD::run(const nil::cli::Options& options) const
+int CMD::run(const nil::clix::Options& options) const
 {
     if (options.flag("help"))
     {
