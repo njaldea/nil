@@ -2,10 +2,6 @@
 
 include(CMakeFindDependencyMacro)
 
-if("@ENABLE_FEATURE_SERVICE@")
-    include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-service-targets.cmake)
-endif()
-
 if("@ENABLE_FEATURE_PULSE@")
     include(${CMAKE_CURRENT_LIST_DIR}/@CMAKE_PROJECT_NAME@-pulse-targets.cmake)
 endif()

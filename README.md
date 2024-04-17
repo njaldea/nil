@@ -15,9 +15,7 @@ This repository is tested with gcc-11 and clang-18.
 
 | project                               | description                               |
 | ------------------------------------- | ----------------------------------------- |
-| [gate](projects/gate/README.md)       | Node execution library                    |
 | [pulse](projects/pulse/README.md)     | Reactive Variable (Observables)           |
-| [service](projects/service/README.md) | Communication library (udp/tcp/websocket) |
 
 ## Sandboxe (WIP)
 

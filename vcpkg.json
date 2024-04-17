@@ -6,19 +6,6 @@
         "pulse": {
             "description": "straight forward implementation of reactive variables"
         },
-        "service": {
-            "description": "Simplified event handling (from boost::asio)",
-            "dependencies": [
-                {
-                    "name": "boost-asio",
-                    "version>=": "1.82.0"
-                },
-                {
-                    "name": "boost-beast",
-                    "version>=": "1.82.0"
-                }
-            ]
-        },
         "test": {
             "description": "Enable tests",
             "dependencies": [
@@ -34,13 +21,12 @@
                 {
                     "name": "nil-mono",
                     "features": [
-                        "service",
                         "pulse"
                     ]
                 },
                 {
                     "name": "nil",
-                    "features": ["gate", "clix"]
+                    "features": ["gate", "clix", "service"]
                 },
                 "opengl",
                 "glfw3",

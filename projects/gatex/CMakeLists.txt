@@ -1,10 +1,6 @@
 project(gatex)
 
-if(NOT ENABLE_FEATURE_SERVICE)
-    return()
-endif()
-
-find_package(nil COMPONENTS gate clix CONFIG REQUIRED)
+find_package(nil COMPONENTS gate clix service CONFIG REQUIRED)
 
 set(
     SOURCES
@@ -33,7 +29,7 @@ add_library(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE sandbox_nedit_proto)
 target_link_libraries(${PROJECT_NAME} PUBLIC nil::gate)
-target_link_libraries(${PROJECT_NAME} PUBLIC service)
+target_link_libraries(${PROJECT_NAME} PUBLIC nil::service)
 target_link_libraries(${PROJECT_NAME} PUBLIC gatex_proto)
 target_compile_definitions(${PROJECT_NAME} PUBLIC BOOST_ASIO_NO_DEPRECATED)
 
