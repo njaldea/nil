@@ -11,5 +11,5 @@ export CXX=`(which g++-11)`
 SCRIPT_PATH=`(dirname $BASH_SOURCE)`
 REPO_PATH=`(realpath $SCRIPT_PATH/..)`
 cd $REPO_PATH
-cmake .                     \
-    --preset ${1:-debug}
+
+configure/command $@

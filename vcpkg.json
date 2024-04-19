@@ -2,6 +2,16 @@
     "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
     "description": "Collection of libraries from nil",
     "name": "nil-mono",
+    "dependencies": [
+        {
+            "name": "nil",
+            "features": ["gate", "clix", "service"]
+        },
+        {
+            "name": "protobuf",
+            "version>=": "3.21.12"
+        }
+    ],
     "features": {
         "pulse": {
             "description": "straight forward implementation of reactive variables"
@@ -24,10 +34,6 @@
                         "pulse"
                     ]
                 },
-                {
-                    "name": "nil",
-                    "features": ["gate", "clix", "service"]
-                },
                 "opengl",
                 "glfw3",
                 {
@@ -41,10 +47,6 @@
                 {
                     "name": "imgui-node-editor",
                     "version>=": "0.9.2"
-                },
-                {
-                    "name": "protobuf",
-                    "version>=": "3.21.12"
                 }
             ]
         }
