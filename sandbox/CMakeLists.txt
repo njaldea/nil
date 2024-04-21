@@ -11,10 +11,7 @@ if(NOT ENABLE_SANDBOX)
 endif()
 
 add_subdirectory(dev)
-add_subdirectory(clix)
-add_subdirectory(service)
 add_subdirectory(pulse)
-add_subdirectory(gate)
 add_subdirectory(gatex)
 add_subdirectory(nedit)
 
