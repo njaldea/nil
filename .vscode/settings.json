@@ -1,5 +1,4 @@
 {
-  "cmake.useCMakePresets": "always",
   "cmake.configureEnvironment": {
     "VCPKG_FEATURE_FLAGS": "manifests"
   },
@@ -11,7 +10,7 @@
   "explorer.fileNesting.expand": true,
   "explorer.fileNesting.patterns": {
     "README.md": ".gitignore, .prettier*, LICENSE",
-    "vcpkg.json": "vcpkg-configuration.json, .clang-format, .clang-tidy",
+    "vcpkg.json": "vcpkg-configuration.json, .clang-format, .clang-tidy, .clangd",
     "CMakeLists.txt": "CMakePresets.json"
   },
   "[cpp]": {
@@ -24,7 +23,6 @@
   "clangd.arguments": [
     "--j=4",
     "--clang-tidy",
-    "--compile-commands-dir=${workspaceFolder}/.build",
     "--all-scopes-completion",
     "--header-insertion=iwyu",
     "--background-index"
