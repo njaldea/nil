@@ -17,7 +17,7 @@ This repository is tested with gcc-11 and clang-18.
 | ------------------------------------- | ----------------------------------------- |
 | [pulse](projects/pulse/README.md)     | Reactive Variable (Observables)           |
 
-## Sandboxe (WIP)
+## Sandbox (WIP)
 
 | name  | description               | video                                                                                  |
 | ----- | ------------------------- | -------------------------------------------------------------------------------------- |

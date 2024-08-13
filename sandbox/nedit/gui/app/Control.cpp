@@ -2,6 +2,7 @@
 #include "../../codec.hpp"
 
 #include <nil/service/IService.hpp>
+#include <nil/service/concat.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/type.pb.h>
@@ -39,7 +40,9 @@ namespace gui
             nil::nedit::proto::ControlUpdateB msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdateB, msg);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::ControlUpdateB, msg)
+            );
         }
     }
 
@@ -72,7 +75,9 @@ namespace gui
             nil::nedit::proto::ControlUpdateI msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdateI, msg);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::ControlUpdateI, msg)
+            );
         }
     }
 
@@ -105,7 +110,9 @@ namespace gui
             nil::nedit::proto::ControlUpdateF msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdateF, msg);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::ControlUpdateF, msg)
+            );
         }
     }
 
@@ -134,7 +141,9 @@ namespace gui
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdateS, msg);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::ControlUpdateS, msg)
+            );
         }
     }
 
@@ -186,7 +195,9 @@ namespace gui
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(nil::nedit::proto::message_type::ControlUpdateS, msg);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::ControlUpdateS, msg)
+            );
         }
     }
 }

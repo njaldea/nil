@@ -2,7 +2,8 @@
 #include <nil/gatex/parse.hpp>
 #include <nil/gatex/serve.hpp>
 
-#include <nil/service/TypedHandler.hpp>
+#include <nil/service/IService.hpp>
+#include <nil/service/concat.hpp>
 #include <nil/service/tcp/Server.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
@@ -68,7 +69,9 @@ namespace nil::gatex
                 nil::nedit::proto::NodeState message;
                 message.set_id(id);
                 message.set_active(true);
-                server.publish(nil::nedit::proto::message_type::NodeState, message);
+                server.publish(
+                    nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
+                );
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
             }
         );
@@ -79,47 +82,67 @@ namespace nil::gatex
                 nil::nedit::proto::NodeState message;
                 message.set_id(id);
                 message.set_active(false);
-                server.publish(nil::nedit::proto::message_type::NodeState, message);
+                server.publish(
+                    nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
+                );
             }
         );
 
         server.on_connect( //
-            [&server, &core, &state](const std::string& id)
+            [&server, &core, &state](const nil::service::ID& id)
             {
                 core.stop();
-                server.send(id, nil::nedit::proto::message_type::State, state);
+                server.send(
+                    id,
+                    nil::service::concat(nil::nedit::proto::message_type::State, state)
+                );
             }
         );
 
         namespace proto = nil::nedit::proto;
-        server.on_message(                                                 //
-            nil::service::TypedHandler<proto::message_type::MessageType>() //
-                .add(
-                    proto::message_type::ControlUpdateB,
-                    [&core](const std::string& /* id */, const proto::ControlUpdateB& message)
-                    { core.set_control_value(message.id(), message.value()); }
-                )
-                .add(
-                    proto::message_type::ControlUpdateI,
-                    [&core](const std::string& /* id */, const proto::ControlUpdateI& message)
-                    { core.set_control_value(message.id(), message.value()); }
-                )
-                .add(
-                    proto::message_type::ControlUpdateF,
-                    [&core](const std::string& /* id */, const proto::ControlUpdateF& message)
-                    { core.set_control_value(message.id(), message.value()); }
-                )
-                .add(
-                    proto::message_type::ControlUpdateS,
-                    [&core](const std::string& /* id */, const proto::ControlUpdateS& message)
-                    { core.set_control_value(message.id(), message.value()); }
-                )
-                .add(proto::message_type::Play, [&core]() { core.resume(); })
-                .add(proto::message_type::Pause, [&core]() { core.stop(); })
-                .add(
-                    proto::message_type::State,
-                    [&server, &core](const std::string& id, const proto::State& msg)
+        server.on_message(
+            [&core, &server](const nil::service::ID& id, const void* data, std::uint64_t size)
+            {
+                using namespace nil::service;
+                switch (type_cast<proto::message_type::MessageType>(data, size))
+                {
+                    case proto::message_type::ControlUpdateB:
                     {
+                        const auto msg = type_cast<proto::ControlUpdateB>(data, size);
+                        core.set_control_value(msg.id(), msg.value());
+                        break;
+                    }
+                    case proto::message_type::ControlUpdateI:
+                    {
+                        const auto msg = type_cast<proto::ControlUpdateI>(data, size);
+                        core.set_control_value(msg.id(), msg.value());
+                        break;
+                    }
+                    case proto::message_type::ControlUpdateF:
+                    {
+                        const auto msg = type_cast<proto::ControlUpdateF>(data, size);
+                        core.set_control_value(msg.id(), msg.value());
+                        break;
+                    }
+                    case proto::message_type::ControlUpdateS:
+                    {
+                        const auto msg = type_cast<proto::ControlUpdateS>(data, size);
+                        core.set_control_value(msg.id(), msg.value());
+                        break;
+                    }
+                    case proto::message_type::Play:
+                    {
+                        core.resume();
+                        break;
+                    }
+                    case proto::message_type::Pause:
+                    {
+                        core.stop();
+                        break;
+                    }
+                    case proto::message_type::State:
+                    {
+                        const auto msg = type_cast<proto::State>(data, size);
                         if (!core.is_compatible(msg.types().SerializeAsString()))
                         {
                             std::cerr << "state is not compatible to types" << std::endl;
@@ -128,18 +151,22 @@ namespace nil::gatex
                         core.stop();
                         core.wait();
                         core.instantiate(parse(msg));
-                        server.send(id, proto::message_type::State, msg);
+                        server.send(id, concat(proto::message_type::State, msg));
+                        break;
                     }
-                )
-                .add(
-                    proto::message_type::Run,
-                    [&core]()
+                    case proto::message_type::Run:
                     {
                         core.stop();
                         core.wait();
                         core.start();
+                        break;
                     }
-                )
+                    case proto::message_type::MessageType::NodeState:
+                    case proto::message_type::MessageType::MessageType_INT_MIN_SENTINEL_DO_NOT_USE_:
+                    case proto::message_type::MessageType::MessageType_INT_MAX_SENTINEL_DO_NOT_USE_:
+                        break;
+                }
+            }
         );
 
         server.run();

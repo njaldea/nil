@@ -5,7 +5,8 @@
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
-#include <nil/service/TypedHandler.hpp>
+#include <nil/service/IService.hpp>
+#include <nil/service/concat.hpp>
 #include <nil/service/tcp/Client.hpp>
 
 #include <gen/nedit/messages/metadata.pb.h>
@@ -336,14 +337,17 @@ namespace
         gui::App app;
         nil::nedit::proto::State info;
 
-        service.on_message(                                                            //
-            nil::service::TypedHandler<nil::nedit::proto::message_type::MessageType>() //
-                .add(
-                    nil::nedit::proto::message_type::State,
-                    [&app,
-                     &service,
-                     &info](const std::string&, const nil::nedit::proto::State& message)
+        service.on_message(
+            [&](const void* data, std::uint64_t size)
+            {
+                const auto tag = nil::service::type_cast //
+                    <nil::nedit::proto::message_type::MessageType>(data, size);
+                switch (tag)
+                {
+                    case nil::nedit::proto::message_type::State:
                     {
+                        const auto message = nil::service::type_cast //
+                            <nil::nedit::proto::State>(data, size);
                         auto tmp = process_state(service, app, info, message);
 
                         // load the graph here if it is available;
@@ -352,19 +356,31 @@ namespace
                         {
                             app.before_render.emplace_back(std::move(cb));
                         }
+                        break;
                     }
-                )
-                .add(
-                    nil::nedit::proto::message_type::NodeState,
-                    [&app](const std::string&, const nil::nedit::proto::NodeState& message)
+                    case nil::nedit::proto::message_type::NodeState:
                     {
+                        const auto message = nil::service::type_cast //
+                            <nil::nedit::proto::NodeState>(data, size);
                         const auto _ = std::unique_lock(app.mutex);
                         app.before_render.emplace_back( //
                             [&app, id = message.id(), activated = message.active()]()
                             { app.nodes.at(id)->activated = activated; }
                         );
+                        break;
                     }
-                )
+                    case nil::nedit::proto::message_type::ControlUpdateB:
+                    case nil::nedit::proto::message_type::ControlUpdateI:
+                    case nil::nedit::proto::message_type::ControlUpdateF:
+                    case nil::nedit::proto::message_type::ControlUpdateS:
+                    case nil::nedit::proto::message_type::Play:
+                    case nil::nedit::proto::message_type::Pause:
+                    case nil::nedit::proto::message_type::Run:
+                    case nil::nedit::proto::message_type::MessageType_INT_MIN_SENTINEL_DO_NOT_USE_:
+                    case nil::nedit::proto::message_type::MessageType_INT_MAX_SENTINEL_DO_NOT_USE_:
+                        break;
+                }
+            }
         );
 
         std::string path = options.param("file");
@@ -424,7 +440,9 @@ namespace
                     tmp.ParseFromIstream(&file);
                     app.changed = true;
                     loaded = true;
-                    service.publish(nil::nedit::proto::message_type::State, tmp);
+                    service.publish(
+                        nil::service::concat(nil::nedit::proto::message_type::State, tmp)
+                    );
                 }
                 catch (const std::exception& e)
                 {
@@ -478,7 +496,10 @@ namespace
                             [&]()
                             {
                                 load(app, info);
-                                service.publish(nil::nedit::proto::message_type::State, info);
+                                service.publish(nil::service::concat(
+                                    nil::nedit::proto::message_type::State,
+                                    info
+                                ));
                                 service.publish(nil::nedit::proto::message_type::Play);
                                 service.publish(nil::nedit::proto::message_type::Run);
                             }

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WIX</title>
+    <style>
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            padding: 0px;
+        }
+
+        body {
+            background-color: cadetblue;
+        }
+    </style>
+</head>
+<body>
+    <script src="https://cdn.jsdelivr.net/npm/protobufjs@7.3.2/dist/protobuf.min.js"></script>
+    <script type="module">
+        import { Service } from './index.js';
+
+        const Sample = (await protobuf.load("wix/sample.proto"))
+            .lookupType("nil.wix.proto.Sample");
+
+        const service = new Service({ host: 'localhost', port: 1101, buffer: 1024 });
+        service.on_connect(id => console.log(`connected ${id}`));
+        service.on_disconnect(id => console.log(`disconnected ${id}`));
+        service.on_message((id, data) => {
+            globalThis.nil.data = data;
+            console.log(`message ${id}`, data);
+            console.log(`message ${id}`, Sample.decode(data));
+        });
+        service.start();
+        globalThis.nil = {Sample, service};
+    </script>
+</body>
+</html>

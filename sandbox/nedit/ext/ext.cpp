@@ -6,7 +6,8 @@
 
 #include <nil/dev.hpp>
 #include <nil/gate/runners/boost_asio.hpp>
-#include <nil/service/TypedHandler.hpp>
+#include <nil/service/IService.hpp>
+#include <nil/service/concat.hpp>
 #include <nil/service/tcp/Server.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
@@ -189,7 +190,9 @@ namespace
             nil::nedit::proto::NodeState message;
             message.set_id(id);
             message.set_active(true);
-            service.publish(nil::nedit::proto::message_type::NodeState, message);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
+            );
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         };
 
@@ -198,7 +201,9 @@ namespace
             nil::nedit::proto::NodeState message;
             message.set_id(id);
             message.set_active(false);
-            service.publish(nil::nedit::proto::message_type::NodeState, message);
+            service.publish(
+                nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
+            );
         };
 
         state.post = [&executor](const void* id, float time, std::function<void()> cb)
@@ -208,23 +213,25 @@ namespace
     }
 
     template <typename T>
-    auto make_control_update(ext::GraphState& graph_state, Executor& executor, EPriority priority)
+    auto control_update(
+        ext::GraphState& graph_state,
+        Executor& executor,
+        EPriority priority,
+        const T& message
+    )
     {
-        return [&graph_state, &executor, priority](const std::string&, const T& message)
-        {
-            executor.push(
-                {priority, message.id()},
-                [&graph_state, message]()
+        return executor.push(
+            {priority, message.id()},
+            [&graph_state, message]()
+            {
+                const auto it = graph_state.control_edges.find(message.id());
+                if (it != graph_state.control_edges.end())
                 {
-                    const auto it = graph_state.control_edges.find(message.id());
-                    if (it != graph_state.control_edges.end())
-                    {
-                        it->second.set_value(message.value());
-                        graph_state.core->commit();
-                    }
+                    it->second.set_value(message.value());
+                    graph_state.core->commit();
                 }
-            );
-        };
+            }
+        );
     }
 
     int run(const nil::clix::Options& options)
@@ -250,54 +257,69 @@ namespace
 
         namespace proto = nil::nedit::proto;
         service.on_connect( //
-            [&service, &app_state](const std::string& id)
-            { service.send(id, proto::message_type::State, app_state.info); }
+            [&service, &app_state](const nil::service::ID& id)
+            { service.send(id, nil::service::concat(proto::message_type::State, app_state.info)); }
         );
         service.on_disconnect([&]() { service.stop(); });
 
-        service.on_message(                                                //
-            nil::service::TypedHandler<proto::message_type::MessageType>() //
-                .add(
-                    proto::message_type::ControlUpdateB,
-                    make_control_update<proto::ControlUpdateB>(
-                        graph_state,
-                        executor,
-                        EPriority::ControlUpdateB
-                    )
-                )
-                .add(
-                    proto::message_type::ControlUpdateI,
-                    make_control_update<proto::ControlUpdateI>(
-                        graph_state,
-                        executor,
-                        EPriority::ControlUpdateI
-                    )
-                )
-                .add(
-                    proto::message_type::ControlUpdateF,
-                    make_control_update<proto::ControlUpdateF>(
-                        graph_state,
-                        executor,
-                        EPriority::ControlUpdateF
-                    )
-                )
-                .add(
-                    proto::message_type::ControlUpdateS,
-                    make_control_update<proto::ControlUpdateS>(
-                        graph_state,
-                        executor,
-                        EPriority::ControlUpdateS
-                    )
-                )
-                .add(proto::message_type::Play, [&graph_state]() { *graph_state.paused = false; })
-                .add(proto::message_type::Pause, [&graph_state]() { *graph_state.paused = true; })
-                .add(
-                    proto::message_type::State,
-                    [&graph_state, &app_state, &types, &service, &executor](
-                        const std::string& id,
-                        const proto::State& info
-                    )
+        service.on_message(
+            [&](const nil::service::ID& id, const void* data, std::uint64_t size)
+            {
+                switch (nil::service::type_cast<proto::message_type::MessageType>(data, size))
+                {
+                    case nil::nedit::proto::message_type::ControlUpdateB:
                     {
+                        control_update(
+                            graph_state,
+                            executor,
+                            EPriority::ControlUpdateB,
+                            nil::service::type_cast<proto::ControlUpdateB>(data, size)
+                        );
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::ControlUpdateI:
+                    {
+                        control_update(
+                            graph_state,
+                            executor,
+                            EPriority::ControlUpdateI,
+                            nil::service::type_cast<proto::ControlUpdateI>(data, size)
+                        );
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::ControlUpdateF:
+                    {
+                        control_update(
+                            graph_state,
+                            executor,
+                            EPriority::ControlUpdateF,
+                            nil::service::type_cast<proto::ControlUpdateF>(data, size)
+                        );
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::ControlUpdateS:
+                    {
+                        control_update(
+                            graph_state,
+                            executor,
+                            EPriority::ControlUpdateS,
+                            nil::service::type_cast<proto::ControlUpdateS>(data, size)
+                        );
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::Play:
+                    {
+                        *graph_state.paused = false;
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::Pause:
+                    {
+                        *graph_state.paused = true;
+                        break;
+                    }
+                    case nil::nedit::proto::message_type::State:
+                    {
+                        const auto info = nil::service::type_cast<proto::State>(data, size);
                         if (info.types().SerializeAsString() != types)
                         {
                             nil::log();
@@ -335,7 +357,10 @@ namespace
                                 {
                                     std::cout << "incomplete input... not supported\n"
                                               << std::flush;
-                                    service.send(id, proto::message_type::State, info);
+                                    service.send(
+                                        id,
+                                        nil::service::concat(proto::message_type::State, info)
+                                    );
                                     return;
                                 }
                             }
@@ -379,20 +404,28 @@ namespace
                                     );
                                 }
 
-                                service.send(id, proto::message_type::State, app_state.info);
+                                service.send(
+                                    id,
+                                    nil::service::concat(proto::message_type::State, app_state.info)
+                                );
                             }
                         );
+                        break;
                     }
-                )
-                .add(
-                    proto::message_type::Run,
-                    [&graph_state, &executor]() {
+                    case nil::nedit::proto::message_type::Run:
+                    {
                         executor.push(
                             {EPriority::Run, 0},
                             [&graph_state]() { graph_state.core->commit(); }
                         );
+                        break;
                     }
-                )
+                    case nil::nedit::proto::message_type::NodeState:
+                    case nil::nedit::proto::message_type::MessageType_INT_MIN_SENTINEL_DO_NOT_USE_:
+                    case nil::nedit::proto::message_type::MessageType_INT_MAX_SENTINEL_DO_NOT_USE_:
+                        break;
+                }
+            }
         );
 
         service.run();

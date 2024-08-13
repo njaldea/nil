@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+option optimize_for = LITE_RUNTIME;
+
+package nil.wix.proto;
+
+message Sample {
+    uint32 nil_number = 1;
+    bool nil_bool = 2;
+    string nil_string = 3;
+}
