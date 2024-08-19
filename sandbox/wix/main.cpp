@@ -1,5 +1,4 @@
 #include <nil/service.hpp>
-#include <nil/service/ws/Server.hpp>
 
 #include <wix/messages/sample.pb.h>
 
@@ -91,47 +90,44 @@ struct Block
     std::vector<std::variant<Block, Range, Text>> contents;
 };
 
-void apply(nil::wix::proto::Block& msg, const Range& data)
+nil::wix::proto::Range& create(nil::wix::proto::Block& block, const Range&)
 {
-    auto* r = msg.add_widgets()->mutable_range();
-    r->set_id(data.id);
-    r->set_min(data.constants.min);
-    r->set_max(data.constants.max);
-    r->set_label(data.constants.label);
-    r->set_value(data.value());
+    return *block.add_widgets()->mutable_range();
 }
 
-void apply(nil::wix::proto::Block& msg, const Text& data)
+void apply(nil::wix::proto::Range& msg, const Range& data)
 {
-    auto* t = msg.add_widgets()->mutable_text();
-    t->set_id(data.id);
-    t->set_value(data.value());
-    t->set_placeholder(data.constants.placeholder);
+    msg.set_id(data.id);
+    msg.set_min(data.constants.min);
+    msg.set_max(data.constants.max);
+    msg.set_label(data.constants.label);
+    msg.set_value(data.value());
+}
+
+nil::wix::proto::Text& create(nil::wix::proto::Block& block, const Text&)
+{
+    return *block.add_widgets()->mutable_text();
+}
+
+void apply(nil::wix::proto::Text& msg, const Text& data)
+{
+    msg.set_id(data.id);
+    msg.set_value(data.value());
+    msg.set_placeholder(data.constants.placeholder);
+}
+
+nil::wix::proto::Block& create(nil::wix::proto::Block& block, const Block&)
+{
+    return *block.add_widgets()->mutable_block();
 }
 
 void apply(nil::wix::proto::Block& msg, const Block& data)
 {
-    auto* b = msg.add_widgets()->mutable_block();
-    b->set_label(data.label);
+    msg.set_label(data.label);
     for (const auto& content : data.contents)
     {
-        std::visit([&](const auto& c) { ::apply(*b, c); }, content);
+        std::visit([&](const auto& c) { ::apply(::create(msg, c), c); }, content);
     }
-}
-
-void apply(nil::wix::proto::Wix& msg, const Block& data)
-{
-    auto* child = msg.add_blocks();
-    child->set_label(data.label);
-    for (const auto& content : data.contents)
-    {
-        std::visit([&](const auto& c) { ::apply(*child, c); }, content);
-    }
-}
-
-Block& add_block(Block& block, std::string label)
-{
-    return std::get<Block>(block.contents.emplace_back(Block(std::move(label), {})));
 }
 
 void add_range(
@@ -160,22 +156,23 @@ void add_text(
     );
 }
 
-auto install(Block& block, std::int32_t& next_id)
+Block& add_block(Block& block, std::string label)
 {
-    add_range(block, next_id++, []() { return 5; }, [](std::int64_t) {}, {1, 10, 1, "first range"});
-    add_range(
-        block,
-        next_id++,
-        []() { return 5; },
-        [](std::int64_t) {},
-        {2, 20, 2, "second range"}
-    );
+    return std::get<Block>(block.contents.emplace_back(Block(std::move(label), {})));
+}
+
+void install(Block& block, std::int32_t& next_id)
+{
+    add_range(block, next_id++, []() { return 5; }, [](std::int64_t) {}, {1, 10, 1, "range[1]"});
+    add_range(block, next_id++, []() { return 5; }, [](std::int64_t) {}, {2, 20, 2, "range[2]"});
     add_text(block, next_id++, []() { return "text here"; }, [](const auto&) {}, {"what to do"});
     add_text(block, next_id++, []() { return ""; }, [](const auto&) {}, {"empty value"});
 }
 
 int main()
 {
+    std::cout << "http://localhost:8080" << std::endl;
+
     std::int32_t next_id = 0;
     Block block1 = {"top block", {}};
     install(block1, next_id);
@@ -184,27 +181,27 @@ int main()
     std::thread http(serve);
 
     nil::service::ws::Server service({.port = 1101});
-    service.on_connect(                                 //
-        [&service, &block1](const nil::service::ID& id) //
+    service.on_connect(                     //
+        [&service, &block1](const auto& id) //
         {
             std::cout << "connect: " << id.text << std::endl;
             nil::wix::proto::Wix msg;
-            apply(msg, block1);
+            apply(*msg.add_blocks(), block1);
 
             service.send(id, nil::service::concat(nil::wix::proto::MessageType_Wix, msg));
         }
     );
-    service.on_disconnect(             //
-        [](const nil::service::ID& id) //
-        {                              //
+    service.on_disconnect( //
+        [](const auto& id) //
+        {                  //
             std::cout << "disconnect: " << id.text << std::endl;
         }
     );
     service.on_message(
-        [](const nil::service::ID& id, const void* data, std::uint64_t size)
+        [](const auto& id, const void* data, std::uint64_t size)
         {
             (void)id;
-            switch (nil::service::type_cast<nil::wix::proto::MessageType>(data, size))
+            switch (nil::service::consume<nil::wix::proto::MessageType>(data, size))
             {
                 case nil::wix::proto::MessageType_I64Update:
                     std::cout << "i64 update" << std::endl;

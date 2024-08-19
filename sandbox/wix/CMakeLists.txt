@@ -7,7 +7,7 @@ set(GENERATED_PROTOBUF_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/gen/wix/messages"
 protobuf_generate_cpp(
     PROTO_SRC
     PROTO_HEADER
-    sample.proto
+    message.proto
     PROTOC_OUT_DIR ${GENERATED_PROTOBUF_OUTPUT_DIR}
     OUTPUT_DIRECTORY_H ${GENERATED_PROTOBUF_OUTPUT_DIR}
 )

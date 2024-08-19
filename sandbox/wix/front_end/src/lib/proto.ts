@@ -12,8 +12,9 @@ export const proto_data =
               "nested": {
                 "MessageType": {
                   "values": {
-                    "MessageType_Block": 0,
-                    "MessageType_I64Update": 1
+                    "MessageType_Wix": 0,
+                    "MessageType_I64Update": 1,
+                    "MessageType_TextUpdate": 2
                   }
                 },
                 "Range": {
@@ -78,7 +79,7 @@ export const proto_data =
                       "type": "string",
                       "id": 1
                     },
-                    "children": {
+                    "widgets": {
                       "rule": "repeated",
                       "type": "Widget",
                       "id": 2
@@ -109,6 +110,15 @@ export const proto_data =
                           "id": 3
                         }
                       }
+                    }
+                  }
+                },
+                "Wix": {
+                  "fields": {
+                    "blocks": {
+                      "rule": "repeated",
+                      "type": "Block",
+                      "id": 1
                     }
                   }
                 }

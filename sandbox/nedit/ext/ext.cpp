@@ -6,9 +6,7 @@
 
 #include <nil/dev.hpp>
 #include <nil/gate/runners/boost_asio.hpp>
-#include <nil/service/IService.hpp>
-#include <nil/service/concat.hpp>
-#include <nil/service/tcp/Server.hpp>
+#include <nil/service.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
@@ -24,7 +22,6 @@
 
 namespace
 {
-
     enum class EPriority : std::uint8_t
     {
         State,
@@ -265,7 +262,8 @@ namespace
         service.on_message(
             [&](const nil::service::ID& id, const void* data, std::uint64_t size)
             {
-                switch (nil::service::type_cast<proto::message_type::MessageType>(data, size))
+                using namespace nil::service;
+                switch (consume<proto::message_type::MessageType>(data, size))
                 {
                     case nil::nedit::proto::message_type::ControlUpdateB:
                     {
@@ -273,7 +271,7 @@ namespace
                             graph_state,
                             executor,
                             EPriority::ControlUpdateB,
-                            nil::service::type_cast<proto::ControlUpdateB>(data, size)
+                            consume<proto::ControlUpdateB>(data, size)
                         );
                         break;
                     }
@@ -283,7 +281,7 @@ namespace
                             graph_state,
                             executor,
                             EPriority::ControlUpdateI,
-                            nil::service::type_cast<proto::ControlUpdateI>(data, size)
+                            consume<proto::ControlUpdateI>(data, size)
                         );
                         break;
                     }
@@ -293,7 +291,7 @@ namespace
                             graph_state,
                             executor,
                             EPriority::ControlUpdateF,
-                            nil::service::type_cast<proto::ControlUpdateF>(data, size)
+                            consume<proto::ControlUpdateF>(data, size)
                         );
                         break;
                     }
@@ -303,7 +301,7 @@ namespace
                             graph_state,
                             executor,
                             EPriority::ControlUpdateS,
-                            nil::service::type_cast<proto::ControlUpdateS>(data, size)
+                            consume<proto::ControlUpdateS>(data, size)
                         );
                         break;
                     }
@@ -319,7 +317,7 @@ namespace
                     }
                     case nil::nedit::proto::message_type::State:
                     {
-                        const auto info = nil::service::type_cast<proto::State>(data, size);
+                        const auto info = consume<proto::State>(data, size);
                         if (info.types().SerializeAsString() != types)
                         {
                             nil::log();

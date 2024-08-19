@@ -2,9 +2,7 @@
 #include <nil/gatex/parse.hpp>
 #include <nil/gatex/serve.hpp>
 
-#include <nil/service/IService.hpp>
-#include <nil/service/concat.hpp>
-#include <nil/service/tcp/Server.hpp>
+#include <nil/service.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
@@ -104,29 +102,29 @@ namespace nil::gatex
             [&core, &server](const nil::service::ID& id, const void* data, std::uint64_t size)
             {
                 using namespace nil::service;
-                switch (type_cast<proto::message_type::MessageType>(data, size))
+                switch (consume<proto::message_type::MessageType>(data, size))
                 {
                     case proto::message_type::ControlUpdateB:
                     {
-                        const auto msg = type_cast<proto::ControlUpdateB>(data, size);
+                        const auto msg = consume<proto::ControlUpdateB>(data, size);
                         core.set_control_value(msg.id(), msg.value());
                         break;
                     }
                     case proto::message_type::ControlUpdateI:
                     {
-                        const auto msg = type_cast<proto::ControlUpdateI>(data, size);
+                        const auto msg = consume<proto::ControlUpdateI>(data, size);
                         core.set_control_value(msg.id(), msg.value());
                         break;
                     }
                     case proto::message_type::ControlUpdateF:
                     {
-                        const auto msg = type_cast<proto::ControlUpdateF>(data, size);
+                        const auto msg = consume<proto::ControlUpdateF>(data, size);
                         core.set_control_value(msg.id(), msg.value());
                         break;
                     }
                     case proto::message_type::ControlUpdateS:
                     {
-                        const auto msg = type_cast<proto::ControlUpdateS>(data, size);
+                        const auto msg = consume<proto::ControlUpdateS>(data, size);
                         core.set_control_value(msg.id(), msg.value());
                         break;
                     }
@@ -142,7 +140,7 @@ namespace nil::gatex
                     }
                     case proto::message_type::State:
                     {
-                        const auto msg = type_cast<proto::State>(data, size);
+                        const auto msg = consume<proto::State>(data, size);
                         if (!core.is_compatible(msg.types().SerializeAsString()))
                         {
                             std::cerr << "state is not compatible to types" << std::endl;

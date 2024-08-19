@@ -5,9 +5,7 @@
 
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
-#include <nil/service/IService.hpp>
-#include <nil/service/concat.hpp>
-#include <nil/service/tcp/Client.hpp>
+#include <nil/service.hpp>
 
 #include <gen/nedit/messages/metadata.pb.h>
 #include <gen/nedit/messages/node_state.pb.h>
@@ -340,14 +338,13 @@ namespace
         service.on_message(
             [&](const void* data, std::uint64_t size)
             {
-                const auto tag = nil::service::type_cast //
-                    <nil::nedit::proto::message_type::MessageType>(data, size);
+                using namespace nil::service;
+                const auto tag = consume<nil::nedit::proto::message_type::MessageType>(data, size);
                 switch (tag)
                 {
                     case nil::nedit::proto::message_type::State:
                     {
-                        const auto message = nil::service::type_cast //
-                            <nil::nedit::proto::State>(data, size);
+                        const auto message = consume<nil::nedit::proto::State>(data, size);
                         auto tmp = process_state(service, app, info, message);
 
                         // load the graph here if it is available;
@@ -360,8 +357,7 @@ namespace
                     }
                     case nil::nedit::proto::message_type::NodeState:
                     {
-                        const auto message = nil::service::type_cast //
-                            <nil::nedit::proto::NodeState>(data, size);
+                        const auto message = consume<nil::nedit::proto::NodeState>(data, size);
                         const auto _ = std::unique_lock(app.mutex);
                         app.before_render.emplace_back( //
                             [&app, id = message.id(), activated = message.active()]()

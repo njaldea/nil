@@ -8,7 +8,7 @@
 		"preview": "vite preview",
 		"package": "svelte-package -o package",
 		"proto:pre": "echo \"export const proto_data = \" > src/lib/proto.ts",
-		"proto:gen": "pnpm --package=protobufjs-cli dlx pbjs ../sample.proto >> src/lib/proto.ts",
+		"proto:gen": "pnpm --package=protobufjs-cli dlx pbjs ../message.proto >> src/lib/proto.ts",
 		"proto": "pnpm proto:pre && pnpm proto:gen",
 		"bundle": "pnpm --package=protobufjs --package=svelte@next --package=@nil-/rebundler dlx rebundler es package -o bundle -p svelte -p resolve -p common",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",

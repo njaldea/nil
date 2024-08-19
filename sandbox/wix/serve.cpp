@@ -43,7 +43,7 @@ public:
     }
 
 private:
-    struct Impl
+    struct Impl final
     {
         Server& parent;
         boost::asio::io_context context;
@@ -74,7 +74,7 @@ private:
         }
     };
 
-    class Connection: public std::enable_shared_from_this<Connection>
+    class Connection final: public std::enable_shared_from_this<Connection>
     {
     public:
         explicit Connection(Server& init_parent, boost::asio::ip::tcp::socket init_socket)
@@ -202,29 +202,17 @@ void serve()
     server.use(
         "/",
         "text/html",
-        [](std::ostream& os)
-        {
-            std::fstream file(path / "index.html");
-            os << file.rdbuf();
-        }
+        [](std::ostream& os) { os << std::fstream(path / "index.html").rdbuf(); }
     );
     server.use(
         "/index.js",
         "application/javascript",
-        [](std::ostream& os)
-        {
-            std::fstream file(path / "front_end/bundle/index.js");
-            os << file.rdbuf();
-        }
+        [](std::ostream& os) { os << std::fstream(path / "front_end/bundle/index.js").rdbuf(); }
     );
     server.use(
-        "/wix/sample.proto",
+        "/wix/message.proto",
         "application/octet-stream",
-        [](std::ostream& os)
-        {
-            std::fstream file(path / "messages/gen/wix/messages/sample.proto");
-            os << file.rdbuf();
-        }
+        [](std::ostream& os) { os << std::fstream(path / "message.proto").rdbuf(); }
     );
 
     server.run();
