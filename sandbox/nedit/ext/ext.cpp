@@ -259,172 +259,140 @@ namespace
         );
         service.on_disconnect([&]() { service.stop(); });
 
-        service.on_message(
-            [&](const nil::service::ID& id, const void* data, std::uint64_t size)
-            {
-                using namespace nil::service;
-                switch (consume<proto::message_type::MessageType>(data, size))
+        service.on_message(nil::service::map(
+            nil::service::mapping(
+                nil::nedit::proto::message_type::ControlUpdateB,
+                [&](const proto::ControlUpdateB& msg)
+                { control_update(graph_state, executor, EPriority::ControlUpdateB, msg); }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::ControlUpdateI,
+                [&](const proto::ControlUpdateI& msg)
+                { control_update(graph_state, executor, EPriority::ControlUpdateI, msg); }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::ControlUpdateF,
+                [&](const proto::ControlUpdateF& msg)
+                { control_update(graph_state, executor, EPriority::ControlUpdateF, msg); }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::ControlUpdateS,
+                [&](const proto::ControlUpdateS& msg)
+                { control_update(graph_state, executor, EPriority::ControlUpdateS, msg); }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::Play,
+                [&]() { *graph_state.paused = false; }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::Pause,
+                [&]() { *graph_state.paused = true; }
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::State,
+                [&](const auto& id, const proto::State& info)
                 {
-                    case nil::nedit::proto::message_type::ControlUpdateB:
+                    if (info.types().SerializeAsString() != types)
                     {
-                        control_update(
-                            graph_state,
-                            executor,
-                            EPriority::ControlUpdateB,
-                            consume<proto::ControlUpdateB>(data, size)
-                        );
-                        break;
+                        nil::log();
+                        std::cout << "state is not compatible to types" << std::endl;
+                        return;
                     }
-                    case nil::nedit::proto::message_type::ControlUpdateI:
-                    {
-                        control_update(
-                            graph_state,
-                            executor,
-                            EPriority::ControlUpdateI,
-                            consume<proto::ControlUpdateI>(data, size)
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::ControlUpdateF:
-                    {
-                        control_update(
-                            graph_state,
-                            executor,
-                            EPriority::ControlUpdateF,
-                            consume<proto::ControlUpdateF>(data, size)
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::ControlUpdateS:
-                    {
-                        control_update(
-                            graph_state,
-                            executor,
-                            EPriority::ControlUpdateS,
-                            consume<proto::ControlUpdateS>(data, size)
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::Play:
-                    {
-                        *graph_state.paused = false;
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::Pause:
-                    {
-                        *graph_state.paused = true;
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::State:
-                    {
-                        const auto info = consume<proto::State>(data, size);
-                        if (info.types().SerializeAsString() != types)
-                        {
-                            nil::log();
-                            std::cout << "state is not compatible to types" << std::endl;
-                            return;
-                        }
 
-                        std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
-                        for (const auto& link : info.graph().links())
-                        {
-                            i_to_o.emplace(link.output(), link.input());
-                        }
+                    std::unordered_map<std::uint64_t, std::uint64_t> i_to_o;
+                    for (const auto& link : info.graph().links())
+                    {
+                        i_to_o.emplace(link.output(), link.input());
+                    }
 
-                        std::vector<ext::NodeData> nodes;
-                        for (const auto& node : info.graph().nodes())
-                        {
-                            nodes.push_back({
-                                .id = node.id(),
-                                .type = node.type(),
-                                .alias = node.alias(),
-                                .inputs = {node.inputs().begin(), node.inputs().end()},
-                                .outputs = {node.outputs().begin(), node.outputs().end()},
-                                .controls = {node.controls().begin(), node.controls().end()} //
-                            });
+                    std::vector<ext::NodeData> nodes;
+                    for (const auto& node : info.graph().nodes())
+                    {
+                        nodes.push_back({
+                            .id = node.id(),
+                            .type = node.type(),
+                            .alias = node.alias(),
+                            .inputs = {node.inputs().begin(), node.inputs().end()},
+                            .outputs = {node.outputs().begin(), node.outputs().end()},
+                            .controls = {node.controls().begin(), node.controls().end()} //
+                        });
 
-                            // convert id of input from id of the pin to the id of the port it
-                            // is connected to.
-                            for (auto& i : nodes.back().inputs)
+                        // convert id of input from id of the pin to the id of the port it
+                        // is connected to.
+                        for (auto& i : nodes.back().inputs)
+                        {
+                            if (i_to_o.contains(i))
                             {
-                                if (i_to_o.contains(i))
-                                {
-                                    i = i_to_o.at(i);
-                                }
-                                else
-                                {
-                                    std::cout << "incomplete input... not supported\n"
-                                              << std::flush;
-                                    service.send(
-                                        id,
-                                        nil::service::concat(proto::message_type::State, info)
-                                    );
-                                    return;
-                                }
+                                i = i_to_o.at(i);
                             }
-                        }
-
-                        executor.reset();
-                        executor.push(
-                            {EPriority::State, 0u},
-                            [&graph_state,
-                             &app_state,
-                             &service,
-                             &executor,
-                             id,
-                             info,
-                             nodes = std::move(nodes)]()
+                            else
                             {
-                                app_state.info = info;
-                                graph_state = make_state(service, executor);
-
-                                for (const auto& node : nodes)
-                                {
-                                    if (node.type == 0)
-                                    {
-                                        app_state.edge_factories[node.alias](
-                                            graph_state,
-                                            node.outputs[0]
-                                        );
-                                    }
-                                }
-
-                                for (const auto& node : ext::sort_by_score(nodes))
-                                {
-                                    auto& factory = app_state.node_factories[node.type];
-                                    factory(
-                                        graph_state,
-                                        node.id,
-                                        node.alias,
-                                        node.inputs,
-                                        node.outputs,
-                                        node.controls
-                                    );
-                                }
-
+                                std::cout << "incomplete input... not supported\n" << std::flush;
                                 service.send(
                                     id,
-                                    nil::service::concat(proto::message_type::State, app_state.info)
+                                    nil::service::concat(proto::message_type::State, info)
+                                );
+                                return;
+                            }
+                        }
+                    }
+
+                    executor.reset();
+                    executor.push(
+                        {EPriority::State, 0u},
+                        [&graph_state,
+                         &app_state,
+                         &service,
+                         &executor,
+                         id,
+                         info,
+                         nodes = std::move(nodes)]()
+                        {
+                            app_state.info = info;
+                            graph_state = make_state(service, executor);
+
+                            for (const auto& node : nodes)
+                            {
+                                if (node.type == 0)
+                                {
+                                    app_state.edge_factories[node.alias](
+                                        graph_state,
+                                        node.outputs[0]
+                                    );
+                                }
+                            }
+
+                            for (const auto& node : ext::sort_by_score(nodes))
+                            {
+                                auto& factory = app_state.node_factories[node.type];
+                                factory(
+                                    graph_state,
+                                    node.id,
+                                    node.alias,
+                                    node.inputs,
+                                    node.outputs,
+                                    node.controls
                                 );
                             }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::Run:
-                    {
-                        executor.push(
-                            {EPriority::Run, 0},
-                            [&graph_state]() { graph_state.core->commit(); }
-                        );
-                        break;
-                    }
-                    case nil::nedit::proto::message_type::NodeState:
-                    case nil::nedit::proto::message_type::MessageType_INT_MIN_SENTINEL_DO_NOT_USE_:
-                    case nil::nedit::proto::message_type::MessageType_INT_MAX_SENTINEL_DO_NOT_USE_:
-                        break;
+
+                            service.send(
+                                id,
+                                nil::service::concat(proto::message_type::State, app_state.info)
+                            );
+                        }
+                    );
                 }
-            }
-        );
+            ),
+            nil::service::mapping(
+                nil::nedit::proto::message_type::Run,
+                [&]() {
+                    executor.push(
+                        {EPriority::Run, 0},
+                        [&graph_state]() { graph_state.core->commit(); }
+                    );
+                }
+            )
+        ));
 
         service.run();
         return 0;

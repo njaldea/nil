@@ -98,74 +98,54 @@ namespace nil::gatex
         );
 
         namespace proto = nil::nedit::proto;
-        server.on_message(
-            [&core, &server](const nil::service::ID& id, const void* data, std::uint64_t size)
-            {
-                using namespace nil::service;
-                switch (consume<proto::message_type::MessageType>(data, size))
+        server.on_message(nil::service::map(
+            nil::service::mapping(
+                proto::message_type::ControlUpdateB,
+                [&](const proto::ControlUpdateB& msg)
+                { core.set_control_value(msg.id(), msg.value()); }
+            ),
+            nil::service::mapping(
+                proto::message_type::ControlUpdateI,
+                [&](const proto::ControlUpdateI& msg)
+                { core.set_control_value(msg.id(), msg.value()); }
+            ),
+            nil::service::mapping(
+                proto::message_type::ControlUpdateF,
+                [&](const proto::ControlUpdateF& msg)
+                { core.set_control_value(msg.id(), msg.value()); }
+            ),
+            nil::service::mapping(
+                proto::message_type::ControlUpdateS,
+                [&](const proto::ControlUpdateS& msg)
+                { core.set_control_value(msg.id(), msg.value()); }
+            ),
+            nil::service::mapping(proto::message_type::Play, [&]() { core.resume(); }),
+            nil::service::mapping(proto::message_type::Pause, [&]() { core.stop(); }),
+            nil::service::mapping(
+                proto::message_type::State,
+                [&](const auto& id, const proto::State& msg)
                 {
-                    case proto::message_type::ControlUpdateB:
+                    if (!core.is_compatible(msg.types().SerializeAsString()))
                     {
-                        const auto msg = consume<proto::ControlUpdateB>(data, size);
-                        core.set_control_value(msg.id(), msg.value());
-                        break;
+                        std::cerr << "state is not compatible to types" << std::endl;
+                        return;
                     }
-                    case proto::message_type::ControlUpdateI:
-                    {
-                        const auto msg = consume<proto::ControlUpdateI>(data, size);
-                        core.set_control_value(msg.id(), msg.value());
-                        break;
-                    }
-                    case proto::message_type::ControlUpdateF:
-                    {
-                        const auto msg = consume<proto::ControlUpdateF>(data, size);
-                        core.set_control_value(msg.id(), msg.value());
-                        break;
-                    }
-                    case proto::message_type::ControlUpdateS:
-                    {
-                        const auto msg = consume<proto::ControlUpdateS>(data, size);
-                        core.set_control_value(msg.id(), msg.value());
-                        break;
-                    }
-                    case proto::message_type::Play:
-                    {
-                        core.resume();
-                        break;
-                    }
-                    case proto::message_type::Pause:
-                    {
-                        core.stop();
-                        break;
-                    }
-                    case proto::message_type::State:
-                    {
-                        const auto msg = consume<proto::State>(data, size);
-                        if (!core.is_compatible(msg.types().SerializeAsString()))
-                        {
-                            std::cerr << "state is not compatible to types" << std::endl;
-                            return;
-                        }
-                        core.stop();
-                        core.wait();
-                        core.instantiate(parse(msg));
-                        server.send(id, concat(proto::message_type::State, msg));
-                        break;
-                    }
-                    case proto::message_type::Run:
-                    {
-                        core.stop();
-                        core.wait();
-                        core.start();
-                        break;
-                    }
-                    case proto::message_type::MessageType::NodeState:
-                    case proto::message_type::MessageType::MessageType_INT_MIN_SENTINEL_DO_NOT_USE_:
-                    case proto::message_type::MessageType::MessageType_INT_MAX_SENTINEL_DO_NOT_USE_:
-                        break;
+                    core.stop();
+                    core.wait();
+                    core.instantiate(parse(msg));
+                    server.send(id, nil::service::concat(proto::message_type::State, msg));
                 }
-            }
-        );
+            ),
+            nil::service::mapping(
+                proto::message_type::Run,
+                [&]()
+                {
+                    core.stop();
+                    core.wait();
+                    core.start();
+                }
+            )
+        ));
 
         server.run();
     }
