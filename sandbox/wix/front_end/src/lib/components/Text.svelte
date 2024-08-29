@@ -1,5 +1,6 @@
 <script lang="ts">
-    let { value, placeholder } = $props<{ value: string; placeholder: string }>();
+    let { label, value, placeholder } = $props<{ label: string; value: string; placeholder: string }>();
 </script>
 
+<span>{label}</span>
 <input type="text" {value} {placeholder}/>

@@ -12,17 +12,18 @@ enum MessageType {
 
 message Range {
     int32 id = 1;
-    int64 value = 2;
-    int64 min = 3;
-    int64 max = 4;
-    int32 step = 5;
-    string label = 6;
+    string label = 2;
+    int64 value = 3;
+    int64 min = 4;
+    int64 max = 5;
+    int32 step = 6;
 }
 
 message Text {
     int32 id = 1;
-    string placeholder = 2;
+    string label = 2;
     string value = 3;
+    string placeholder = 4;
 }
 
 message I64Update {

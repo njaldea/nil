@@ -3,8 +3,6 @@
 #include "http_install.hpp"
 #include "ws_install.hpp"
 
-#include <string>
-
 int main()
 {
     std::int32_t next_id = 0;

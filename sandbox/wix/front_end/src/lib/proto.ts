@@ -24,24 +24,24 @@ export const proto_data =
                       "type": "int32",
                       "id": 1
                     },
-                    "value": {
-                      "type": "int64",
+                    "label": {
+                      "type": "string",
                       "id": 2
                     },
-                    "min": {
+                    "value": {
                       "type": "int64",
                       "id": 3
                     },
-                    "max": {
+                    "min": {
                       "type": "int64",
                       "id": 4
                     },
-                    "step": {
-                      "type": "int32",
+                    "max": {
+                      "type": "int64",
                       "id": 5
                     },
-                    "label": {
-                      "type": "string",
+                    "step": {
+                      "type": "int32",
                       "id": 6
                     }
                   }
@@ -52,13 +52,17 @@ export const proto_data =
                       "type": "int32",
                       "id": 1
                     },
-                    "placeholder": {
+                    "label": {
                       "type": "string",
                       "id": 2
                     },
                     "value": {
                       "type": "string",
                       "id": 3
+                    },
+                    "placeholder": {
+                      "type": "string",
+                      "id": 4
                     }
                   }
                 },

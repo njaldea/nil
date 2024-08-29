@@ -10,7 +10,6 @@ const messages = globalThis.protobuf.Root.fromJSON(proto_data).lookup("nil.wix.p
 export const create = (target: Element) => {
     let props = $state({ blocks: [] });
     const component = mount(Wix, { target, props });
-    // const service = new Service({ host: 'localhost', port: 1101, buffer: 1024 });
     const service = new Service({ route: '/ws', host: location.host, buffer: 1024 });
     service.on_connect(id => console.log(`connected ${id}`));
     service.on_disconnect(id => console.log(`disconnected ${id}`));

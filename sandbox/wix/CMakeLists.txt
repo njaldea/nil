@@ -40,6 +40,6 @@ set(
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
-target_link_libraries(${PROJECT_NAME} PRIVATE sandbox_wix_proto)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE nil::clix)
 target_link_libraries(${PROJECT_NAME} PRIVATE nil::service)

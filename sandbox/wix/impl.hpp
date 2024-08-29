@@ -2,36 +2,35 @@
 
 #include <nil/service/codec.hpp>
 
-#include <wix/messages/sample.pb.h>
+#include <wix/messages/message.pb.h>
 
 #include <variant>
 
 struct RangeConstants
 {
+    std::string label;
     std::int64_t min;
     std::int64_t max;
     std::int32_t step;
-    std::string label;
 };
 
 struct Range
 {
     std::int32_t id;
-    std::function<std::int64_t()> value;
-    std::function<void(std::int64_t)> set_value;
+    std::int64_t value;
     RangeConstants constants;
 };
 
 struct TextConstants
 {
+    std::string label;
     std::string placeholder;
 };
 
 struct Text
 {
     std::int32_t id;
-    std::function<std::string()> value;
-    std::function<void(std::string)> set_value;
+    std::string value;
     TextConstants constants;
 };
 

@@ -51,7 +51,7 @@ void ws_install(nil::service::IService& server, Block& block)
     server.on_connect(                    //
         [&server, &block](const auto& id) //
         {
-            std::cout << "connect ws  : " << id.text << std::endl;
+            std::cout << "connect ws    : " << id.text << std::endl;
             nil::wix::proto::Wix msg;
             apply(*msg.add_blocks(), block);
 

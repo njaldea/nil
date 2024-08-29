@@ -6,6 +6,8 @@
     let { blocks } = $props<{ blocks: BlockType[] }>();
 </script>
 
-{#each blocks as block}
-    <Block label={block.label} widgets={block.widgets}></Block>
-{/each}
+<div style="display:flex; flex-direction: column; max-width: 400px;">
+    {#each blocks as block}
+        <Block {...block}></Block>
+    {/each}
+</div>
