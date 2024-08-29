@@ -1,8 +1,8 @@
 export class Service
 {
-    constructor({host, port, buffer}: { host: string, port: number, buffer: number})
+    constructor({route, host, port, buffer}: { host?: string, route?: string, port?: number, buffer: number})
     {
-        this.#id = `${host ?? 'localhost'}:${port}`;
+        this.#id = `${host ?? 'localhost'}${port != null ? `:${port}`: ''}${route ?? '/'}`;
         this.#buffer = buffer;
         this.#state = 0;
         this.#connect = null;

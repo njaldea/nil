@@ -2,4 +2,4 @@
     import Wix from "$lib/components/Wix.svelte";
 </script>
 
-<Wix/>
+<Wix blocks={[{ label: "label", widgets: [] }]}/>

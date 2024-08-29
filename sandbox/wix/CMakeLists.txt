@@ -24,7 +24,22 @@ endif()
 
 find_package(nil COMPONENTS clix service CONFIG REQUIRED)
 
-add_executable(${PROJECT_NAME} main.cpp serve.cpp)
+set(
+    SOURCES
+        main.cpp
+        impl.cpp
+        http_install.cpp
+        ws_install.cpp
+)
+
+set(
+    HEADERS
+        impl.hpp
+        http_install.hpp
+        ws_install.hpp
+)
+
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_link_libraries(${PROJECT_NAME} PRIVATE sandbox_wix_proto)
 target_link_libraries(${PROJECT_NAME} PRIVATE nil::clix)
 target_link_libraries(${PROJECT_NAME} PRIVATE nil::service)

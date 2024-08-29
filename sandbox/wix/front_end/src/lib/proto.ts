@@ -1,6 +1,7 @@
 export const proto_data = 
 {
   "options": {
+    "syntax": "proto3",
     "optimize_for": "LITE_RUNTIME"
   },
   "nested": {
