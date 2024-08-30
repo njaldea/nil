@@ -1,6 +1,21 @@
 <script lang="ts">
-    let { label, value, placeholder } = $props<{ label: string; value: string; placeholder: string }>();
+    import type { WixApp } from "../WixApp";
+    let { app, id, label, value, placeholder } = $props<{
+        app: WixApp;
+        id: Number;
+        label: string;
+        value: string;
+        placeholder: string;
+    }>();
+
+    let internal_value = $state(value);
+    app.add_uplink_handler(id, (v: string) => (internal_value = v));
+    $effect(() => app.downlink_string(id, internal_value));
 </script>
 
 <span>{label}</span>
-<input type="text" {value} {placeholder}/>
+<input
+    type="text"
+    bind:value={internal_value}
+    {placeholder}
+/>
