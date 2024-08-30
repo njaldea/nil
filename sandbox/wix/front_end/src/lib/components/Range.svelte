@@ -12,7 +12,15 @@
 
     let internal_value = $state(value);
     app.add_uplink_handler(id, (v: number) => (internal_value = v));
-    $effect(() => app.downlink_number(id, internal_value));
+    let states = { first: true };
+    $effect(() => {
+        internal_value;
+        if (!states.first)
+        {
+            app.downlink_number(id, internal_value);
+        }
+        states.first = false;
+    });
 </script>
 
 <span>{label}</span>

@@ -7,7 +7,7 @@ package nil.wix.proto;
 enum MessageType {
     MessageType_Wix = 0;
     MessageType_I64Update = 1;
-    MessageType_TextUpdate = 2;
+    MessageType_StringUpdate = 2;
 }
 
 message Range {
@@ -29,6 +29,11 @@ message Text {
 message I64Update {
     int32 id = 1;
     int64 value = 2;
+}
+
+message StringUpdate {
+    int32 id = 1;
+    string value = 2;
 }
 
 message Block {

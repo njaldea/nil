@@ -1,11 +1,9 @@
-import { proto_data } from "./proto";
 import { default as Wix } from "./components/Wix.svelte";
 import { WixApp } from "./WixApp";
 import { Service } from "./Service";
 import { mount, unmount } from "svelte";
 
-const messages = globalThis.protobuf.Root.fromJSON(proto_data).lookup("nil.wix.proto");
-// const messages = (await globalThis.protobuf.load("./wix/message.proto")).lookup("nil.wix.proto");
+import { nil_wix_proto } from "./proto";
 
 export const create = (target: Element) => {
     const service = new Service({ route: '/ws', host: location.host, buffer: 1024 });
@@ -19,9 +17,9 @@ export const create = (target: Element) => {
     service.on_message((id, data) => {
         const tag = (new DataView(data.buffer)).getUint32(0, false);
         const buffer = data.slice(4);
-        if (tag === messages.MessageType.MessageType_Wix)
+        if (tag === nil_wix_proto.MessageType.MessageType_Wix)
         {
-            props.blocks = messages.Wix.decode(buffer).blocks;
+            props.blocks = nil_wix_proto.Wix.decode(buffer).blocks;
         }
     });
     service.start();

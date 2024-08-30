@@ -2,6 +2,7 @@
 
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
+#include <wix/messages/message.pb.h>
 
 namespace nil::service
 {
@@ -65,14 +66,21 @@ void ws_install(nil::service::IService& server, Block& block)
     server.on_message(
         [](const void* data, std::uint64_t size)
         {
-            switch (nil::service::consume<nil::wix::proto::MessageType>(data, size))
+            namespace nwp = nil::wix::proto;
+            switch (nil::service::consume<nwp::MessageType>(data, size))
             {
-                case nil::wix::proto::MessageType_I64Update:
-                    std::cout << "i64 update" << std::endl;
+                case nwp::MessageType_I64Update:
+                {
+                    const auto msg = nil::service::consume<nwp::I64Update>(data, size);
+                    std::cout << "i64 update: " << msg.id() << ":" << msg.value() << std::endl;
                     break;
-                case nil::wix::proto::MessageType_TextUpdate:
-                    std::cout << "txt update" << std::endl;
+                }
+                case nwp::MessageType_StringUpdate:
+                {
+                    const auto msg = nil::service::consume<nwp::StringUpdate>(data, size);
+                    std::cout << "str update: " << msg.id() << ":" << msg.value() << std::endl;
                     break;
+                }
                 default:
                     break;
             }

@@ -7,9 +7,10 @@
 		"build": "vite build",
 		"preview": "vite preview",
 		"package": "svelte-package -o package",
-		"proto:pre": "echo \"export const proto_data = \" > src/lib/proto.ts",
+		"proto:pre": "echo \"const proto_data = \" > src/lib/proto.ts",
 		"proto:gen": "pnpm --package=protobufjs-cli dlx pbjs ../message.proto >> src/lib/proto.ts",
-		"proto": "pnpm proto:pre && pnpm proto:gen",
+		"proto:post": "echo \";\n\nexport const nil_wix_proto = globalThis.protobuf.Root.fromJSON(proto_data).lookup(\\\"nil.wix.proto\\\");\" >> src/lib/proto.ts",
+		"proto": "pnpm proto:pre && pnpm proto:gen && pnpm proto:post",
 		"bundle": "pnpm --package=protobufjs --package=svelte@5.0.0-next.222 --package=@nil-/rebundler dlx rebundler es package -o bundle -p svelte -p resolve -p common",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"

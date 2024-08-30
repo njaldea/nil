@@ -1,5 +1,7 @@
 import type { Service } from "./Service";
 
+import { nil_wix_proto } from "./proto";
+
 type Range = {
     id: number;
     label: string;
@@ -53,15 +55,27 @@ export class WixApp
     // changes from svelte components
     downlink_number(id: number, value: number)
     {
-        console.log(`downlink n: ${id} ${value}`);
-        // this.service.publish(new Uint8Array());
+        const header = new Uint8Array(4);
+        const data_view = new DataView(header.buffer);
+        data_view.setUint32(0, nil_wix_proto.MessageType.MessageType_I64Update, false);
+        const message = nil_wix_proto.I64Update.encode({ id, value }).finish();
+        const full_buffer = new Uint8Array(header.length + message.length);
+        full_buffer.set(header, 0);
+        full_buffer.set(message, header.length);
+        this.service.publish(full_buffer);
     }
     
     // changes from svelte components
     downlink_string(id: number, value: string)
     {
-        console.log(`downlink s: ${id} ${value}`);
-        this.service.publish(new Uint8Array());
+        const header = new Uint8Array(4);
+        const data_view = new DataView(header.buffer);
+        data_view.setUint32(0, nil_wix_proto.MessageType.MessageType_StringUpdate, false);
+        const message = nil_wix_proto.StringUpdate.encode({ id, value }).finish();
+        const full_buffer = new Uint8Array(header.length + message.length);
+        full_buffer.set(header, 0);
+        full_buffer.set(message, header.length);
+        this.service.publish(full_buffer);
     }
 
     add_uplink_handler(id: number, setter: (value: unknown) => void)

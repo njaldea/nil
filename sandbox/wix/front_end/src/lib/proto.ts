@@ -1,4 +1,4 @@
-export const proto_data = 
+const proto_data = 
 {
   "options": {
     "syntax": "proto3",
@@ -15,7 +15,7 @@ export const proto_data =
                   "values": {
                     "MessageType_Wix": 0,
                     "MessageType_I64Update": 1,
-                    "MessageType_TextUpdate": 2
+                    "MessageType_StringUpdate": 2
                   }
                 },
                 "Range": {
@@ -78,6 +78,18 @@ export const proto_data =
                     }
                   }
                 },
+                "StringUpdate": {
+                  "fields": {
+                    "id": {
+                      "type": "int32",
+                      "id": 1
+                    },
+                    "value": {
+                      "type": "string",
+                      "id": 2
+                    }
+                  }
+                },
                 "Block": {
                   "fields": {
                     "label": {
@@ -134,4 +146,6 @@ export const proto_data =
       }
     }
   }
-}
+};
+
+export const nil_wix_proto = globalThis.protobuf.Root.fromJSON(proto_data).lookup("nil.wix.proto");
