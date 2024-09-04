@@ -37,29 +37,59 @@ void apply(nil::wix::proto::Block& msg, const Block& data)
     msg.set_label(data.label);
     for (const auto& content : data.contents)
     {
-        std::visit([&](const auto& c) { ::apply(::create(msg, c), c); }, content);
+        std::visit([&](const auto& c) { ::apply(::create(msg, c), c); }, *content);
     }
 }
 
-void add_range(Block& block, std::int32_t id, std::int64_t value, RangeConstants constants)
+Range& add_range(
+    Mutator& mutator,
+    Block& block,
+    std::int32_t id,
+    std::int64_t value,
+    Range::Constants constants
+)
 {
-    block.contents.emplace_back(Range(id, value, std::move(constants)));
+    auto& object = std::get<Range>(   //
+        *block.contents.emplace_back( //
+            std::make_unique<Block::content_t>(Range(id, value, std::move(constants)))
+        )
+    );
+    mutator.mutators.emplace( //
+        id,
+        [&object](auto v) //
+        { object.value = std::get<std::int64_t>(v); }
+    );
+    return object;
 }
 
-void add_text(Block& block, std::int32_t id, std::string value, TextConstants constants)
+Text& add_text(
+    Mutator& mutator,
+    Block& block,
+    std::int32_t id,
+    std::string value,
+    Text::Constants constants
+)
 {
-    block.contents.emplace_back(Text(id, std::move(value), std::move(constants)));
+    auto& object = std::get<Text>(    //
+        *block.contents.emplace_back( //
+            std::make_unique<Block::content_t>(Text(id, std::move(value), std::move(constants)))
+        )
+    );
+    mutator.mutators.emplace( //
+        id,                   //
+        [&object](auto v)     //
+        { object.value = std::get<std::string>(std::move(v)); }
+    );
+    return object;
 }
 
-Block& add_block(Block& block, std::string label)
+Block& add_block(Mutator& mutator, Block& block, std::string label)
 {
-    return std::get<Block>(block.contents.emplace_back(Block(std::move(label), {})));
-}
-
-void install(Block& block, std::int32_t& next_id)
-{
-    add_range(block, next_id++, 5, {"range[1]", 1, 10, 1});
-    add_range(block, next_id++, 5, {"range[2]", 2, 20, 2});
-    add_text(block, next_id++, "text here", {"placeholder 1", "what to do"});
-    add_text(block, next_id++, "", {"placeholder 2", "empty value"});
+    (void)mutator;
+    auto& object = std::get<Block>(   //
+        *block.contents.emplace_back( //
+            std::make_unique<Block::content_t>(Block(std::move(label), {}))
+        )
+    );
+    return object;
 }

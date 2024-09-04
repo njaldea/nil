@@ -6,38 +6,43 @@
 
 #include <variant>
 
-struct RangeConstants
-{
-    std::string label;
-    std::int64_t min;
-    std::int64_t max;
-    std::int32_t step;
-};
-
 struct Range
 {
     std::int32_t id;
     std::int64_t value;
-    RangeConstants constants;
-};
 
-struct TextConstants
-{
-    std::string label;
-    std::string placeholder;
+    struct Constants
+    {
+        std::string label;
+        std::int64_t min;
+        std::int64_t max;
+        std::int32_t step;
+    } constants;
 };
 
 struct Text
 {
     std::int32_t id;
     std::string value;
-    TextConstants constants;
+
+    struct Constants
+    {
+        std::string label;
+        std::string placeholder;
+    } constants;
 };
 
 struct Block
 {
     std::string label;
-    std::vector<std::variant<Block, Range, Text>> contents;
+    using content_t = std::variant<Block, Range, Text>;
+    std::vector<std::unique_ptr<content_t>> contents;
+};
+
+struct Mutator
+{
+    using type = std::variant<std::int64_t, std::string>;
+    std::unordered_map<std::int32_t, std::function<void(type)>> mutators;
 };
 
 nil::wix::proto::Range& create(nil::wix::proto::Block& block, const Range&);
@@ -48,20 +53,18 @@ void apply(nil::wix::proto::Range& msg, const Range& data);
 void apply(nil::wix::proto::Text& msg, const Text& data);
 void apply(nil::wix::proto::Block& msg, const Block& data);
 
-void add_range(
+Range& add_range(
+    Mutator& mutator,
     Block& block,
     std::int32_t id,
-    std::function<std::int64_t()> value,
-    std::function<void(std::int64_t)> set_value,
-    RangeConstants constants
+    std::int64_t value,
+    Range::Constants constants
 );
-void add_text(
+Text& add_text(
+    Mutator& mutator,
     Block& block,
     std::int32_t id,
-    std::function<std::string()> value,
-    std::function<void(std::string)> set_value,
-    TextConstants constants
+    std::string value,
+    Text::Constants constants
 );
-Block& add_block(Block& block, std::string label);
-
-void install(Block& block, std::int32_t& next_id);
+Block& add_block(Mutator& mutator, Block& block, std::string label);

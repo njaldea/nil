@@ -110,3 +110,21 @@ export class Service
     #buffer;
     #socket: null | WebSocket;
 };
+
+export const header = (message_type: number) => {
+    const buffer = new Uint8Array(4);
+    const data_view = new DataView(buffer.buffer);
+    data_view.setUint32(0, message_type, false);
+    return buffer;
+}
+
+export const concat = (payloads: Uint8Array[]) => {
+    const full_buffer = new Uint8Array(payloads.reduce((sum, current) => sum + current.length, 0));
+    let index = 0;
+    for (const payload of payloads)
+    {
+        full_buffer.set(payload, index);
+        index += payload.length;
+    }
+    return full_buffer;
+};

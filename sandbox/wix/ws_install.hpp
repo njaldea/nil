@@ -4,4 +4,4 @@
 
 #include "impl.hpp"
 
-void ws_install(nil::service::IService& server, Block& block);
+void ws_install(nil::service::IService& server, Mutator& mutator);

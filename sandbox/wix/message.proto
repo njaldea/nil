@@ -8,6 +8,10 @@ enum MessageType {
     MessageType_Wix = 0;
     MessageType_I64Update = 1;
     MessageType_StringUpdate = 2;
+    MessageType_MarkupRequest = 3;
+    MessageType_MarkupResponse = 4;
+    MessageType_FileRequest = 5;
+    MessageType_FileResponse = 6;
 }
 
 message Range {
@@ -51,4 +55,19 @@ message Block {
 
 message Wix {
     repeated Block blocks = 1;
+}
+
+message MarkupResponse
+{
+    repeated string components = 1;
+}
+
+message FileRequest
+{
+    string target = 1;
+}
+
+message FileResponse {
+    string target = 1;
+    string content = 3;
 }

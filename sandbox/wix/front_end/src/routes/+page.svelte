@@ -1,5 +1,8 @@
 <script lang="ts">
-    import Wix from "$lib/components/Wix.svelte";
+    import Client from "./Client.svelte"
+    import { browser } from "$app/environment";
 </script>
 
-<Wix blocks={[{ label: "label", widgets: [] }]}/>
+{#if browser}
+    <Client host={'localhost'} port={1101} route={undefined}></Client>
+{/if}
