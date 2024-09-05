@@ -1,13 +1,14 @@
 import { parse } from 'acorn';
 import { walk } from 'estree-walker';
 
+import type { Plugin } from "@rollup/browser";
+
 const require = `function require(id) {
 	if (id in __repl_lookup) return __repl_lookup[id];
 	throw new Error(\`Cannot require modules dynamically (\${id})\`);
 }`;
 
-/** @type {import('@rollup/browser').Plugin} */
-export default {
+export const plugin: Plugin = {
 	name: 'commonjs',
 
 	transform: (code, id) => {
@@ -15,12 +16,10 @@ export default {
 
 		try {
 			const ast = parse(code, {
-				// for some reason this hangs for some code if you use 'latest'. change with caution
 				ecmaVersion: 'latest'
 			});
 
-			/** @type {string[]}  */
-			const requires = [];
+			const requires: string[] = [];
 
 			// @ts-ignore
 			walk(ast, {

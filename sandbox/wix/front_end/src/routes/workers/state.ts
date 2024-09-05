@@ -12,26 +12,6 @@ export const state: State = {
     file_content: new Map()
 };
 
-// TODO: publish a package to access these from unpkg
-state.file_content.set(
-    "<nil_wix_internal>/components/Range.svelte",
-    {
-        content:
-`<script>
-    let { min, max, value, step, label } = $props();
-    let internal_value = $state(value);
-</script>
-
-<span>{label}</span>
-<input
-    type="range"
-    {min}
-    {max}
-    {step}
-    bind:value={internal_value}
-/>`}
-);
-
 const mount_me = `
     export const mount_me = (div, props) => {
         let cleanup = nil_wix.map(v => mount(v, {target: div}));

@@ -1,6 +1,6 @@
 <script>
     import Div from "./Div.svelte";
-    import Range from "nil/wix/Range.svelte";
+    import Range from "./components/Range.svelte";
     let value = 4;
 </script>
 

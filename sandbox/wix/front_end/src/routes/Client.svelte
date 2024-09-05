@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { bundle } from "./Bundler";
+    import { bundle } from "./bundle";
     import { mount, unmount } from "svelte";
 
     let { port, host, route } = $props<{
@@ -8,16 +8,12 @@
         route?: string;
     }>();
 
-    let mount_me: null | any = $state(null);
-
-    const do_it = async () => {
-        const module_data = await bundle({ host, port }).m;
-        mount_me = module_data.mount_me;
-    };
-
-    do_it();
 </script>
 
-{#if mount_me != null}
-  <div use:mount_me></div>
-{/if}
+{#await bundle({ host, port })}
+    Loading...
+{:then { mount_me }} 
+    <div use:mount_me></div>
+{:catch}
+    Something went wrong...
+{/await}

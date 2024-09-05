@@ -2,39 +2,14 @@
 
 self.window = self; // hack for magic-sring and rollup inline sourcemaps
 
-import { Service, header, concat } from "$lib/Service";
+import { Service, header } from "$lib/Service";
 import { nil_wix_proto } from "$lib/proto";
 
-import { resolve_id } from "./resolve_id";
-import { load } from "./load";
-
-import { compile } from "svelte/compiler";
-import commonjs from './plugins/commonjs.js';
-import { rollup, type Plugin } from '@rollup/browser';
+import { plugin as commonjs } from './plugins/commonjs';
+import { plugin as nil_wix } from './plugins/nil_wix';
+import { rollup } from '@rollup/browser';
 
 import { state } from './state';
-
-const nil_wix_plugin: Plugin = {
-    name: 'nil_wix_plugin',
-    resolveId: async (importee, importer) => {
-        const resolution = await resolve_id(importee, importer);
-        // console.log({importee, importer, resolution});
-        return resolution;
-    },
-    load: load,
-    transform: async (code, id) => {
-        // console.log({transform: id});
-        if (id.endsWith(".svelte")) 
-        {
-            return compile(code, {
-                generate: "dom",
-                dev: false,
-                filename: id,
-            }).js;
-        }
-        return code;
-    }
-}
 
 self.addEventListener(
     'message',
@@ -62,7 +37,7 @@ self.addEventListener(
                     rollup({
                         input: '<nil_wix_internal>/index.js',
                         plugins: [
-                            nil_wix_plugin,
+                            nil_wix,
                             commonjs
                         ],
                         onwarn: (warning) => {} //console.log('warning', warning)

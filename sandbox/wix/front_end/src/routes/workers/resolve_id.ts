@@ -66,7 +66,7 @@ export const resolve_id = async (importee: string, importer?: string) => {
 
     if (importee.startsWith(".")) {
         if (importer?.startsWith('<nil_wix_user>')) {
-            const base = new URL(`${location.origin}/${importer.slice(14)}`);
+            const base = new URL(`${location.origin}/${importer.slice(15)}`);
             const resolved = (new URL(importee, base)).href;
             return `<nil_wix_user>${resolved.slice(location.origin.length)}`;
         }
@@ -82,6 +82,9 @@ export const resolve_id = async (importee: string, importer?: string) => {
     const result = await fetch_package_json(importee);
     if (result != null)
     {
+        // string composition works because result.base is always `http://unpkg.com/module`
+        // url resolution will always remove the last portion of the link which
+        // is not applicable in this case
         const path = exports(result.json, result.rest, {browser: true});
         if (Array.isArray(path) && path.length > 0) {
             return (new URL(`${result.base}/${path[0]}`)).href;
@@ -91,5 +94,4 @@ export const resolve_id = async (importee: string, importer?: string) => {
     }
 
     throw "unknown file, should be unreachable";
-    return importee;
 }
