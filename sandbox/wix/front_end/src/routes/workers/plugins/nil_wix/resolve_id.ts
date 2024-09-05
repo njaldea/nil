@@ -64,6 +64,10 @@ export const resolve_id = async (importee: string, importer?: string) => {
         importee = `svelte@5.0.0-next.222` + importee.slice(6);
     }
 
+    if (importee.startsWith('svelte@5.0.0-next.222/src')) {
+        return `https://unpkg.com/${importee}`; // bypass
+    }
+
     if (importee.startsWith(".")) {
         if (importer?.startsWith('<nil_wix_user>')) {
             const base = new URL(`${location.origin}/${importer.slice(15)}`);
@@ -85,7 +89,7 @@ export const resolve_id = async (importee: string, importer?: string) => {
         // string composition works because result.base is always `http://unpkg.com/module`
         // url resolution will always remove the last portion of the link which
         // is not applicable in this case
-        const path = exports(result.json, result.rest, {browser: true});
+        const path = exports(result.json, result.rest, {browser: true, conditions: ['svelte', 'production']});
         if (Array.isArray(path) && path.length > 0) {
             return (await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url;
         } else if (typeof path === 'string') {

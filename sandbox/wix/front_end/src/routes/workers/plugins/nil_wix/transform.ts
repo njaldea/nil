@@ -3,10 +3,11 @@ import { compile } from "svelte/compiler";
 export const transform = () => {
     const cache = new Set<string>();
     return (code: string, id: string) => {
-        if (cache.has(id)) {
+        if (!cache.has(id)) {
+            cache.add(id);
+        } else {
             return null;
         }
-        cache.add(id);
         if (id.endsWith(".svelte")) 
         {
             const result = compile(code, {

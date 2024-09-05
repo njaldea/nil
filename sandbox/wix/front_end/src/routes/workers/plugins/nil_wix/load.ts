@@ -1,15 +1,17 @@
 import { concat, header, service_fetch, type Options } from "$lib/Service";
 import { nil_wix_proto } from "$lib/proto";
 
-const mount_me_script = `
-    import { mount, unmount } from 'svelte';
-    export const mount_me_maker = (div, props, components) => {
-        let cleanup = components.map(v => mount(v, {target: div}));
-        return {
-            destroy: () => {
-                cleanup.forEach(v => unmount(v));
+const action_script = `
+    import { mount, unmount } from 'svelte/src/internal/client/render.js';
+    export const action = (components) => {
+        return (div, props) => {
+            let cleanup = components.map(v => mount(v, {target: div}));
+            return {
+                destroy: () => {
+                    cleanup.forEach(v => unmount(v));
+                }
             }
-        }
+        };
     };
 `;
 
@@ -19,17 +21,8 @@ const populate_wix_root = (files: string[]) => {
         .join('\n');
     const result = [
         import_lines,
-        `import { mount, unmount } from 'svelte';`,
-        // `import { mount_me_maker } from "<nil_wix_internal>/mount_me_maker.js";`,
-        `const nil_wix = [${files.map((v, i) => `Component_${i}`).join(', ')}];`,
-        `export const mount_me = (div, props) => {
-            let cleanup = nil_wix.map(v => mount(v, {target: div}));
-            return {
-                destroy: () => {
-                    cleanup.forEach(v => unmount(v));
-                }
-            }
-        };`
+        `export { action } from "<nil_wix_internal>/action.js";`,
+        `export const components = [${files.map((v, i) => `Component_${i}`).join(', ')}];`
     ].join('\n');
     return result;
 };
@@ -54,19 +47,22 @@ export const load = async (options: Options, files: string[]) => {
     }
     const cache = new Set();
     return async (resolved: string) => {
-        if (resolved === "<nil_wix_internal>/index.js") {
+        if (!cache.has(resolved)) {
             cache.add(resolved);
+        } else {
+            return null;
+        }
+
+        if (resolved === "<nil_wix_internal>/index.js") {
             return populate_wix_root(files);
         }
 
-        if (cache.has(resolved))
-        {
-            return null;
+        if (resolved === "<nil_wix_internal>/action.js") {
+            return action_script;
         }
 
         if (cached_user_files.has(resolved))
         {
-            cache.add(resolved);
             return cached_user_files.get(resolved);
         }
     
@@ -85,14 +81,12 @@ export const load = async (options: Options, files: string[]) => {
                 }
                 throw "err";
             });
-            cache.add(resolved);
             return response.content;
         }
     
         if (resolved.startsWith('https://unpkg.com'))
         {
             const content = await (await fetch(resolved)).text();
-            cache.add(resolved);
             return content;
         }
     

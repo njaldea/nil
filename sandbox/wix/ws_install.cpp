@@ -72,6 +72,10 @@ void ws_install(nil::service::IService& server)
                     nil::wix::proto::MarkupResponse response;
                     *response.add_components()
                         = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
+                    *response.add_components()
+                        = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
+                    *response.add_components()
+                        = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
                     server.send(
                         id,
                         nil::service::concat(nwp::MessageType_MarkupResponse, response)

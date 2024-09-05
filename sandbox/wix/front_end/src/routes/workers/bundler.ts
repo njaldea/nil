@@ -34,27 +34,25 @@ self.addEventListener(
                 }
             );
 
-            rollup({
+            const r = await rollup({
                 input: '<nil_wix_internal>/index.js',
                 plugins: [
                     await nil_wix(options, files),
                     commonjs
                 ],
                 onwarn: (warning) => {} // console.log('warning', warning)
-            })
-            .then(v => v.generate({
+            });
+            const g = await r.generate({
                 format: 'es',
                 name: "nil_wix",
                 exports: 'named',
                 sourcemap: 'hidden'
-            }))
-            .then(v => {
-                self.postMessage({
-                    ok: true,
-                    code: v.output[0].code
-                });
-            })
-            .catch(e => console.log(e));
+            });
+
+            self.postMessage({
+                ok: true,
+                code: g.output[0].code
+            });
         }
     }
 );
