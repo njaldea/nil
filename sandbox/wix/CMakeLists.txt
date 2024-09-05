@@ -27,14 +27,12 @@ find_package(nil COMPONENTS clix service CONFIG REQUIRED)
 set(
     SOURCES
         main.cpp
-        impl.cpp
         http_install.cpp
         ws_install.cpp
 )
 
 set(
     HEADERS
-        impl.hpp
         http_install.hpp
         ws_install.hpp
 )

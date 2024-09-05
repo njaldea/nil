@@ -46,7 +46,7 @@ const fetch_package_json = async (target: string) => {
 };
 
 export const resolve_id = async (importee: string, importer?: string) => {
-    if (importee === "<nil_wix_internal>/index.js" && importer == null) {
+    if (importee.startsWith("<nil_wix_internal>")) {
         return importee;
     }
 
@@ -87,9 +87,9 @@ export const resolve_id = async (importee: string, importer?: string) => {
         // is not applicable in this case
         const path = exports(result.json, result.rest, {browser: true});
         if (Array.isArray(path) && path.length > 0) {
-            return (new URL(`${result.base}/${path[0]}`)).href;
+            return (await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url;
         } else if (typeof path === 'string') {
-            return (new URL(`${result.base}/${path}`)).href;
+            return (await fetch(new URL(`${result.base}/${path}`), { method: "HEAD" })).url;
         }
     }
 

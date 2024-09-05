@@ -1,6 +1,8 @@
+export type Options = { host?: string, route?: string, port?: number, buffer: number};
+
 export class Service
 {
-    constructor({route, host, port, buffer}: { host?: string, route?: string, port?: number, buffer: number})
+    constructor({route, host, port, buffer}: Options)
     {
         this.#id = `${host ?? 'localhost'}${port != null ? `:${port}`: ''}${route ?? '/'}`;
         this.#buffer = buffer;
@@ -127,4 +129,20 @@ export const concat = (payloads: Uint8Array[]) => {
         index += payload.length;
     }
     return full_buffer;
+};
+
+export const service_fetch = async <T>(
+    options: Options,
+    request: Uint8Array,
+    converter: (data: Uint8Array) => T
+) => {
+    return new Promise<T>((resolve, reject) => {
+        const service = new Service(options);
+        service.on_connect(() => service.publish(request));
+        service.on_message((id: string, data: Uint8Array) => {
+            resolve(converter(data));
+            service.stop();
+        });
+        service.start();
+    });
 };

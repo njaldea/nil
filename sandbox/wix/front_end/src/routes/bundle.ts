@@ -11,9 +11,10 @@ export const bundle = async (args: {
         worker.addEventListener('message', (e) => {
             if (e.data.ok)
             {
-                const module_data = e.data.code;
-                const b64_module_data = "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(module_data)));
-                resolve(import(b64_module_data /* @vite-ignore */));
+                resolve(import(
+                    /* @vite-ignore */
+                    "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(e.data.code)))
+                ));
             }
             else
             {
