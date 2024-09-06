@@ -11,12 +11,12 @@ export const transform = () => {
         if (id.endsWith(".svelte")) 
         {
             const result = compile(code, {
-                generate: "dom",
+                generate: "client",
                 dev: false,
-                filename: id,
+                filename: id
             });
             return { code: result.js.code, map: null };
         }
-        return { code, map: null };
+        return null;
     };
 };

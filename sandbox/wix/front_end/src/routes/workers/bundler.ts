@@ -2,12 +2,24 @@
 
 self.window = self; // hack for magic-sring and rollup inline sourcemaps
 
-import { Service, service_fetch, header } from "$lib/Service";
+import { service_fetch, header } from "$lib/Service";
 import { nil_wix_proto } from "$lib/proto";
 
 import { plugin as commonjs } from './plugins/commonjs/plugin';
 import { plugin as nil_wix } from './plugins/nil_wix/plugin';
 import { rollup } from '@rollup/browser';
+
+const populate_wix_root = (files: string[]) => {
+    const import_lines = files
+        .map((v, i) => `import Component_${i} from "<nil_wix_user>${v}";`)
+        .join('\n');
+    const result = [
+        import_lines,
+        `export { action } from "<nil_wix_internal>/action.js";`,
+        `export const components = [${files.map((v, i) => `Component_${i}`).join(', ')}];`
+    ].join('\n');
+    return result;
+};
 
 self.addEventListener(
     'message',
@@ -37,21 +49,32 @@ self.addEventListener(
             const r = await rollup({
                 input: '<nil_wix_internal>/index.js',
                 plugins: [
-                    await nil_wix(options, files),
-                    commonjs
+                    await nil_wix(options, files, populate_wix_root(files)),
+                    commonjs(),
                 ],
-                onwarn: (warning) => {} // console.log('warning', warning)
+                external: [
+                    'svelte',
+                    'svelte/store',
+                    'svelte/internal/client',
+                    'svelte/internal/disclose-version'
+                ],
+                logLevel: "debug",
+                onwarn: (warning) => false && console.log('warning', warning)
             });
-            const g = await r.generate({
-                format: 'es',
-                name: "nil_wix",
-                exports: 'named',
-                sourcemap: 'hidden'
+            const g = await r.generate({ format: 'esm' });
+            const f = await rollup({
+                input: '<nil_wix_internal>/index.js',
+                plugins: [
+                    await nil_wix(options, [], g.output[0].code),
+                    commonjs(),
+                ],
+                logLevel: "debug",
+                onwarn: (warning) => false && console.log('warning', warning)
             });
-
+            const gg = await f.generate({ format: 'esm' });
             self.postMessage({
                 ok: true,
-                code: g.output[0].code
+                code: gg.output[0].code
             });
         }
     }

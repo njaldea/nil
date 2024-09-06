@@ -7,22 +7,30 @@ import type { Options } from "$lib/Service";
 
 const debug_verbose = false;
 
-export const plugin = async (options: Options, files: string[]) => {
+export const plugin = async (options: Options, files: string[], entry: string) => {
     return {
         name: 'nil_wix_plugin',
         resolveId: !debug_verbose
-            ? resolve_id
-            : async (importee, importer) => {
-                console.log('resolve_id', {importee, importer});
-                return await resolve_id(importee, importer);
-            },
-        load: !debug_verbose
-            ? await load(options, files)
+            ? await resolve_id()
             : await (async () => {
-                const t = await load(options, files);
+                const t = await resolve_id();
+                return async (importee, importer) => {
+                    const resolution = await t(importee, importer);
+                    if (resolution != null) {
+                        console.log('resolve_id', {importee, importer, resolution});
+                    } else {
+                        console.log('resolve issue', { importee, importer });
+                    }
+                    return resolution;
+                };
+            })(),
+        load: !debug_verbose
+            ? await load(options, files, entry)
+            : await (async () => {
+                const t = await load(options, files, entry);
                 return async (resolved) => {
-                    console.log('load', {resolved});
                     const resolution = await t(resolved);
+                    console.log('load', {resolved, resolution});
                     return resolution;
                 }
             })(),
@@ -31,8 +39,8 @@ export const plugin = async (options: Options, files: string[]) => {
             : (() => {
                 const t = transform()
                 return async (code, id) => {
-                    console.log('transform', {id});
                     const resolution = await t(code, id);
+                    console.log('transform', {id, resolution});
                     return resolution;
                 }
             })()

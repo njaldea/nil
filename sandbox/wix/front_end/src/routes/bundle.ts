@@ -1,6 +1,8 @@
 import type { Action } from 'svelte/action';
 import Worker from './workers/bundler.ts?worker';
 
+import { writable } from 'svelte/store';
+
 export const bundle = async (args: {
     host: string;
     port: number;
@@ -15,7 +17,9 @@ export const bundle = async (args: {
                     /* @vite-ignore */
                     "data:text/javascript;base64," + btoa(unescape(encodeURIComponent(e.data.code)))
                 );
-                resolve({ mount_me: m.action(m.components) });
+                const context = new Map();
+                context.set("binding_tag", writable(300));
+                resolve({ mount_me: m.action(m.components, [context]) });
             }
             else
             {

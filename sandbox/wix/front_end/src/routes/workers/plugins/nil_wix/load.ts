@@ -2,10 +2,10 @@ import { concat, header, service_fetch, type Options } from "$lib/Service";
 import { nil_wix_proto } from "$lib/proto";
 
 const action_script = `
-    import { mount, unmount } from 'svelte/src/internal/client/render.js';
-    export const action = (components) => {
+    import { mount, unmount } from 'svelte';
+    export const action = (components, contexts) => {
         return (div, props) => {
-            let cleanup = components.map(v => mount(v, {target: div}));
+            let cleanup = components.map((v, i) => mount(v, {target: div, context: contexts[i]}));
             return {
                 destroy: () => {
                     cleanup.forEach(v => unmount(v));
@@ -15,19 +15,15 @@ const action_script = `
     };
 `;
 
-const populate_wix_root = (files: string[]) => {
-    const import_lines = files
-        .map((v, i) => `import Component_${i} from "<nil_wix_user>${v}";`)
-        .join('\n');
-    const result = [
-        import_lines,
-        `export { action } from "<nil_wix_internal>/action.js";`,
-        `export const components = [${files.map((v, i) => `Component_${i}`).join(', ')}];`
-    ].join('\n');
-    return result;
-};
+const context_script = `
+    import { getContext } from "svelte";
+    import { writable } from 'svelte/store';
+    export const binding = (tag, default_value) => {
+        return getContext(tag) ?? default_value;
+    };
+`;
 
-export const load = async (options: Options, files: string[]) => {
+export const load = async (options: Options, files: string[], entry: string) => {
     const cached_user_files = new Map<string, string>();
     for (const target of files)
     {
@@ -53,8 +49,12 @@ export const load = async (options: Options, files: string[]) => {
             return null;
         }
 
+        if (resolved === "nil_wix") {
+            return context_script;
+        }
+
         if (resolved === "<nil_wix_internal>/index.js") {
-            return populate_wix_root(files);
+            return entry;
         }
 
         if (resolved === "<nil_wix_internal>/action.js") {

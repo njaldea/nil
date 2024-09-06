@@ -45,57 +45,62 @@ const fetch_package_json = async (target: string) => {
     return ff(0);
 };
 
-export const resolve_id = async (importee: string, importer?: string) => {
-    if (importee.startsWith("<nil_wix_internal>")) {
-        return importee;
+export const resolve_id = async () => {
+    const cache = new Set<string>();
+    const add_and_return = (value: string) => {
+        if (!cache.has(value)) {
+            cache.add(value);
+        }
+        return value;
     }
-
-    if (importee.startsWith("<nil_wix_user>"))
-    {
-        // this will be triggered only for root stuff.
-        return importee;
-    }
-
-    if (importee.startsWith("nil/wix/")) {
-        return `<nil_wix_internal>/components/${importee.slice(8)}`;
-    }
-
-    if (importee.startsWith("svelte")) {
-        importee = `svelte@5.0.0-next.222` + importee.slice(6);
-    }
-
-    if (importee.startsWith('svelte@5.0.0-next.222/src')) {
-        return `https://unpkg.com/${importee}`; // bypass
-    }
-
-    if (importee.startsWith(".")) {
-        if (importer?.startsWith('<nil_wix_user>')) {
-            const base = new URL(`${location.origin}/${importer.slice(15)}`);
-            const resolved = (new URL(importee, base)).href;
-            return `<nil_wix_user>${resolved.slice(location.origin.length)}`;
+    return async (importee: string, importer?: string) => {
+        if (importee.startsWith("<nil_wix_internal>")) {
+            return add_and_return(importee);
         }
 
-        if (importer?.startsWith('https://unpkg.com')) {
-            return (await fetch(
-                new URL(importee, importer),
-                { method: "HEAD" })
-            ).url;
+        if (importee.startsWith("<nil_wix_user>"))
+        {
+            return add_and_return(importee);
         }
-    }
 
-    const result = await fetch_package_json(importee);
-    if (result != null)
-    {
-        // string composition works because result.base is always `http://unpkg.com/module`
-        // url resolution will always remove the last portion of the link which
-        // is not applicable in this case
-        const path = exports(result.json, result.rest, {browser: true, conditions: ['svelte', 'production']});
-        if (Array.isArray(path) && path.length > 0) {
-            return (await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url;
-        } else if (typeof path === 'string') {
-            return (await fetch(new URL(`${result.base}/${path}`), { method: "HEAD" })).url;
+        if (importee === 'nil_wix') {
+            return add_and_return(importee);
         }
-    }
 
-    throw "unknown file, should be unreachable";
-}
+        if (importee.startsWith("nil/wix/")) {
+            return add_and_return(`<nil_wix_internal>/components/${importee.slice(8)}`);
+        }
+
+        if (importee.startsWith("svelte")) {
+            importee = `svelte@5.0.0-next.222` + importee.slice(6);
+        }
+
+        if (importee.startsWith(".")) {
+            if (importer?.startsWith('<nil_wix_user>')) {
+                const base = new URL(`${location.origin}/${importer.slice(15)}`);
+                const resolved = (new URL(importee, base)).href;
+                return add_and_return(`<nil_wix_user>${resolved.slice(location.origin.length)}`);
+            }
+
+            if (importer?.startsWith('https://unpkg.com')) {
+                return add_and_return((await fetch(new URL(importee, importer), { method: "HEAD" })).url);
+            }
+        }
+
+        const result = await fetch_package_json(importee);
+        if (result != null)
+        {
+            // string composition works because result.base is always `http://unpkg.com/module`
+            // url resolution will always remove the last portion of the link which
+            // is not applicable in this case
+            const path = exports(result.json, result.rest, {browser: true, conditions: ['svelte', 'production']});
+            if (Array.isArray(path) && path.length > 0) {
+                return add_and_return((await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url);
+            } else if (typeof path === 'string') {
+                return add_and_return((await fetch(new URL(`${result.base}/${path}`), { method: "HEAD" })).url);
+            }
+        }
+
+        throw "unknown file, should be unreachable";
+    };
+};
