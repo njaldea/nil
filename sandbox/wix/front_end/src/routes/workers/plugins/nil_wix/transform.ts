@@ -8,10 +8,9 @@ export const transform = () => {
         } else {
             return null;
         }
-        if (id.endsWith(".svelte")) 
-        {
+        if (id.endsWith(".svelte")) {
             const result = compile(code, {
-                generate: "client",
+                generate: "dom",
                 dev: false,
                 filename: id
             });

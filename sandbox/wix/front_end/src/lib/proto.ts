@@ -12,28 +12,25 @@ type Range = {
 
 type Block = {
     label: string;
-    widgets: (
-        { range: Range; } |
-        { text: Text; } |
-        { block: Block; }
-    )[];
+    widgets: ({ range: Range } | { text: Text } | { block: Block })[];
 };
 
-type WixRoot = { blocks: Block[]; };
+type WixRoot = { blocks: Block[] };
 
-type I64Update = { id: number; value: number; };
-type StringUpdate = { id: number; value: string; };
-type MarkupResponse = { components: string[]; };
-type FileRequest = { target: string; };
+type I64Update = { id: number; value: number };
+type StringUpdate = { id: number; value: string };
+type MarkupResponse = { components: string[] };
+type FileRequest = { target: string };
 type FileResponse = {
     target: string;
     content: string;
 };
 
 type ProtoType<T> = {
-    encode: (i: T) => { finish: () => Uint8Array; };
+    encode: (i: T) => { finish: () => Uint8Array };
     decode: (i: Uint8Array) => T;
-}
+};
+
 type Proto = {
     MessageType: {
         MessageType_Wix: 0;
@@ -43,7 +40,8 @@ type Proto = {
         MessageType_MarkupResponse: 4;
         MessageType_FileRequest: 5;
         MessageType_FileResponse: 6;
-    },
+    };
+
     Wix: ProtoType<WixRoot>;
     I64Update: ProtoType<I64Update>;
     StringUpdate: ProtoType<StringUpdate>;
@@ -52,4 +50,6 @@ type Proto = {
     FileResponse: ProtoType<FileResponse>;
 };
 
-export const nil_wix_proto = protobufjs.Root.fromJSON(proto_data).lookup("nil.wix.proto") as any as Proto;
+export const nil_wix_proto = protobufjs.Root.fromJSON(proto_data).lookup(
+    "nil.wix.proto"
+) as any as Proto;

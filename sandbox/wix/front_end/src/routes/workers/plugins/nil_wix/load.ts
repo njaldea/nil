@@ -23,24 +23,7 @@ const context_script = `
     };
 `;
 
-export const load = async (options: Options, files: string[], entry: string) => {
-    const cached_user_files = new Map<string, string>();
-    for (const target of files)
-    {
-        const payload = concat([
-            header(nil_wix_proto.MessageType.MessageType_FileRequest),
-            nil_wix_proto.FileRequest.encode({ target }).finish()
-        ])
-        cached_user_files.set(`<nil_wix_user>${target}`, await service_fetch(options, payload, (data) => {
-            const tag = (new DataView(data.buffer)).getUint32(0, false);
-            const buffer = data.slice(4);
-            if (tag === nil_wix_proto.MessageType.MessageType_FileResponse)
-            {
-                return nil_wix_proto.FileResponse.decode(buffer).content;
-            }
-            throw "err";
-        }));
-    }
+export const load = async (options: Options, entry: string) => {
     const cache = new Set();
     return async (resolved: string) => {
         if (!cache.has(resolved)) {
@@ -61,35 +44,26 @@ export const load = async (options: Options, files: string[], entry: string) => 
             return action_script;
         }
 
-        if (cached_user_files.has(resolved))
-        {
-            return cached_user_files.get(resolved);
-        }
-    
         if (resolved.startsWith("<nil_wix_user>")) {
             const target = resolved.substring("<nil_wix_user>".length);
             const payload = concat([
                 header(nil_wix_proto.MessageType.MessageType_FileRequest),
                 nil_wix_proto.FileRequest.encode({ target }).finish()
-            ])
-            const response = await service_fetch(options, payload, (data) => {
-                const tag = (new DataView(data.buffer)).getUint32(0, false);
-                const buffer = data.slice(4);
-                if (tag === nil_wix_proto.MessageType.MessageType_FileResponse)
-                {
-                    return nil_wix_proto.FileResponse.decode(buffer);
+            ]);
+            const response = await service_fetch(options, payload, (tag, data) => {
+                if (tag === nil_wix_proto.MessageType.MessageType_FileResponse) {
+                    return nil_wix_proto.FileResponse.decode(data);
                 }
                 throw "err";
             });
             return response.content;
         }
-    
-        if (resolved.startsWith('https://unpkg.com'))
-        {
+
+        if (resolved.startsWith("https://unpkg.com")) {
             const content = await (await fetch(resolved)).text();
             return content;
         }
-    
+
         throw `unknown file: ${resolved}`;
-    }
+    };
 };

@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { bundle } from "./bundle";
+    import { bundle, type BundledModule } from "./bundle";
+    import { writable } from "svelte/store";
 
     let { port, host, route } = $props<{
         port: number;
@@ -9,14 +10,21 @@
 
     const call = (e: Error) => {
         console.log(e.stack);
-        return "Something went wrong..."
-    }
+        return "Something went wrong...";
+    };
+
+    const bundle_step = async () => {
+        const m = await bundle({ host, port });
+        const context = new Map();
+        context.set("binding_tag", writable(300));
+        return m.action(m.components, [context]);
+    };
 </script>
 
-{#await bundle({ host, port })}
+{#await bundle_step()}
     Loading...
-{:then { mount_me }} 
-    <div use:mount_me></div>
+{:then action}
+    <div use:action></div>
 {:catch e}
     {call(e)}
 {/await}

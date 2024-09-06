@@ -2,80 +2,57 @@
 
 self.window = self; // hack for magic-sring and rollup inline sourcemaps
 
-import { service_fetch, header } from "$lib/Service";
+import { service_fetch, header, type Options } from "$lib/Service";
 import { nil_wix_proto } from "$lib/proto";
 
-import { plugin as commonjs } from './plugins/commonjs/plugin';
-import { plugin as nil_wix } from './plugins/nil_wix/plugin';
-import { rollup } from '@rollup/browser';
+import { plugin as commonjs } from "./plugins/commonjs/plugin";
+import { plugin as nil_wix, warning } from "./plugins/nil_wix/plugin";
+import { rollup } from "@rollup/browser";
 
 const populate_wix_root = (files: string[]) => {
-    const import_lines = files
-        .map((v, i) => `import Component_${i} from "<nil_wix_user>${v}";`)
-        .join('\n');
     const result = [
-        import_lines,
+        ...files.map((v, i) => `import Component_${i} from "<nil_wix_user>${v}";`),
         `export { action } from "<nil_wix_internal>/action.js";`,
-        `export const components = [${files.map((v, i) => `Component_${i}`).join(', ')}];`
-    ].join('\n');
+        `export const components = [${files.map((v, i) => `Component_${i}`).join(", ")}];`
+    ].join("\n");
     return result;
 };
 
-self.addEventListener(
-    'message',
-    async (e) => {
-        if (e.data.type == 'init')
-        {
-            const options = {
-                host: e.data.host,
-                port: e.data.port,
-                buffer: 1024
-            };
+const bundle = async (options: Options, entry: string, external?: (v: string) => boolean) => {
+    const r = await rollup({
+        input: "<nil_wix_internal>/index.js",
+        plugins: [await nil_wix(options, entry), commonjs()],
+        external,
+        onwarn: warning
+    });
+    const g = await r.generate({ format: "esm" });
+    return g.output[0].code;
+};
+
+self.addEventListener("message", async (e) => {
+    try {
+        if (e.data.type == "init") {
+            const options = { host: e.data.host, port: e.data.port };
 
             const files = await service_fetch(
                 options,
                 header(nil_wix_proto.MessageType.MessageType_MarkupRequest),
-                (data) => {
-                    const tag = (new DataView(data.buffer)).getUint32(0, false);
-                    const buffer = data.slice(4);
-                    if (tag === nil_wix_proto.MessageType.MessageType_MarkupResponse)
-                    {
-                        return nil_wix_proto.MarkupResponse.decode(buffer).components;
+                (tag, data) => {
+                    if (tag === nil_wix_proto.MessageType.MessageType_MarkupResponse) {
+                        return nil_wix_proto.MarkupResponse.decode(data).components;
                     }
-                    throw 'err';
+                    throw "err";
                 }
             );
 
-            const r = await rollup({
-                input: '<nil_wix_internal>/index.js',
-                plugins: [
-                    await nil_wix(options, files, populate_wix_root(files)),
-                    commonjs(),
-                ],
-                external: [
-                    'svelte',
-                    'svelte/store',
-                    'svelte/internal/client',
-                    'svelte/internal/disclose-version'
-                ],
-                logLevel: "debug",
-                onwarn: (warning) => false && console.log('warning', warning)
-            });
-            const g = await r.generate({ format: 'esm' });
-            const f = await rollup({
-                input: '<nil_wix_internal>/index.js',
-                plugins: [
-                    await nil_wix(options, [], g.output[0].code),
-                    commonjs(),
-                ],
-                logLevel: "debug",
-                onwarn: (warning) => false && console.log('warning', warning)
-            });
-            const gg = await f.generate({ format: 'esm' });
-            self.postMessage({
-                ok: true,
-                code: gg.output[0].code
-            });
+            const root_entry = populate_wix_root(files);
+            const bypass_svelte_files = (e: string) => e.startsWith("svelte");
+            const initial_pass = await bundle(options, root_entry, bypass_svelte_files);
+            const final_output = await bundle(options, initial_pass);
+
+            self.postMessage({ ok: true, code: final_output });
         }
+    } catch (e) {
+        self.postMessage({ ok: false, err: "Error somewhere...." });
     }
-);
+});

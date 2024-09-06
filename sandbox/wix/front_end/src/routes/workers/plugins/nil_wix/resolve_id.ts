@@ -1,4 +1,4 @@
-import { exports } from 'resolve.exports';
+import { exports } from "resolve.exports";
 
 type PACKAGE_INFO = {
     pkg: string;
@@ -11,11 +11,10 @@ const JSON_PKG_CACHE = new Map<string, PACKAGE_INFO>();
 
 const fetch_package_json = async (target: string) => {
     const unpkg = `https://unpkg.com`;
-    const split_importee = target.split('/');
+    const split_importee = target.split("/");
     const ff = async (i: number) => {
-        try
-        {
-            const pkg = split_importee.slice(0, i + 1).join('/');
+        try {
+            const pkg = split_importee.slice(0, i + 1).join("/");
             const base = `${unpkg}/${pkg}`;
             const link = `${base}/package.json`;
             if (JSON_PKG_CACHE.has(link)) {
@@ -27,14 +26,12 @@ const fetch_package_json = async (target: string) => {
                     pkg,
                     base,
                     link,
-                    rest: split_importee.slice(i + 1).join('/'),
+                    rest: split_importee.slice(i + 1).join("/"),
                     json: JSON.parse(await result.text())
                 });
                 return JSON_PKG_CACHE.get(link);
             }
-        }
-        catch (e)
-        {
+        } catch (e) {
             console.log(e);
         }
         if (i < target.length) {
@@ -46,29 +43,21 @@ const fetch_package_json = async (target: string) => {
 };
 
 export const resolve_id = async () => {
-    const cache = new Set<string>();
-    const add_and_return = (value: string) => {
-        if (!cache.has(value)) {
-            cache.add(value);
-        }
-        return value;
-    }
     return async (importee: string, importer?: string) => {
         if (importee.startsWith("<nil_wix_internal>")) {
-            return add_and_return(importee);
+            return importee;
         }
 
-        if (importee.startsWith("<nil_wix_user>"))
-        {
-            return add_and_return(importee);
+        if (importee.startsWith("<nil_wix_user>")) {
+            return importee;
         }
 
-        if (importee === 'nil_wix') {
-            return add_and_return(importee);
+        if (importee === "nil_wix") {
+            return importee;
         }
 
         if (importee.startsWith("nil/wix/")) {
-            return add_and_return(`<nil_wix_internal>/components/${importee.slice(8)}`);
+            return `<nil_wix_internal>/components/${importee.slice(8)}`;
         }
 
         if (importee.startsWith("svelte")) {
@@ -76,28 +65,30 @@ export const resolve_id = async () => {
         }
 
         if (importee.startsWith(".")) {
-            if (importer?.startsWith('<nil_wix_user>')) {
+            if (importer?.startsWith("<nil_wix_user>")) {
                 const base = new URL(`${location.origin}/${importer.slice(15)}`);
-                const resolved = (new URL(importee, base)).href;
-                return add_and_return(`<nil_wix_user>${resolved.slice(location.origin.length)}`);
+                const resolved = new URL(importee, base).href;
+                return `<nil_wix_user>${resolved.slice(location.origin.length)}`;
             }
 
-            if (importer?.startsWith('https://unpkg.com')) {
-                return add_and_return((await fetch(new URL(importee, importer), { method: "HEAD" })).url);
+            if (importer?.startsWith("https://unpkg.com")) {
+                return (await fetch(new URL(importee, importer), { method: "HEAD" })).url;
             }
         }
 
         const result = await fetch_package_json(importee);
-        if (result != null)
-        {
+        if (result != null) {
             // string composition works because result.base is always `http://unpkg.com/module`
             // url resolution will always remove the last portion of the link which
             // is not applicable in this case
-            const path = exports(result.json, result.rest, {browser: true, conditions: ['svelte', 'production']});
+            const path = exports(result.json, result.rest, {
+                browser: true,
+                conditions: ["svelte", "production"]
+            });
             if (Array.isArray(path) && path.length > 0) {
-                return add_and_return((await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url);
-            } else if (typeof path === 'string') {
-                return add_and_return((await fetch(new URL(`${result.base}/${path}`), { method: "HEAD" })).url);
+                return (await fetch(new URL(`${result.base}/${path[0]}`), { method: "HEAD" })).url;
+            } else if (typeof path === "string") {
+                return (await fetch(new URL(`${result.base}/${path}`), { method: "HEAD" })).url;
             }
         }
 
