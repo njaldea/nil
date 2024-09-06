@@ -1,8 +1,9 @@
-import type { Action } from "svelte/action";
 import Worker from "./workers/bundler.ts?worker";
 
+type Action = (div: HTMLDivElement) => { destroy: () => void; }; 
+
 export type BundledModule = {
-    action: (components: unknown[], contexts: unknown[]) => Action<HTMLDivElement>;
+    action: (components: unknown[], contexts: unknown[]) => Action;
     components: unknown[];
 };
 

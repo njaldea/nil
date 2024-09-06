@@ -18,8 +18,13 @@ const action_script = `
 const context_script = `
     import { getContext } from "svelte";
     import { writable } from 'svelte/store';
+    const create_writable = (value) => {
+        const w = writable(value);
+        w.subscribe((v) => console.log("not used", v));
+        return w;
+    };
     export const binding = (tag, default_value) => {
-        return getContext(tag) ?? default_value;
+        return getContext(tag) ?? create_writable(default_value);
     };
 `;
 

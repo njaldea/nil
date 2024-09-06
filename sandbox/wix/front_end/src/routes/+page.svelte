@@ -4,5 +4,5 @@
 </script>
 
 {#if browser}
-    <Client host={"localhost"} port={1101} route={undefined}></Client>
+    <Client host={"localhost"} port={1101} ></Client>
 {/if}

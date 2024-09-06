@@ -6,10 +6,9 @@
     
     import { binding } from "nil_wix";
 
-    const ff = binding('binding_tag', 100);
-
-    let value = 4;
+    const int_binding = binding('binding_0_0', "1101");
+    const str_binding = binding('binding_0_1', "world");
 </script>
 
 <Div></Div>
-<Range min={0} max={10} step={1} bind:value={value} label={"label here"}></Range>
+<Range min={0} max={10} step={1} bind:value={$int_binding} label={"label here"}></Range>

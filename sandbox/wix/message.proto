@@ -5,61 +5,37 @@ option optimize_for = LITE_RUNTIME;
 package nil.wix.proto;
 
 enum MessageType {
-    MessageType_Wix = 0;
-    MessageType_I64Update = 1;
-    MessageType_StringUpdate = 2;
-    MessageType_MarkupRequest = 3;
-    MessageType_MarkupResponse = 4;
+    MessageType_MarkupRequest = 0;
+    MessageType_MarkupResponse = 1;
+    MessageType_BindingRequest = 2;
+    MessageType_BindingResponse = 3;
+    MessageType_BindingUpdate = 4;
     MessageType_FileRequest = 5;
     MessageType_FileResponse = 6;
-}
-
-message Range {
-    int32 id = 1;
-    string label = 2;
-    int64 value = 3;
-    int64 min = 4;
-    int64 max = 5;
-    int32 step = 6;
-}
-
-message Text {
-    int32 id = 1;
-    string label = 2;
-    string value = 3;
-    string placeholder = 4;
-}
-
-message I64Update {
-    int32 id = 1;
-    int64 value = 2;
-}
-
-message StringUpdate {
-    int32 id = 1;
-    string value = 2;
-}
-
-message Block {
-    message Widget {
-        oneof value {
-            Block block = 1;
-            Range range = 2;
-            Text text = 3;
-        }
-    }
-
-    string label = 1;
-    repeated Widget widgets = 2;
-}
-
-message Wix {
-    repeated Block blocks = 1;
 }
 
 message MarkupResponse
 {
     repeated string components = 1;
+}
+
+message Binding
+{
+    string tag = 1;
+    oneof value {
+        int64 value_i64 = 2;
+        string value_str = 3;
+    }
+}
+
+message BindingGroup
+{
+    repeated Binding bindings = 1;
+}
+
+message BindingResponse
+{
+    repeated BindingGroup info = 1;
 }
 
 message FileRequest

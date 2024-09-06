@@ -82,6 +82,43 @@ void ws_install(nil::service::IService& server)
                     );
                     break;
                 }
+                case nwp::MessageType_BindingRequest:
+                {
+                    nil::wix::proto::BindingResponse response;
+                    auto* info = response.add_info();
+                    {
+                        auto* binding = info->add_bindings();
+                        binding->set_tag("binding_0_0");
+                        binding->set_value_i64(1000);
+                    }
+                    {
+                        auto* binding = info->add_bindings();
+                        binding->set_tag("binding_0_1");
+                        binding->set_value_str("hello world");
+                    }
+                    response.add_info();
+                    response.add_info();
+                    server.send(
+                        id,
+                        nil::service::concat(nwp::MessageType_BindingResponse, response)
+                    );
+                    break;
+                }
+                case nwp::MessageType_BindingUpdate:
+                {
+                    const auto msg = nil::service::consume<nwp::Binding>(data, size);
+                    std::cout << "binding update: " << std::endl;
+                    std::cout << " -  " << msg.tag() << std::endl;
+                    if (msg.has_value_i64())
+                    {
+                        std::cout << " -  " << msg.value_i64() << std::endl;
+                    }
+                    if (msg.has_value_str())
+                    {
+                        std::cout << " -  " << msg.value_str() << std::endl;
+                    }
+                    break;
+                }
                 case nwp::MessageType_FileRequest:
                 {
                     const auto msg = nil::service::consume<nwp::FileRequest>(data, size);
@@ -94,6 +131,7 @@ void ws_install(nil::service::IService& server)
                         std::istreambuf_iterator<char>()
                     );
                     server.send(id, nil::service::concat(nwp::MessageType_FileResponse, response));
+                    break;
                 }
                 default:
                     break;
