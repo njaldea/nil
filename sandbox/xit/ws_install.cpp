@@ -47,9 +47,12 @@ namespace nil::service
 
 void ws_install(nil::service::IService& server)
 {
-    server.on_ready(                                                 //
-        [](const auto& id)                                           //
-        { std::cout << "ready ws      : " << id.text << std::endl; } //
+    server.on_ready(                                                               //
+        [](const auto& id)                                                         //
+        {                                                                          //
+            std::cout << "ready ws      : " << id.text << std::endl;               //
+            std::cout << " ui is at     : https://xit-ui.vercel.app" << std::endl; //
+        }
     );
     server.on_connect(                                               //
         [](const auto& id)                                           //
