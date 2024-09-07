@@ -38,6 +38,12 @@ message BindingResponse
     repeated BindingGroup info = 1;
 }
 
+message BindingUpdate
+{
+    uint32 group = 1;
+    Binding binding = 2;
+}
+
 message FileRequest
 {
     string target = 1;
