@@ -2,7 +2,7 @@
 
 #include <nil/service/concat.hpp>
 #include <nil/service/consume.hpp>
-#include <wix/messages/message.pb.h>
+#include <xit/messages/message.pb.h>
 
 #include <fstream>
 
@@ -29,9 +29,9 @@ namespace nil::service
     };
 
     template <>
-    struct codec<nil::wix::proto::MessageType>
+    struct codec<nil::xit::proto::MessageType>
     {
-        using type = nil::wix::proto::MessageType;
+        using type = nil::xit::proto::MessageType;
 
         static std::vector<std::uint8_t> serialize(const type& message)
         {
@@ -62,20 +62,20 @@ void ws_install(nil::service::IService& server)
     server.on_message(
         [&server](const auto& id, const void* data, std::uint64_t size)
         {
-            namespace nwp = nil::wix::proto;
+            namespace nwp = nil::xit::proto;
             const auto message_type = nil::service::consume<nwp::MessageType>(data, size);
             std::cout << "received: " << id.text << ":" << message_type << std::endl;
             switch (message_type)
             {
                 case nwp::MessageType_MarkupRequest:
                 {
-                    nil::wix::proto::MarkupResponse response;
+                    nwp::MarkupResponse response;
                     *response.add_components()
-                        = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
+                        = "/home/njaldea/repo/cpp/nil/sandbox/xit/gui/Markup.svelte";
                     *response.add_components()
-                        = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
+                        = "/home/njaldea/repo/cpp/nil/sandbox/xit/gui/Markup.svelte";
                     *response.add_components()
-                        = "/home/njaldea/repo/cpp/nil/sandbox/wix/gui/Markup.svelte";
+                        = "/home/njaldea/repo/cpp/nil/sandbox/xit/gui/Markup.svelte";
                     server.send(
                         id,
                         nil::service::concat(nwp::MessageType_MarkupResponse, response)
@@ -84,7 +84,7 @@ void ws_install(nil::service::IService& server)
                 }
                 case nwp::MessageType_BindingRequest:
                 {
-                    nil::wix::proto::BindingResponse response;
+                    nwp::BindingResponse response;
                     auto* info = response.add_info();
                     {
                         auto* binding = info->add_bindings();
@@ -111,11 +111,11 @@ void ws_install(nil::service::IService& server)
                     std::cout << " -  " << msg.tag() << std::endl;
                     if (msg.has_value_i64())
                     {
-                        std::cout << " -  " << msg.value_i64() << std::endl;
+                        std::cout << "i: -  " << msg.value_i64() << std::endl;
                     }
                     if (msg.has_value_str())
                     {
-                        std::cout << " -  " << msg.value_str() << std::endl;
+                        std::cout << "s: -  " << msg.value_str() << std::endl;
                     }
                     break;
                 }

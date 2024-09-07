@@ -1,7 +1,12 @@
 import protobufjs from "protobufjs";
 import { proto_data } from "./proto_data";
 
-type Binding = { tag: string; valueI64?: number; valueStr?: string; };
+type Binding = {
+    tag: string;
+    valueI64?: number;
+    valueStr?: string;
+    value: "valueI64" | "valueStr";
+};
 type MarkupResponse = { components: string[] };
 type BindingResponse = { info: { bindings: Binding[]; }[] };
 type FileRequest = { target: string };
@@ -33,6 +38,6 @@ type Proto = {
     Binding: ProtoType<Binding>;
 };
 
-export const nil_wix_proto = protobufjs.Root.fromJSON(proto_data).lookup(
-    "nil.wix.proto"
+export const nil_xit_proto = protobufjs.Root.fromJSON(proto_data).lookup(
+    "nil.xit.proto"
 ) as any as Proto;

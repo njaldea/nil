@@ -7,7 +7,7 @@ export const proto_data =
   "nested": {
     "nil": {
       "nested": {
-        "wix": {
+        "xit": {
           "nested": {
             "proto": {
               "nested": {

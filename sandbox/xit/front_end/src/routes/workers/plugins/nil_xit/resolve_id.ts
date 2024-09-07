@@ -44,20 +44,16 @@ const fetch_package_json = async (target: string) => {
 
 export const resolve_id = async () => {
     return async (importee: string, importer?: string) => {
-        if (importee.startsWith("<nil_wix_internal>")) {
+        if (importee.startsWith("<nil_xit_internal>")) {
             return importee;
         }
 
-        if (importee.startsWith("<nil_wix_user>")) {
+        if (importee.startsWith("<nil_xit_user>")) {
             return importee;
         }
 
-        if (importee === "nil_wix") {
+        if (importee === "@nil-/xit") {
             return importee;
-        }
-
-        if (importee.startsWith("nil/wix/")) {
-            return `<nil_wix_internal>/components/${importee.slice(8)}`;
         }
 
         if (importee.startsWith("svelte")) {
@@ -65,10 +61,10 @@ export const resolve_id = async () => {
         }
 
         if (importee.startsWith(".")) {
-            if (importer?.startsWith("<nil_wix_user>")) {
+            if (importer?.startsWith("<nil_xit_user>")) {
                 const base = new URL(`${location.origin}/${importer.slice(15)}`);
                 const resolved = new URL(importee, base).href;
-                return `<nil_wix_user>${resolved.slice(location.origin.length)}`;
+                return `<nil_xit_user>${resolved.slice(location.origin.length)}`;
             }
 
             if (importer?.startsWith("https://unpkg.com")) {

@@ -3,18 +3,18 @@
     import { writable, type Writable } from "svelte/store";
 
     import { Service, service_fetch, header, concat } from "$lib/Service";
-    import { nil_wix_proto } from "$lib/proto";
+    import { nil_xit_proto } from "$lib/proto";
 
     let { port, host } = $props<{ port: number; host: string; }>();
 
     const binding_fetch = async (service: Service) => {
         const bindings = await service_fetch(
             { host, port },
-            header(nil_wix_proto.MessageType.MessageType_BindingRequest),
+            header(nil_xit_proto.MessageType.MessageType_BindingRequest),
             (tag, data) => {
-                if (tag === nil_wix_proto.MessageType.MessageType_BindingResponse)
+                if (tag === nil_xit_proto.MessageType.MessageType_BindingResponse)
                 {
-                    return nil_wix_proto.BindingResponse.decode(data);
+                    return nil_xit_proto.BindingResponse.decode(data);
                 }
                 throw "err";
             }
@@ -23,28 +23,17 @@
         for (const group of bindings.info) {
             const context = new Map<string, Writable<number | string>>();
             for (const b of group.bindings) {
-                if (b.valueI64 != null)
-                {
-                    const w = writable(b.valueI64);
-                    context.set(b.tag, w);
-                    w.subscribe(v => service.publish(
-                        concat([
-                            header(nil_wix_proto.MessageType.MessageType_BindingUpdate),
-                            nil_wix_proto.Binding.encode({ tag: b.tag, valueI64: v }).finish()
-                        ])
-                    ));
-                }
-                else if (b.valueStr)
-                {
-                    const w = writable(b.valueStr);
-                    context.set(b.tag, w);
-                    w.subscribe(v => service.publish(
-                        concat([
-                            header(nil_wix_proto.MessageType.MessageType_BindingUpdate),
-                            nil_wix_proto.Binding.encode({ tag: b.tag, valueStr: v }).finish()
-                        ])
-                    ));
-                }
+                const initial_value = b[b.value];
+                const w = writable(initial_value);
+                context.set(b.tag, w);
+                w.subscribe(v => {
+                    const message = { tag: b.tag, [b.value]: v, value: b.value };
+                    const payload = concat([
+                        header(nil_xit_proto.MessageType.MessageType_BindingUpdate),
+                        nil_xit_proto.Binding.encode(message).finish()
+                    ]);
+                    service.publish(payload);
+                });
             }
             contexts.push(context);
         }
@@ -77,7 +66,7 @@
     <div use:action></div>
 {:catch e}
     {(() => {
-        console.log(e.stack);
+        console.log(e);
         return "Something went wrong...";
     })()}
 {/await}

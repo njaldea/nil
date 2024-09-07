@@ -11,7 +11,7 @@ export const warning = (e: RollupLog) => debug_verbose && console.log("warning",
 
 export const plugin = async (options: Options, entry: string) => {
     return {
-        name: "nil_wix_plugin",
+        name: "nil_xit_plugin",
         resolveId: !debug_verbose
             ? await resolve_id()
             : await (async () => {

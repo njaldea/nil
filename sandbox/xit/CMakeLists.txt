@@ -1,8 +1,8 @@
-project(sandbox_wix)
+project(sandbox_xit)
 
 find_package(Protobuf CONFIG REQUIRED)
 
-set(GENERATED_PROTOBUF_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/gen/wix/messages")
+set(GENERATED_PROTOBUF_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/gen/xit/messages")
 
 protobuf_generate_cpp(
     PROTO_SRC
@@ -27,13 +27,11 @@ find_package(nil COMPONENTS clix service CONFIG REQUIRED)
 set(
     SOURCES
         main.cpp
-        http_install.cpp
         ws_install.cpp
 )
 
 set(
     HEADERS
-        http_install.hpp
         ws_install.hpp
 )
 

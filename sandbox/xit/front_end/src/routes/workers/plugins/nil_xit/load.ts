@@ -1,5 +1,5 @@
 import { concat, header, service_fetch, type Options } from "$lib/Service";
-import { nil_wix_proto } from "$lib/proto";
+import { nil_xit_proto } from "$lib/proto";
 
 const action_script = `
     import { mount, unmount } from 'svelte';
@@ -37,27 +37,27 @@ export const load = async (options: Options, entry: string) => {
             return null;
         }
 
-        if (resolved === "nil_wix") {
+        if (resolved === "@nil-/xit") {
             return context_script;
         }
 
-        if (resolved === "<nil_wix_internal>/index.js") {
+        if (resolved === "<nil_xit_internal>/index.js") {
             return entry;
         }
 
-        if (resolved === "<nil_wix_internal>/action.js") {
+        if (resolved === "<nil_xit_internal>/action.js") {
             return action_script;
         }
 
-        if (resolved.startsWith("<nil_wix_user>")) {
-            const target = resolved.substring("<nil_wix_user>".length);
+        if (resolved.startsWith("<nil_xit_user>")) {
+            const target = resolved.substring("<nil_xit_user>".length);
             const payload = concat([
-                header(nil_wix_proto.MessageType.MessageType_FileRequest),
-                nil_wix_proto.FileRequest.encode({ target }).finish()
+                header(nil_xit_proto.MessageType.MessageType_FileRequest),
+                nil_xit_proto.FileRequest.encode({ target }).finish()
             ]);
             const response = await service_fetch(options, payload, (tag, data) => {
-                if (tag === nil_wix_proto.MessageType.MessageType_FileResponse) {
-                    return nil_wix_proto.FileResponse.decode(data);
+                if (tag === nil_xit_proto.MessageType.MessageType_FileResponse) {
+                    return nil_xit_proto.FileResponse.decode(data);
                 }
                 throw "err";
             });
