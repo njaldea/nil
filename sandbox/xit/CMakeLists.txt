@@ -27,12 +27,13 @@ find_package(nil COMPONENTS clix service CONFIG REQUIRED)
 set(
     SOURCES
         main.cpp
-        ws_install.cpp
+        xit.cpp
 )
 
 set(
     HEADERS
-        ws_install.hpp
+        xit.hpp
+        codec.hpp
 )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})

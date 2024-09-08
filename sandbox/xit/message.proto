@@ -14,9 +14,15 @@ enum MessageType {
     MessageType_FileResponse = 6;
 }
 
+message MarkupRequest
+{
+    string id = 1;
+}
+
 message MarkupResponse
 {
-    repeated string components = 1;
+    string id = 1;
+    string file = 2;
 }
 
 message Binding
@@ -28,19 +34,20 @@ message Binding
     }
 }
 
-message BindingGroup
+message BindingRequest
 {
-    repeated Binding bindings = 1;
+    string id = 1;
 }
 
 message BindingResponse
 {
-    repeated BindingGroup info = 1;
+    string id = 1;
+    repeated Binding bindings = 2;
 }
 
 message BindingUpdate
 {
-    uint32 group = 1;
+    string id = 1;
     Binding binding = 2;
 }
 
