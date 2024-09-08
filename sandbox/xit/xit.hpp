@@ -12,29 +12,34 @@ namespace nil::xit
     struct Binding;
 
     struct Frame;
-    struct Xit;
+    struct Core;
 
-    struct Deleter
+    std::unique_ptr<Core, void (*)(Core*)> make_core(nil::service::IService& service);
+
+    Frame& add_frame(Core& core, std::string id, std::filesystem::path path);
+
+    template <typename CorePtr>
+        requires requires(CorePtr arg) {
+            { *arg } -> std::same_as<Core&>;
+        }
+    Frame& add_frame(CorePtr& core_ptr, std::string id, std::filesystem::path path)
     {
-        void operator()(Xit*) const;
-    };
+        return add_frame(*core_ptr, std::move(id), std::move(path));
+    }
 
-    std::unique_ptr<Xit, Deleter> make_xit(nil::service::IService& service);
-
-    Frame& frame(Xit& x, std::string, std::filesystem::path);
     Binding<std::int64_t>& bind(
-        Frame& f,
-        std::string,
-        std::int64_t,
-        std::function<void(std::int64_t)> = {}
+        Frame& frame,
+        std::string tag,
+        std::int64_t value,
+        std::function<void(std::int64_t)> on_change = {}
     );
     Binding<std::string>& bind(
-        Frame& f,
-        std::string,
-        std::string,
-        std::function<void(const std::string&)> = {}
+        Frame& frame,
+        std::string tag,
+        std::string value,
+        std::function<void(const std::string&)> on_change = {}
     );
 
-    void post(Binding<std::int64_t>& b, std::int64_t v);
-    void post(Binding<std::string>& b, std::string v);
+    void post(Binding<std::int64_t>& binding, std::int64_t value);
+    void post(Binding<std::string>& binding, std::string value);
 }

@@ -18,10 +18,26 @@ namespace nil::xit
     template <typename T>
     struct Binding
     {
-        Frame& frame; // NOLINT
+        Frame* frame = nullptr;
         std::string tag;
         T value;
         std::function<void(const T&)> on_change;
+    };
+
+    struct Frame
+    {
+        Core* x = nullptr;
+        std::string id;
+        std::filesystem::path path;
+
+        using Binding_t = std::variant<Binding<std::int64_t>, Binding<std::string>>;
+        std::unordered_map<std::string, Binding_t> bindings;
+    };
+
+    struct Core
+    {
+        nil::service::IService* service;
+        std::unordered_map<std::string, Frame> frames;
     };
 
     void internal_set(Binding<std::int64_t>& binding, const nil::xit::proto::Binding& msg)
@@ -42,34 +58,159 @@ namespace nil::xit
         }
     }
 
-    void msg_set(nil::xit::proto::Binding& msg, const Binding<std::int64_t>& binding)
+    void msg_set(nil::xit::proto::Binding& msg, std::int64_t value)
     {
-        msg.set_value_i64(binding.value);
+        msg.set_value_i64(value);
     }
 
-    void msg_set(nil::xit::proto::Binding& msg, const Binding<std::string>& binding)
+    void msg_set(nil::xit::proto::Binding& msg, std::string value)
     {
-        msg.set_value_str(binding.value);
+        msg.set_value_str(std::move(value));
     }
 
-    struct Frame
+    template <typename T>
+    void msg_set(nil::xit::proto::Binding& msg, const Binding<T>& binding)
     {
-        nil::service::IService& service; // NOLINT
-        std::string id;
-        std::filesystem::path path;
-        std::unordered_map<std::string, std::variant<Binding<std::int64_t>, Binding<std::string>>>
-            bindings;
-    };
+        msg_set(msg, binding.value);
+    }
 
-    struct Xit
+    void handle(
+        Core& core,
+        const nil::service::ID& id,
+        const nil::xit::proto::MarkupRequest& request
+    )
     {
-        explicit Xit(nil::service::IService& init_service)
-            : service(init_service)
+        const auto it = core.frames.find(request.id());
+        if (it != core.frames.end())
         {
-            auto make_handler = [&](auto consume)
+            nil::xit::proto::MarkupResponse response;
+            response.set_id(it->first);
+            response.set_file(it->second.path);
+
+            const auto header = nil::xit::proto::MessageType_MarkupResponse;
+            auto payload = nil::service::concat(header, response);
+            core.service->send(id, std::move(payload));
+        }
+        else
+        {
+            // error response
+        }
+    }
+
+    void handle(
+        Core& core,
+        const nil::service::ID& id,
+        const nil::xit::proto::BindingRequest& request
+    )
+    {
+        const auto it = core.frames.find(request.id());
+        if (it != core.frames.end())
+        {
+            nil::xit::proto::BindingResponse response;
+            response.set_id(it->first);
+            const auto& frame = it->second;
+            for (const auto& [tag, binding] : frame.bindings)
             {
-                return [&, consume](const auto& id, const void* data, std::uint64_t size)
-                { handle(id, consume(data, size)); };
+                auto* msg_binding = response.add_bindings();
+                msg_binding->set_tag(tag);
+                std::visit([msg_binding](const auto& v) { msg_set(*msg_binding, v); }, binding);
+            }
+
+            const auto header = nil::xit::proto::MessageType_BindingResponse;
+            auto payload = nil::service::concat(header, response);
+            core.service->send(id, std::move(payload));
+        }
+        else
+        {
+            // error response
+        }
+    }
+
+    void handle(
+        Core& core,
+        const nil::service::ID& /* id */,
+        const nil::xit::proto::BindingUpdate& msg
+    )
+    {
+        auto it = core.frames.find(msg.id());
+        if (it != core.frames.end())
+        {
+            auto binding_it = it->second.bindings.find(msg.binding().tag());
+            if (binding_it != it->second.bindings.end())
+            {
+                if (msg.binding().has_value_i64())
+                {
+                    std::visit(
+                        [&msg](auto& b) { internal_set(b, msg.binding()); },
+                        binding_it->second
+                    );
+                }
+                else if (msg.binding().has_value_str())
+                {
+                    std::visit(
+                        [&msg](auto& b) { internal_set(b, msg.binding()); },
+                        binding_it->second
+                    );
+                }
+            }
+        }
+        else
+        {
+            // error response
+        }
+    }
+
+    void handle(Core& core, const nil::service::ID& id, const nil::xit::proto::FileRequest& request)
+    {
+        nil::xit::proto::FileResponse response;
+        response.set_target(request.target());
+
+        std::fstream file(request.target());
+        response.set_content(std::string( //
+            std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>()
+        ));
+
+        const auto header = nil::xit::proto::MessageType_FileResponse;
+        auto payload = nil::service::concat(header, response);
+        core.service->send(id, std::move(payload));
+    }
+
+    Frame& add_frame(Core& core, std::string id, std::filesystem::path path)
+    {
+        return core.frames.emplace(id, Frame{&core, id, std::move(path), {}}).first->second;
+    }
+
+    namespace impl
+    {
+        template <typename T, typename Callback>
+        Binding<T>& bind(Frame& frame, std::string tag, T value, Callback on_change)
+        {
+            using type = Binding<T>;
+            auto binding = type{&frame, tag, std::move(value), std::move(on_change)};
+            return std::get<type>(frame.bindings.emplace(tag, std::move(binding)).first->second);
+        }
+
+        template <typename T>
+        void post(Binding<T>& b, T v)
+        {
+            nil::xit::proto::BindingUpdate msg;
+            msg.set_id(b.frame->id);
+            auto* binding = msg.mutable_binding();
+            binding->set_tag(b.tag);
+            msg_set(*binding, std::move(v));
+
+            const auto header = nil::xit::proto::MessageType_BindingUpdate;
+            auto payload = nil::service::concat(header, msg);
+            b.frame->x->service->publish(std::move(payload));
+        }
+
+        void install_on_message(Core& core)
+        {
+            auto make_handler = [ptr = &core](auto consume)
+            {
+                return [ptr, consume](const auto& id, const void* data, std::uint64_t size)
+                { handle(*ptr, id, consume(data, size)); };
             };
             auto handlers            //
                 = nil::service::map( //
@@ -90,163 +231,46 @@ namespace nil::xit
                         make_handler(&nil::service::consume<nil::xit::proto::BindingUpdate>)
                     )
                 );
-            service.on_message(std::move(handlers));
+            core.service->on_message(std::move(handlers));
         }
-
-        void handle(const nil::service::ID& id, const nil::xit::proto::MarkupRequest& request)
-        {
-            const auto it = frames.find(request.id());
-            if (it != frames.end())
-            {
-                nil::xit::proto::MarkupResponse response;
-                response.set_id(it->first);
-                response.set_file(it->second.path);
-
-                const auto header = nil::xit::proto::MessageType_MarkupResponse;
-                auto payload = nil::service::concat(header, response);
-                service.send(id, std::move(payload));
-            }
-            else
-            {
-                // error response
-            }
-        }
-
-        void handle(const nil::service::ID& id, const nil::xit::proto::BindingRequest& request)
-        {
-            const auto it = frames.find(request.id());
-            if (it != frames.end())
-            {
-                nil::xit::proto::BindingResponse response;
-                response.set_id(it->first);
-                const auto& frame = it->second;
-                for (const auto& [tag, binding] : frame.bindings)
-                {
-                    auto* msg_binding = response.add_bindings();
-                    msg_binding->set_tag(tag);
-                    std::visit([msg_binding](const auto& v) { msg_set(*msg_binding, v); }, binding);
-                }
-
-                const auto header = nil::xit::proto::MessageType_BindingResponse;
-                auto payload = nil::service::concat(header, response);
-                service.send(id, std::move(payload));
-            }
-            else
-            {
-                // error response
-            }
-        }
-
-        void handle(const nil::service::ID& /* id */, const nil::xit::proto::BindingUpdate& msg)
-        {
-            auto it = frames.find(msg.id());
-            if (it != frames.end())
-            {
-                auto binding_it = it->second.bindings.find(msg.binding().tag());
-                if (binding_it != it->second.bindings.end())
-                {
-                    if (msg.binding().has_value_i64())
-                    {
-                        std::visit(
-                            [&msg](auto& b) { internal_set(b, msg.binding()); },
-                            binding_it->second
-                        );
-                    }
-                    if (msg.binding().has_value_str())
-                    {
-                        std::visit(
-                            [&msg](auto& b) { internal_set(b, msg.binding()); },
-                            binding_it->second
-                        );
-                    }
-                }
-            }
-            else
-            {
-                // error response
-            }
-        }
-
-        void handle(const nil::service::ID& id, const nil::xit::proto::FileRequest& request)
-        {
-            nil::xit::proto::FileResponse response;
-            response.set_target(request.target());
-
-            std::fstream file(request.target());
-            response.set_content(std::string( //
-                std::istreambuf_iterator<char>(file),
-                std::istreambuf_iterator<char>()
-            ));
-
-            const auto header = nil::xit::proto::MessageType_FileResponse;
-            auto payload = nil::service::concat(header, response);
-            service.send(id, std::move(payload));
-        }
-
-        nil::service::IService& service; // NOLINT
-        std::unordered_map<std::string, Frame> frames;
-    };
-
-    Frame& frame(Xit& x, std::string id, std::filesystem::path path)
-    {
-        return x.frames.emplace(id, Frame{x.service, id, std::move(path), {}}).first->second;
     }
 
     Binding<std::string>& bind(
-        Frame& f,
+        Frame& frame,
         std::string tag,
         std::string value,
         std::function<void(const std::string&)> on_change
     )
     {
-        using type = Binding<std::string>;
-        auto binding = type{f, tag, std::move(value), std::move(on_change)};
-        return std::get<type>(f.bindings.emplace(tag, std::move(binding)).first->second);
+        return impl::bind(frame, std::move(tag), std::move(value), std::move(on_change));
     }
 
     Binding<std::int64_t>& bind(
-        Frame& f,
+        Frame& frame,
         std::string tag,
         std::int64_t value,
         std::function<void(std::int64_t)> on_change
     )
     {
-        using type = Binding<std::int64_t>;
-        auto binding = type{f, tag, value, std::move(on_change)};
-        return std::get<type>(f.bindings.emplace(tag, std::move(binding)).first->second);
+        return impl::bind(frame, std::move(tag), value, std::move(on_change));
     }
 
     void post(Binding<std::int64_t>& b, std::int64_t v)
     {
-        nil::xit::proto::BindingUpdate msg;
-        msg.set_id("id-1");
-        auto* binding = msg.mutable_binding();
-        binding->set_tag(b.tag);
-        binding->set_value_i64(v);
-        b.frame.service.publish(
-            nil::service::concat(nil::xit::proto::MessageType_BindingUpdate, msg)
-        );
+        impl::post(b, v);
     }
 
     void post(Binding<std::string>& b, std::string v)
     {
-        nil::xit::proto::BindingUpdate msg;
-        msg.set_id(b.frame.id);
-        auto* binding = msg.mutable_binding();
-        binding->set_tag(b.tag);
-        binding->set_value_str(std::move(v));
-        b.frame.service.publish(
-            nil::service::concat(nil::xit::proto::MessageType_BindingUpdate, msg)
-        );
+        impl::post(b, std::move(v));
     }
 
-    void Deleter::operator()(Xit* obj) const
+    std::unique_ptr<Core, void (*)(Core*)> make_core(nil::service::IService& service)
     {
-        std::default_delete<Xit>()(obj);
-    }
-
-    std::unique_ptr<Xit, Deleter> make_xit(nil::service::IService& service)
-    {
-        return std::unique_ptr<Xit, Deleter>(new Xit(service));
+        using return_t = std::unique_ptr<Core, void (*)(Core*)>;
+        constexpr auto deleter = [](Core* obj) { std::default_delete<Core>()(obj); };
+        auto ret = return_t{new Core(&service, {}), deleter};
+        impl::install_on_message(*ret);
+        return ret;
     }
 }
