@@ -233,16 +233,16 @@ namespace
 
     int run(const nil::clix::Options& options)
     {
-        if (options.flag("help"))
+        if (flag(options, "help"))
         {
-            options.help(std::cout);
+            help(options, std::cout);
             return 0;
         }
 
         ext::AppState app_state;
         ext::App app(app_state);
 
-        nil::service::tcp::Server service({.port = std::uint16_t(options.number("port"))});
+        nil::service::tcp::Server service({.port = std::uint16_t(number(options, "port"))});
 
         Executor executor;
         executor.reset();
@@ -403,9 +403,8 @@ namespace EXT
 {
     void apply(nil::clix::Node& node)
     {
-        node.flag("help", {.skey = 'h', .msg = "this help"});
-        node.number("port", {.skey = 'p', .msg = "port", .fallback = 1101});
-        node.runner(run);
+        flag(node, "help", {.skey = 'h', .msg = "this help"});
+        number(node, "port", {.skey = 'p', .msg = "port", .fallback = 1101});
+        use(node, run);
     }
-
 }

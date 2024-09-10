@@ -1,4 +1,5 @@
 #include <nil/clix.hpp>
+#include <nil/clix/node.hpp>
 #include <nil/dev.hpp>
 #include <nil/gatex.hpp>
 #include <nil/service.hpp>
@@ -112,15 +113,15 @@ struct Consume
 
 int main(int argc, char** argv)
 {
-    nil::clix::Node root;
-    root.flag("help", {.skey = 'h', .msg = "this help"});
-    root.number("port", {.skey = 'p', .msg = "use port", .fallback = 1101});
-    root.runner(
+    auto root = nil::clix::create_node();
+    flag(root, "help", {.skey = 'h', .msg = "this help"});
+    number(root, "port", {.skey = 'p', .msg = "use port", .fallback = 1101});
+    use(root,
         [](const nil::clix::Options& options)
         {
-            if (options.flag("help"))
+            if (flag(options, "help"))
             {
-                options.help(std::cout);
+                help(options, std::cout);
                 return 0;
             }
 
@@ -160,8 +161,7 @@ int main(int argc, char** argv)
             nil::gatex::serve(core, 1101);
 
             return 0;
-        }
-    );
+        });
 
-    return root.run(argc, argv);
+    return run(root, argc, argv);
 }

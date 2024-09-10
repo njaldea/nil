@@ -284,14 +284,14 @@ namespace
 
     int run(const nil::clix::Options& options)
     {
-        if (options.flag("help"))
+        if (flag(options, "help"))
         {
-            options.help(std::cout);
+            help(options, std::cout);
             return 0;
         }
 
         nil::service::tcp::Client service(
-            {.host = "127.0.0.1", .port = std::uint16_t(options.number("port"))}
+            {.host = "127.0.0.1", .port = std::uint16_t(number(options, "port"))}
         );
 
         glfwSetErrorCallback(
@@ -363,7 +363,7 @@ namespace
             )
         ));
 
-        std::string path = options.param("file");
+        std::string path = param(options, "file");
         bool loaded = true;
 
         service.on_connect( //
@@ -527,9 +527,9 @@ namespace GUI
 {
     void apply(nil::clix::Node& node)
     {
-        node.flag("help", {.skey = 'h', .msg = "this help"});
-        node.number("port", {.skey = 'p', .msg = "port", .fallback = 1101});
-        node.param("file", {.skey = 'f', .msg = "load file on boot", .fallback = ""});
-        node.runner(run);
+        flag(node, "help", {.skey = 'h', .msg = "this help"});
+        number(node, "port", {.skey = 'p', .msg = "port", .fallback = 1101});
+        param(node, "file", {.skey = 'f', .msg = "load file on boot", .fallback = ""});
+        use(node, run);
     }
 }
