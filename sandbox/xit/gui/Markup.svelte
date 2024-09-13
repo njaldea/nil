@@ -3,15 +3,14 @@
     import Range from "./components/Range.svelte";
     import Text from "./components/Text.svelte";
 
-    // this is in npmjs specifically published for this project
-    // - https://www.npmjs.com/package/@nil-/xit
-    import { binding } from "@nil-/xit";
+    import { getContext } from "svelte";
 
-    // can import anything in npmjs (served through unpkg.com)
+    /** @type import('./nil-xit').Xit */
+    const { binding } = getContext("nil.xit");
 
     // (binding id, default value) (in case binding is not registered)
-    const int_binding = binding('binding_0_0', "1101");
-    const str_binding = binding('binding_0_1', "world");
+    const int_binding = binding.number('binding_0_0', 1101);
+    const str_binding = binding.string('binding_0_1', "world");
 </script>
 
 <Text bind:value={$str_binding} placeholder="placeholder" label={"text label here"} ></Text>
