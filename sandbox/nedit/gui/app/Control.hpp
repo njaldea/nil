@@ -2,22 +2,19 @@
 
 #include "IDs.hpp"
 
+#include <nil/service.hpp>
+
 #include <imgui-node-editor/imgui_node_editor.h>
 
 #include <string>
 #include <vector>
-
-namespace nil::service
-{
-    class IService;
-}
 
 namespace gui
 {
     class Control
     {
     public:
-        Control(nil::service::IService& init_service, ID init_id);
+        Control(nil::service::MessagingService& init_service, ID init_id);
 
         Control() = delete;
         virtual ~Control() noexcept = default;
@@ -31,7 +28,7 @@ namespace gui
         virtual void render(bool interactive_controls) = 0;
 
     protected:
-        nil::service::IService& service;
+        nil::service::MessagingService& service;
 
     public:
         ID id;
@@ -40,7 +37,7 @@ namespace gui
     class ToggleControl final: public Control
     {
     public:
-        ToggleControl(nil::service::IService& init_service, ID init_id, bool init_value);
+        ToggleControl(nil::service::MessagingService& init_service, ID init_id, bool init_value);
 
         void render(bool interactive_controls) override;
 
@@ -52,7 +49,7 @@ namespace gui
     {
     public:
         SpinboxControl(
-            nil::service::IService& init_service,
+            nil::service::MessagingService& init_service,
             ID init_id,
             std::int32_t init_value,
             std::int32_t init_min,
@@ -71,7 +68,7 @@ namespace gui
     {
     public:
         SliderControl(
-            nil::service::IService& init_service,
+            nil::service::MessagingService& init_service,
             ID init_id,
             float init_value,
             float init_min,
@@ -89,7 +86,11 @@ namespace gui
     class TextControl final: public Control
     {
     public:
-        TextControl(nil::service::IService& init_service, ID init_id, std::string init_value);
+        TextControl(
+            nil::service::MessagingService& init_service,
+            ID init_id,
+            std::string init_value
+        );
 
         void render(bool interactive_controls) override;
 
@@ -101,7 +102,7 @@ namespace gui
     {
     public:
         ComboBoxControl(
-            nil::service::IService& init_service,
+            nil::service::MessagingService& init_service,
             ID init_id,
             std::string init_value,
             std::vector<std::string> init_selection

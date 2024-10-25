@@ -54,7 +54,7 @@ namespace nil::gatex
 {
     void serve(Core& core, std::uint16_t port)
     {
-        nil::service::tcp::Server server({.port = port});
+        auto server = nil::service::tcp::server::create({.port = port});
 
         nil::nedit::proto::State state;
         // TODO: temporary. this should be owned by core for tracking.. but idk how it should work.
@@ -67,7 +67,8 @@ namespace nil::gatex
                 nil::nedit::proto::NodeState message;
                 message.set_id(id);
                 message.set_active(true);
-                server.publish(
+                publish(
+                    server,
                     nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
                 );
                 std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -80,17 +81,20 @@ namespace nil::gatex
                 nil::nedit::proto::NodeState message;
                 message.set_id(id);
                 message.set_active(false);
-                server.publish(
+                publish(
+                    server,
                     nil::service::concat(nil::nedit::proto::message_type::NodeState, message)
                 );
             }
         );
 
-        server.on_connect( //
+        on_connect(
+            server,
             [&server, &core, &state](const nil::service::ID& id)
             {
                 core.stop();
-                server.send(
+                send(
+                    server,
                     id,
                     nil::service::concat(nil::nedit::proto::message_type::State, state)
                 );
@@ -98,55 +102,58 @@ namespace nil::gatex
         );
 
         namespace proto = nil::nedit::proto;
-        server.on_message(nil::service::map(
-            nil::service::mapping(
-                proto::message_type::ControlUpdateB,
-                [&](const proto::ControlUpdateB& msg)
-                { core.set_control_value(msg.id(), msg.value()); }
-            ),
-            nil::service::mapping(
-                proto::message_type::ControlUpdateI,
-                [&](const proto::ControlUpdateI& msg)
-                { core.set_control_value(msg.id(), msg.value()); }
-            ),
-            nil::service::mapping(
-                proto::message_type::ControlUpdateF,
-                [&](const proto::ControlUpdateF& msg)
-                { core.set_control_value(msg.id(), msg.value()); }
-            ),
-            nil::service::mapping(
-                proto::message_type::ControlUpdateS,
-                [&](const proto::ControlUpdateS& msg)
-                { core.set_control_value(msg.id(), msg.value()); }
-            ),
-            nil::service::mapping(proto::message_type::Play, [&]() { core.resume(); }),
-            nil::service::mapping(proto::message_type::Pause, [&]() { core.stop(); }),
-            nil::service::mapping(
-                proto::message_type::State,
-                [&](const auto& id, const proto::State& msg)
-                {
-                    if (!core.is_compatible(msg.types().SerializeAsString()))
+        on_message(
+            server,
+            nil::service::map(
+                nil::service::mapping(
+                    proto::message_type::ControlUpdateB,
+                    [&](const proto::ControlUpdateB& msg)
+                    { core.set_control_value(msg.id(), msg.value()); }
+                ),
+                nil::service::mapping(
+                    proto::message_type::ControlUpdateI,
+                    [&](const proto::ControlUpdateI& msg)
+                    { core.set_control_value(msg.id(), msg.value()); }
+                ),
+                nil::service::mapping(
+                    proto::message_type::ControlUpdateF,
+                    [&](const proto::ControlUpdateF& msg)
+                    { core.set_control_value(msg.id(), msg.value()); }
+                ),
+                nil::service::mapping(
+                    proto::message_type::ControlUpdateS,
+                    [&](const proto::ControlUpdateS& msg)
+                    { core.set_control_value(msg.id(), msg.value()); }
+                ),
+                nil::service::mapping(proto::message_type::Play, [&]() { core.resume(); }),
+                nil::service::mapping(proto::message_type::Pause, [&]() { core.stop(); }),
+                nil::service::mapping(
+                    proto::message_type::State,
+                    [&](const auto& id, const proto::State& msg)
                     {
-                        std::cerr << "state is not compatible to types" << std::endl;
-                        return;
+                        if (!core.is_compatible(msg.types().SerializeAsString()))
+                        {
+                            std::cerr << "state is not compatible to types" << std::endl;
+                            return;
+                        }
+                        core.stop();
+                        core.wait();
+                        core.instantiate(parse(msg));
+                        send(server, id, nil::service::concat(proto::message_type::State, msg));
                     }
-                    core.stop();
-                    core.wait();
-                    core.instantiate(parse(msg));
-                    server.send(id, nil::service::concat(proto::message_type::State, msg));
-                }
-            ),
-            nil::service::mapping(
-                proto::message_type::Run,
-                [&]()
-                {
-                    core.stop();
-                    core.wait();
-                    core.start();
-                }
+                ),
+                nil::service::mapping(
+                    proto::message_type::Run,
+                    [&]()
+                    {
+                        core.stop();
+                        core.wait();
+                        core.start();
+                    }
+                )
             )
-        ));
+        );
 
-        server.run();
+        start(server);
     }
 }

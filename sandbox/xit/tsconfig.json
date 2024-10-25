@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "checkJs": true,
+        "allowJs": true,
+		"module": "esnext",
+		"target": "esnext"
+    },
+    "include": [ "gui/**/*" ],
+    "exclude": [ "./node_modules" ]
+}

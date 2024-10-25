@@ -22,4 +22,5 @@ target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC ${CMAKE_CURRENT_BINARY_
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wno-sign-conversion)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wno-conversion)
 endif()

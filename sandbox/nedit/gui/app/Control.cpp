@@ -1,8 +1,8 @@
 #include "Control.hpp"
 #include "../../codec.hpp"
 
-#include <nil/service/IService.hpp>
 #include <nil/service/concat.hpp>
+#include <nil/service/structs.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
 #include <gen/nedit/messages/type.pb.h>
@@ -13,13 +13,17 @@
 
 namespace gui
 {
-    Control::Control(nil::service::IService& init_service, ID init_id)
+    Control::Control(nil::service::MessagingService& init_service, ID init_id)
         : service(init_service)
         , id(std::move(init_id))
     {
     }
 
-    ToggleControl::ToggleControl(nil::service::IService& init_service, ID init_id, bool init_value)
+    ToggleControl::ToggleControl(
+        nil::service::MessagingService& init_service,
+        ID init_id,
+        bool init_value
+    )
         : Control(init_service, std::move(init_id))
         , value(init_value)
     {
@@ -40,14 +44,15 @@ namespace gui
             nil::nedit::proto::ControlUpdateB msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(
+            publish(
+                service,
                 nil::service::concat(nil::nedit::proto::message_type::ControlUpdateB, msg)
             );
         }
     }
 
     SpinboxControl::SpinboxControl(
-        nil::service::IService& init_service,
+        nil::service::MessagingService& init_service,
         ID init_id,
         std::int32_t init_value,
         std::int32_t init_min,
@@ -75,14 +80,15 @@ namespace gui
             nil::nedit::proto::ControlUpdateI msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(
+            publish(
+                service,
                 nil::service::concat(nil::nedit::proto::message_type::ControlUpdateI, msg)
             );
         }
     }
 
     SliderControl::SliderControl(
-        nil::service::IService& init_service,
+        nil::service::MessagingService& init_service,
         ID init_id,
         float init_value,
         float init_min,
@@ -110,14 +116,15 @@ namespace gui
             nil::nedit::proto::ControlUpdateF msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(
+            publish(
+                service,
                 nil::service::concat(nil::nedit::proto::message_type::ControlUpdateF, msg)
             );
         }
     }
 
     TextControl::TextControl(
-        nil::service::IService& init_service,
+        nil::service::MessagingService& init_service,
         ID init_id,
         std::string init_value
     )
@@ -141,14 +148,15 @@ namespace gui
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(
+            publish(
+                service,
                 nil::service::concat(nil::nedit::proto::message_type::ControlUpdateS, msg)
             );
         }
     }
 
     ComboBoxControl::ComboBoxControl(
-        nil::service::IService& init_service,
+        nil::service::MessagingService& init_service,
         ID init_id,
         std::string init_value,
         std::vector<std::string> init_selection
@@ -195,7 +203,8 @@ namespace gui
             nil::nedit::proto::ControlUpdateS msg;
             msg.set_id(id.value);
             msg.set_value(value);
-            service.publish(
+            publish(
+                service,
                 nil::service::concat(nil::nedit::proto::message_type::ControlUpdateS, msg)
             );
         }

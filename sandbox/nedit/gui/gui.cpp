@@ -106,7 +106,7 @@ namespace
     }
 
     auto process_state(
-        nil::service::IService& service,
+        nil::service::MessagingService& service,
         gui::App& app,
         nil::nedit::proto::State& info,
         const nil::nedit::proto::State& new_info
@@ -290,7 +290,7 @@ namespace
             return 0;
         }
 
-        nil::service::tcp::Client service(
+        auto service = nil::service::tcp::client::create(
             {.host = "127.0.0.1", .port = std::uint16_t(number(options, "port"))}
         );
 
@@ -335,43 +335,47 @@ namespace
         gui::App app;
         nil::nedit::proto::State info;
 
-        service.on_message(nil::service::map(
-            nil::service::mapping(
-                nil::nedit::proto::message_type::State,
-                [&](const nil::nedit::proto::State& message)
-                {
-                    auto tmp = process_state(service, app, info, message);
-
-                    // load the graph here if it is available;
-                    const auto _ = std::unique_lock(app.mutex);
-                    for (auto&& cb : tmp)
+        on_message(
+            service,
+            nil::service::map(
+                nil::service::mapping(
+                    nil::nedit::proto::message_type::State,
+                    [&](const nil::nedit::proto::State& message)
                     {
-                        app.before_render.emplace_back(std::move(cb));
+                        auto tmp = process_state(service, app, info, message);
+
+                        // load the graph here if it is available;
+                        const auto _ = std::unique_lock(app.mutex);
+                        for (auto&& cb : tmp)
+                        {
+                            app.before_render.emplace_back(std::move(cb));
+                        }
                     }
-                }
-            ),
-            nil::service::mapping(
-                nil::nedit::proto::message_type::NodeState,
-                [&](const nil::nedit::proto::NodeState& message)
-                {
-                    const auto _ = std::unique_lock(app.mutex);
-                    app.before_render.emplace_back( //
-                        [&app, id = message.id(), activated = message.active()]()
-                        { app.nodes.at(id)->activated = activated; }
-                    );
-                }
+                ),
+                nil::service::mapping(
+                    nil::nedit::proto::message_type::NodeState,
+                    [&](const nil::nedit::proto::NodeState& message)
+                    {
+                        const auto _ = std::unique_lock(app.mutex);
+                        app.before_render.emplace_back( //
+                            [&app, id = message.id(), activated = message.active()]()
+                            { app.nodes.at(id)->activated = activated; }
+                        );
+                    }
+                )
             )
-        ));
+        );
 
         std::string path = param(options, "file");
         bool loaded = true;
 
-        service.on_connect( //
+        on_connect(
+            service,
             [&loaded, &app]()
             { app.before_render.emplace_back([&loaded]() { loaded = false; }); } //
         );
 
-        std::thread comm([&service]() { service.run(); });
+        std::thread comm([&service]() { start(service); });
 
         glfwSetFramebufferSizeCallback(
             window,
@@ -420,7 +424,8 @@ namespace
                     tmp.ParseFromIstream(&file);
                     app.changed = true;
                     loaded = true;
-                    service.publish(
+                    publish(
+                        service,
                         nil::service::concat(nil::nedit::proto::message_type::State, tmp)
                     );
                 }
@@ -465,7 +470,7 @@ namespace
             {
                 if (app.allow_editing)
                 {
-                    service.publish(nil::nedit::proto::message_type::Pause);
+                    publish(service, nil::nedit::proto::message_type::Pause);
                 }
                 else
                 {
@@ -476,20 +481,23 @@ namespace
                             [&]()
                             {
                                 load(app, info);
-                                service.publish(nil::service::concat(
-                                    nil::nedit::proto::message_type::State,
-                                    info
-                                ));
-                                service.publish(nil::nedit::proto::message_type::Play);
-                                service.publish(nil::nedit::proto::message_type::Run);
+                                publish(
+                                    service,
+                                    nil::service::concat(
+                                        nil::nedit::proto::message_type::State,
+                                        info
+                                    )
+                                );
+                                publish(service, nil::nedit::proto::message_type::Play);
+                                publish(service, nil::nedit::proto::message_type::Run);
                             }
                         );
                         app.changed = false;
                     }
                     else
                     {
-                        service.publish(nil::nedit::proto::message_type::Play);
-                        service.publish(nil::nedit::proto::message_type::Run);
+                        publish(service, nil::nedit::proto::message_type::Play);
+                        publish(service, nil::nedit::proto::message_type::Run);
                     }
                 }
             }
@@ -516,7 +524,7 @@ namespace
         glfwDestroyWindow(window);
         glfwTerminate();
 
-        service.stop();
+        stop(service);
         comm.join();
 
         return 0;
