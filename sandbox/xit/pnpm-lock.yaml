@@ -9,13 +9,13 @@ importers:
   .:
     dependencies:
       '@nil-/xit':
-        specifier: ^0.1.4
-        version: 0.1.5
+        specifier: ^0.1.9
+        version: 0.1.9
       svelte:
-        specifier: ^5.1.0
-        version: 5.1.2
+        specifier: ^5.1.3
+        version: 5.1.3
       vanilla-jsoneditor:
-        specifier: ^1.1.1
+        specifier: ^1.1.2
         version: 1.1.2(@lezer/common@1.2.3)
 
 packages:
@@ -111,8 +111,8 @@ packages:
   '@lezer/lr@1.4.2':
     resolution: {integrity: sha512-pu0K1jCIdnQ12aWNaAVU5bzi7Bd1w54J3ECgANPmYLtQKP0HBj2cE/5coBD66MT10xbtIuUr7tg0Shbsvk0mDA==}
 
-  '@nil-/xit@0.1.5':
-    resolution: {integrity: sha512-lAOysvmDUB/toEuVzCMyDWAzTB4d6tcOLCBMHVUC0mD0+WFZ0viWoJi09wRFdS+R3OcjLwPYp+aQT+9tC5RPPg==}
+  '@nil-/xit@0.1.9':
+    resolution: {integrity: sha512-VAfNgmcwT37oYIEEtgfxPCS5ul7Kuro0xoIwY4ABytWlSXmrcG794jVb7+O3C+f3L0DBzsufqdl9JT+1Akf6FQ==}
 
   '@parcel/watcher-android-arm64@2.4.1':
     resolution: {integrity: sha512-LOi/WTbbh3aTn2RYddrO8pnapixAziFl6SMxHM69r3tvdSm94JtCenaKgk1GRg5FJ5wpMCpHeW+7yqPlvZv7kg==}
@@ -208,8 +208,8 @@ packages:
     peerDependencies:
       acorn: '>=8.9.0'
 
-  acorn@8.13.0:
-    resolution: {integrity: sha512-8zSiw54Oxrdym50NlZ9sUusyO1Z1ZchgRLWRaK6c86XJFClyCgFKetdowBg5bKxyp/u+CDBJG4Mpp0m3HLZl9w==}
+  acorn@8.14.0:
+    resolution: {integrity: sha512-cl669nCJTZBsL97OF4kUQm5g5hC2uihk0NxY3WENAC0TYdILVkAyHymAntgxGkl7K+t0cXIrH5siy5S4XkFycA==}
     engines: {node: '>=0.4.0'}
     hasBin: true
 
@@ -377,8 +377,8 @@ packages:
     resolution: {integrity: sha512-IY1rnGr6izd10B0A8LqsBfmlT5OILVuZ7XsI0vdGPEvuonFV7NYEUK4dAkm9Zg2q0Um92kYjTpS1CAP3Nh/KWw==}
     engines: {node: '>=16'}
 
-  svelte@5.1.2:
-    resolution: {integrity: sha512-IovgkB3eQq0CdqQB1rd1F4SZbg8Z7VBSbAqhD2eE9t8l0KfJXZ/iHmfqnW5pxs5Lr89/cpIZTLU5buemsydYRw==}
+  svelte@5.1.3:
+    resolution: {integrity: sha512-Sl8UFHlBvF54aK8MElFvyvaUfPE2REOz6LnhR2pBClCL11MU4qpn4V+KgAggaXxDyrP2iQixvHbtpHqL/zXlSQ==}
     engines: {node: '>=18'}
 
   to-regex-range@5.0.1:
@@ -505,7 +505,7 @@ snapshots:
     dependencies:
       '@lezer/common': 1.2.3
 
-  '@nil-/xit@0.1.5': {}
+  '@nil-/xit@0.1.9': {}
 
   '@parcel/watcher-android-arm64@2.4.1':
     optional: true
@@ -573,11 +573,11 @@ snapshots:
 
   '@types/estree@1.0.6': {}
 
-  acorn-typescript@1.4.13(acorn@8.13.0):
+  acorn-typescript@1.4.13(acorn@8.14.0):
     dependencies:
-      acorn: 8.13.0
+      acorn: 8.14.0
 
-  acorn@8.13.0: {}
+  acorn@8.14.0: {}
 
   ajv@8.17.1:
     dependencies:
@@ -602,7 +602,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.0
       '@types/estree': 1.0.6
-      acorn: 8.13.0
+      acorn: 8.14.0
       estree-walker: 3.0.3
       periscopic: 3.1.0
 
@@ -724,7 +724,7 @@ snapshots:
       '@jridgewell/sourcemap-codec': 1.5.0
       '@jridgewell/trace-mapping': 0.3.25
       '@types/estree': 1.0.6
-      acorn: 8.13.0
+      acorn: 8.14.0
       aria-query: 5.3.2
       axobject-query: 4.1.0
       code-red: 1.0.4
@@ -735,13 +735,13 @@ snapshots:
       magic-string: 0.30.12
       periscopic: 3.1.0
 
-  svelte@5.1.2:
+  svelte@5.1.3:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@jridgewell/sourcemap-codec': 1.5.0
       '@types/estree': 1.0.6
-      acorn: 8.13.0
-      acorn-typescript: 1.4.13(acorn@8.13.0)
+      acorn: 8.14.0
+      acorn-typescript: 1.4.13(acorn@8.14.0)
       aria-query: 5.3.2
       axobject-query: 4.1.0
       esm-env: 1.0.0
