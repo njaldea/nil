@@ -12,11 +12,11 @@
             props: {
                 content: { json: $buf_value },
                 onChange: (updatedContent, previousContent, { contentErrors, patchResult }) => {
-                    if (updatedContent.json)
+                    if ("json" in updatedContent)
                     {
-                        $buf_value = updatedContent.json   
+                        $buf_value = updatedContent.json;
                     }
-                    else if (updatedContent.text)
+                    else if ("text" in updatedContent)
                     {
                         try
                         {
@@ -33,5 +33,9 @@
         return { destroy: () => editor.destroy() };
     };
 </script>
+
+<svelte:head>
+    <title>nil - xit - editor</title>
+</svelte:head>
 
 <div style="display: contents" use:json_editor></div>
