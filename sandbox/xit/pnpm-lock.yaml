@@ -9,11 +9,14 @@ importers:
   .:
     dependencies:
       '@nil-/xit':
-        specifier: ^0.1.10
-        version: 0.1.10
+        specifier: ^0.1.11
+        version: 0.1.11
+      '@types/plotly.js':
+        specifier: ^2.33.5
+        version: 2.33.5
       svelte:
-        specifier: ^5.1.3
-        version: 5.1.3
+        specifier: ^5.1.4
+        version: 5.1.4
       vanilla-jsoneditor:
         specifier: ^1.1.2
         version: 1.1.2(@lezer/common@1.2.3)
@@ -111,8 +114,8 @@ packages:
   '@lezer/lr@1.4.2':
     resolution: {integrity: sha512-pu0K1jCIdnQ12aWNaAVU5bzi7Bd1w54J3ECgANPmYLtQKP0HBj2cE/5coBD66MT10xbtIuUr7tg0Shbsvk0mDA==}
 
-  '@nil-/xit@0.1.10':
-    resolution: {integrity: sha512-rOfpYQyziakxKeRbK8DAywDGwxu0eoRhcjlLG+AU2JmMO2wwtArhrZQmfEULF+ot/VAhmNNABG8cck1u4mIAXw==}
+  '@nil-/xit@0.1.11':
+    resolution: {integrity: sha512-JTTLgORae5X+LAig5BD6B3l6ql3yd9bzzZyc3hq4b5KXi7VOFlkI3Z7ak3K8aJ4rOgFtnG+/i1zOpBtM7hwxHg==}
 
   '@parcel/watcher-android-arm64@2.4.1':
     resolution: {integrity: sha512-LOi/WTbbh3aTn2RYddrO8pnapixAziFl6SMxHM69r3tvdSm94JtCenaKgk1GRg5FJ5wpMCpHeW+7yqPlvZv7kg==}
@@ -202,6 +205,9 @@ packages:
 
   '@types/estree@1.0.6':
     resolution: {integrity: sha512-AYnb1nQyY49te+VRAVgmzfcgjYS91mY5P0TKUDCLEM+gNnA+3T6rWITXRLYCpahpqSQbN5cE+gHpnPyXjHWxcw==}
+
+  '@types/plotly.js@2.33.5':
+    resolution: {integrity: sha512-TSXtrlc/4Zz7FP8HyDjmhsFFZ9JlzRk0KdHxXieDno4yZB4Jm5ET873QH+qPm5iZMaRZAEJMOrs1AGgN7r4e4g==}
 
   acorn-typescript@1.4.13:
     resolution: {integrity: sha512-xsc9Xv0xlVfwp2o7sQ+GCQ1PgbkdcpWdTzrwXxO3xDMTAywVS3oXVOcOHuRjAPkS4P9b+yc/qNF15460v+jp4Q==}
@@ -377,8 +383,8 @@ packages:
     resolution: {integrity: sha512-IY1rnGr6izd10B0A8LqsBfmlT5OILVuZ7XsI0vdGPEvuonFV7NYEUK4dAkm9Zg2q0Um92kYjTpS1CAP3Nh/KWw==}
     engines: {node: '>=16'}
 
-  svelte@5.1.3:
-    resolution: {integrity: sha512-Sl8UFHlBvF54aK8MElFvyvaUfPE2REOz6LnhR2pBClCL11MU4qpn4V+KgAggaXxDyrP2iQixvHbtpHqL/zXlSQ==}
+  svelte@5.1.4:
+    resolution: {integrity: sha512-qgHDV7AyvBZa2pbf+V0tnvWrN1LKD8LdUsBkR/SSYVVN6zXexiXnOy5Pjcjft2y/2NJJVa8ORUHFVn3oiWCLVQ==}
     engines: {node: '>=18'}
 
   to-regex-range@5.0.1:
@@ -505,7 +511,7 @@ snapshots:
     dependencies:
       '@lezer/common': 1.2.3
 
-  '@nil-/xit@0.1.10': {}
+  '@nil-/xit@0.1.11': {}
 
   '@parcel/watcher-android-arm64@2.4.1':
     optional: true
@@ -572,6 +578,8 @@ snapshots:
   '@sphinxxxx/color-conversion@2.2.2': {}
 
   '@types/estree@1.0.6': {}
+
+  '@types/plotly.js@2.33.5': {}
 
   acorn-typescript@1.4.13(acorn@8.14.0):
     dependencies:
@@ -735,7 +743,7 @@ snapshots:
       magic-string: 0.30.12
       periscopic: 3.1.0
 
-  svelte@5.1.3:
+  svelte@5.1.4:
     dependencies:
       '@ampproject/remapping': 2.3.0
       '@jridgewell/sourcemap-codec': 1.5.0

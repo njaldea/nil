@@ -1,5 +1,7 @@
 #include <nil/xit.hpp>
 
+#include <nlohmann/json.hpp>
+
 #include <iostream>
 #include <unordered_map>
 
@@ -36,26 +38,27 @@ namespace transparent
     };
 }
 
-struct JSON
+struct TagInfo
 {
-    std::string data = "{}";
+    nlohmann::json input;
 };
 
-using Data = std::unordered_map<std::string, JSON, transparent::Hash, transparent::Equal>;
+using Data = std::unordered_map<std::string, TagInfo, transparent::Hash, transparent::Equal>;
 
 namespace nil::xit
 {
     template <>
-    struct buffer_type<JSON>
+    struct buffer_type<nlohmann::json>
     {
-        static JSON deserialize(const void* data, std::uint64_t size)
+        static nlohmann::json deserialize(const void* data, std::uint64_t size)
         {
-            return {.data = std::string(static_cast<const char*>(data), size)};
+            return nlohmann::json::parse(std::string_view(static_cast<const char*>(data), size));
         }
 
-        static std::vector<std::uint8_t> serialize(const JSON& value)
+        static std::vector<std::uint8_t> serialize(const nlohmann::json& value)
         {
-            return {value.data.begin(), value.data.end()};
+            auto s = value.dump();
+            return {s.begin(), s.end()};
         }
     };
 }
@@ -76,27 +79,27 @@ int main()
     set_cache_directory(core, tmp_dir);
 
     auto& main_frame = add_unique_frame(core, "demo", "gui/Main.svelte");
-    add_value(main_frame, "scenes", JSON{R"({ "scenes": ["", "a", "b"] })"});
+    add_value(main_frame, "scenes", nlohmann::json::parse(R"({ "scenes": ["", "a", "b"] })"));
     auto& selected_view = add_value(main_frame, "selected", 0L);
 
     struct App
     {
         Data data;
 
-        JSON get_value(std::string_view tag) const
+        nlohmann::json get_value(std::string_view tag) const
         {
             if (const auto it = data.find(tag); it != data.end())
             {
-                return it->second;
+                return it->second.input;
             }
-            return {};
+            return nlohmann::json::object();
         }
 
-        void set_value(std::string_view tag, JSON value)
+        void set_value(std::string_view tag, nlohmann::json value)
         {
             if (const auto it = data.find(tag); it != data.end())
             {
-                it->second = std::move(value);
+                it->second.input = std::move(value);
             }
             else
             {
@@ -106,8 +109,16 @@ int main()
     };
 
     auto app = App{.data=Data{
-        {"a", JSON(R"({ "hello": true })")},
-        {"b", JSON(R"({ "world": true })")} //
+        {"a", {nlohmann::json::array({nlohmann::json::object({
+            {"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
+            {"y", nlohmann::json::array({20, 14, 23})},
+            {"type", "bar"}
+        })})}},
+        {"b", {nlohmann::json::array({nlohmann::json::object({
+            {"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
+            {"y", nlohmann::json::array({20, 14, 23})},
+            {"type", "bar"}
+        })})}} //
     }};
 
     auto& view_frame = add_tagged_frame(core, "view_frame", "gui/ViewFrame.svelte");
@@ -116,14 +127,14 @@ int main()
         view_frame,
         "scene",
         [&](auto tag) { return app.get_value(tag); },
-        [](auto tag, const JSON& v)
-        { std::cout << "tag: " << tag << " - " << v.data << std::endl; } //
+        [](auto tag, const nlohmann::json& v)
+        { std::cout << "tag: " << tag << " - " << v.dump() << std::endl; } //
     );
     add_value(
         editor_frame,
         "scene",
         [&](auto tag) { return app.get_value(tag); },
-        [&](std::string_view tag, JSON new_data)
+        [&](std::string_view tag, nlohmann::json new_data)
         {
             post(tag, value, new_data);
             app.set_value(tag, std::move(new_data));
