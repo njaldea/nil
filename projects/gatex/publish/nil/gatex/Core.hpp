@@ -118,9 +118,9 @@ namespace nil::gatex
                             Delay(&xcore),
                             [&xcore, id = node_info.id]() { xcore.deactivate(id); }
                         ),
-                        std::tuple<T>(),
                         {xcore.edges.at(info.opposite_output_pin(node_info.inputs.at(0))), time}
                     );
+                    o->set_value(T());
                     xcore.edges.emplace(node_info.outputs.at(0), RelaxedEdge(o));
                 }
             };

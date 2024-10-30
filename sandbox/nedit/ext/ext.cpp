@@ -5,7 +5,7 @@
 #include "../codec.hpp" // IWYU pragma: keep
 
 #include <nil/dev.hpp>
-#include <nil/gate/runners/boost_asio.hpp>
+#include <nil/gate/runners/boost_asio/Parallel.hpp>
 #include <nil/service.hpp>
 
 #include <gen/nedit/messages/control_update.pb.h>
@@ -159,29 +159,8 @@ namespace
     {
         ext::GraphState state;
         state.core = std::make_unique<nil::gate::Core>();
-        state.core->set_runner(std::make_unique<nil::gate::runners::Asio>(20));
-        state.core->set_commit( //
-            [&executor, is_paused = state.paused](auto& core)
-            {
-                executor.push(
-                    {EPriority::Run, 0},
-                    [&core, is_paused]()
-                    {
-                        try
-                        {
-                            if (!*is_paused)
-                            {
-                                core.run();
-                            }
-                        }
-                        catch (const std::exception& ex)
-                        {
-                            std::cout << ex.what() << std::endl;
-                        }
-                    }
-                );
-            }
-        );
+        state.core->set_runner<nil::gate::runners::boost_asio::Parallel>(20);
+        // TODO: fix pausing. it should prevent the runner to execute the graph
 
         state.node_activate = [&service](std::uint64_t id)
         {

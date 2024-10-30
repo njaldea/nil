@@ -1,9 +1,13 @@
+
 #include <nil/xit.hpp>
+
+#include <nil/gate.hpp>
+#include <nil/gate/bias/nil.hpp>
+#include <nil/gate/runners/NonBlocking.hpp>
 
 #include <nlohmann/json.hpp>
 
 #include <iostream>
-#include <unordered_map>
 
 namespace transparent
 {
@@ -37,13 +41,6 @@ namespace transparent
         }
     };
 }
-
-struct TagInfo
-{
-    nlohmann::json input;
-};
-
-using Data = std::unordered_map<std::string, TagInfo, transparent::Hash, transparent::Equal>;
 
 namespace nil::xit
 {
@@ -82,63 +79,83 @@ int main()
     add_value(main_frame, "scenes", nlohmann::json::parse(R"({ "scenes": ["", "a", "b"] })"));
     auto& selected_view = add_value(main_frame, "selected", 0L);
 
-    struct App
+    // TODO: 2 copies needed for thread safety
+    //  -   one for the messaging layer
+    //  -   one for nil::gate
+    // an alternative would be to write a logic to lock the resource for both threads
+    // or just use an immediate (but debounced) runner for nil::gate
+
+    nil::gate::Core gate_core;
+    gate_core.set_runner<nil::gate::runners::NonBlocking>();
+
+    const auto add_test_data = [&]()
     {
-        Data data;
-
-        nlohmann::json get_value(std::string_view tag) const
-        {
-            if (const auto it = data.find(tag); it != data.end())
-            {
-                return it->second.input;
-            }
-            return nlohmann::json::object();
-        }
-
-        void set_value(std::string_view tag, nlohmann::json value)
-        {
-            if (const auto it = data.find(tag); it != data.end())
-            {
-                it->second.input = std::move(value);
-            }
-            else
-            {
-                data.emplace(tag, std::move(value));
-            }
-        }
+        auto data = nlohmann::json::array({nlohmann::json::object(
+            {{"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
+             {"y", nlohmann::json::array({20, 14, 23})},
+             {"type", "bar"}}
+        )});
+        auto* edge = gate_core.edge(data);
+        return std::make_tuple(std::move(data), edge);
     };
-
-    auto app = App{.data=Data{
-        {"a", {nlohmann::json::array({nlohmann::json::object({
-            {"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
-            {"y", nlohmann::json::array({20, 14, 23})},
-            {"type", "bar"}
-        })})}},
-        {"b", {nlohmann::json::array({nlohmann::json::object({
-            {"x", nlohmann::json::array({"giraffes", "orangutans", "monkeys"})},
-            {"y", nlohmann::json::array({20, 14, 23})},
-            {"type", "bar"}
-        })})}} //
-    }};
+    auto [d1, e1] = add_test_data();
+    auto [d2, e2] = add_test_data();
 
     auto& view_frame = add_tagged_frame(core, "view_frame", "gui/ViewFrame.svelte");
     auto& editor_frame = add_tagged_frame(core, "editor_frame", "gui/EditorFrame.svelte");
-    auto& value = add_value(
-        view_frame,
-        "scene",
-        [&](auto tag) { return app.get_value(tag); },
-        [](auto tag, const nlohmann::json& v)
-        { std::cout << "tag: " << tag << " - " << v.dump() << std::endl; } //
+
+    auto get_value = [&](auto tag)
+    {
+        if (tag == "a")
+        {
+            return d1;
+        }
+        if (tag == "b")
+        {
+            return d2;
+        }
+        return nlohmann::json::array();
+    };
+
+    auto& value = add_value(view_frame, "scene", get_value);
+
+    gate_core.node(
+        [&, tag = "a"](const nlohmann::json& data)
+        {
+            std::cout << "run (test) " << tag << std::endl;
+            post(tag, value, data);
+        },
+        {e1}
     );
+    gate_core.node(
+        [&, tag = "b"](const nlohmann::json& data)
+        {
+            std::cout << "run (test) " << tag << std::endl;
+            post(tag, value, data);
+        },
+        {e2}
+    );
+
     add_value(
         editor_frame,
         "scene",
-        [&](auto tag) { return app.get_value(tag); },
+        get_value,
         [&](std::string_view tag, nlohmann::json new_data)
         {
-            post(tag, value, new_data);
-            app.set_value(tag, std::move(new_data));
-        } //
+            std::cout << "set_value " << tag << std::endl;
+            if (tag == "a")
+            {
+                d1 = new_data;
+                e1->set_value(std::move(new_data));
+                gate_core.commit();
+            }
+            else if (tag == "b")
+            {
+                d2 = new_data;
+                e2->set_value(std::move(new_data));
+                gate_core.commit();
+            }
+        }
     );
 
     {

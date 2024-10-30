@@ -1,7 +1,7 @@
 #include <nil/gatex/Core.hpp>
 #include <nil/gatex/Info.hpp>
 
-#include <nil/gate/runners/boost_asio.hpp>
+#include <nil/gate/runners/boost_asio/Parallel.hpp>
 
 #include <iostream>
 #include <nil/gatex_proto/identity.pb.h>
@@ -13,8 +13,7 @@ namespace nil::gatex
     Core::Core()
     {
         context = std::make_unique<boost::asio::io_context>();
-        core.set_runner(std::make_unique<nil::gate::runners::Asio>(10));
-        core.set_commit([this](auto&) { boost::asio::post(*context, [this]() { core.run(); }); });
+        core.set_runner<nil::gate::runners::boost_asio::Parallel>(10);
 
         struct Any
         {

@@ -5,6 +5,7 @@
 #include <nil/dev.hpp>
 #include <nil/gate.hpp>
 #include <nil/gate/api/uniform.hpp>
+#include <nil/gate/nodes/Scoped.hpp>
 
 #include <gen/nedit/messages/state.pb.h>
 
@@ -219,7 +220,7 @@ namespace ext
                 typename... Args>
             void create_node(
                 GraphState& state,
-                std::tuple<A...> a,
+                [[maybe_unused]] std::tuple<A...> a,
                 const std::vector<std::uint64_t>& i,
                 const std::vector<std::uint64_t>& o,
                 const std::vector<std::uint64_t>& c,
@@ -234,14 +235,24 @@ namespace ext
                 [[maybe_unused]] const auto output_edges = nil::gate::api::uniform::add_node(
                     std::move(instance),
                     *state.core,
-                    std::move(a),
                     typename nil::gate::detail::traits::node<T>::inputs::edges(
                         state.internal_edges.at(i.at(i_indices))...,
                         state.control_edges.at(c.at(c_indices))...
                     )
                 );
                 ( //
-                    state.internal_edges.emplace(o.at(o_indices), RE{get<o_indices>(output_edges)}),
+                    [&]()
+                    {
+                        state.internal_edges.emplace(
+                            o.at(o_indices),
+                            RE{get<o_indices>(output_edges)}
+                        );
+                        if constexpr (o_indices - sizeof...(A) > 0)
+                        {
+                            const auto ii = o_indices - sizeof...(A) - 1;
+                            std::get<ii>(output_edges.asyncs)->set_value(std::get<ii>(a));
+                        }
+                    }(),
                     ...
                 );
             }

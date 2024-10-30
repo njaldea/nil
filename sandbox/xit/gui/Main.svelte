@@ -23,7 +23,8 @@
                 <div>Loading...</div>
             {:then a}
                 <div style="display: contents" use:a></div>
-            {:catch}
+            {:catch e}
+                {@debug e}
                 <div>Error during loading...</div>
             {/await}
         {/if}
