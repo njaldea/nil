@@ -1,4 +1,3 @@
-
 #include <nil/xit.hpp>
 
 #include <nil/gate.hpp>
@@ -9,37 +8,13 @@
 
 #include <iostream>
 
-namespace transparent
+struct RerunTag
 {
-    struct Hash
-    {
-        using is_transparent = void;
+};
 
-        std::size_t operator()(std::string_view txt) const
-        {
-            return std::hash<std::string_view>()(txt);
-        }
-
-        std::size_t operator()(const std::string& txt) const
-        {
-            return this->operator()(std::string_view(txt));
-        }
-    };
-
-    struct Equal
-    {
-        using is_transparent = void;
-
-        bool operator()(const std::string& lhs, const std::string& rhs) const
-        {
-            return lhs == rhs;
-        }
-
-        bool operator()(std::string_view lhs, const std::string& rhs) const
-        {
-            return lhs == rhs;
-        }
-    };
+bool operator==(const RerunTag& /* l */, const RerunTag& /* r */)
+{
+    return false;
 }
 
 namespace nil::xit
@@ -79,12 +54,6 @@ int main()
     add_value(main_frame, "scenes", nlohmann::json::parse(R"({ "scenes": ["", "a", "b"] })"));
     auto& selected_view = add_value(main_frame, "selected", 0L);
 
-    // TODO: 2 copies needed for thread safety
-    //  -   one for the messaging layer
-    //  -   one for nil::gate
-    // an alternative would be to write a logic to lock the resource for both threads
-    // or just use an immediate (but debounced) runner for nil::gate
-
     nil::gate::Core gate_core;
     gate_core.set_runner<nil::gate::runners::NonBlocking>();
 
@@ -96,10 +65,32 @@ int main()
              {"type", "bar"}}
         )});
         auto* edge = gate_core.edge(data);
-        return std::make_tuple(std::move(data), edge);
+        auto* rerun = gate_core.edge(RerunTag());
+        return std::make_tuple(std::move(data), edge, rerun);
     };
-    auto [d1, e1] = add_test_data();
-    auto [d2, e2] = add_test_data();
+
+    const auto add_test_node = [&](auto tag, auto& v, auto* input, auto* rerun)
+    {
+        auto [output] = gate_core.node(
+            [tag](RerunTag, const nlohmann::json& data)
+            {
+                std::cout << "run (test) " << tag << std::endl;
+                return data;
+            },
+            {rerun, input}
+        );
+        gate_core.node(
+            [&, tag](RerunTag, const nlohmann::json& data)
+            {
+                std::cout << "out (test) " << tag << std::endl;
+                post(tag, v, data);
+            },
+            {rerun, output}
+        );
+    };
+
+    auto [d1, e1, r1] = add_test_data();
+    auto [d2, e2, r2] = add_test_data();
 
     auto& view_frame = add_tagged_frame(core, "view_frame", "gui/ViewFrame.svelte");
     auto& editor_frame = add_tagged_frame(core, "editor_frame", "gui/EditorFrame.svelte");
@@ -118,23 +109,8 @@ int main()
     };
 
     auto& value = add_value(view_frame, "scene", get_value);
-
-    gate_core.node(
-        [&, tag = "a"](const nlohmann::json& data)
-        {
-            std::cout << "run (test) " << tag << std::endl;
-            post(tag, value, data);
-        },
-        {e1}
-    );
-    gate_core.node(
-        [&, tag = "b"](const nlohmann::json& data)
-        {
-            std::cout << "run (test) " << tag << std::endl;
-            post(tag, value, data);
-        },
-        {e2}
-    );
+    add_test_node("a", value, e1, r1);
+    add_test_node("b", value, e2, r2);
 
     add_value(
         editor_frame,
@@ -176,6 +152,22 @@ int main()
                 else if (message == "load b")
                 {
                     post(selected_view, 2);
+                }
+                else if (message == "rerun a")
+                {
+                    r1->set_value({});
+                    gate_core.commit();
+                }
+                else if (message == "rerun b")
+                {
+                    r2->set_value({});
+                    gate_core.commit();
+                }
+                else if (message == "rerun")
+                {
+                    r1->set_value({});
+                    r2->set_value({});
+                    gate_core.commit();
                 }
             }
         );

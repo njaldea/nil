@@ -12,7 +12,6 @@
     <input
         bind:value={command}
         onkeypress={e => {
-            console.log('pree')
             if (e.key === "Enter")
             {
                 e.preventDefault();

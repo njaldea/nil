@@ -3,17 +3,6 @@
     "description": "Collection of libraries from nil",
     "name": "nil-mono",
     "dependencies": [
-        {
-            "name": "nil",
-            "features": ["gate", "clix", "service"]
-        },
-        {
-            "name": "nil-xit"
-        },
-        {
-            "name": "protobuf",
-            "version>=": "3.21.12"
-        }
     ],
     "features": {
         "pulse": {
@@ -21,21 +10,18 @@
         },
         "test": {
             "description": "Enable tests",
-            "dependencies": [
-                {
-                    "name": "gtest",
-                    "version>=": "1.13.0"
-                }
-            ]
+            "dependencies": ["gtest"]
         },
         "sandbox": {
             "description": "sandbox additional requirements",
             "dependencies": [
                 {
+                    "name": "nil-xit-test",
+                    "features": ["gtest"]
+                },
+                {
                     "name": "nil-mono",
-                    "features": [
-                        "pulse"
-                    ]
+                    "features": ["pulse"]
                 },
                 "nlohmann-json",
                 "opengl",
