@@ -5,7 +5,7 @@ if(NOT ENABLE_SANDBOX)
     return()
 endif()
 
-find_package(nil-xit-test COMPONENTS CONFIG REQUIRED)
+find_package(nil-xit-test CONFIG REQUIRED COMPONENTS gtest)
 find_package(nlohmann_json CONFIG REQUIRED)
 
 add_executable(
